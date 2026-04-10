@@ -148,12 +148,24 @@ LATE_DYNAMIC_MIN_CONF      = 0.85    # min confidence di final <45 detik
 # ── ML signal engine ─────────────────────────────────────────────────────────
 ML_MODELS_DIR             = os.getenv("ML_MODELS_DIR", "artifacts/ml")
 ML_PROMOTION_STATE        = os.getenv("ML_PROMOTION_STATE", "shadow").lower()
-ML_MIN_TRAIN_ROWS         = int(os.getenv("ML_MIN_TRAIN_ROWS", "200"))
+ML_MIN_TRAIN_ROWS         = int(os.getenv("ML_MIN_TRAIN_ROWS", "500"))
+ML_MIN_TRAIN_WINDOWS      = int(os.getenv("ML_MIN_TRAIN_WINDOWS", "50"))
+ML_MIN_PROMOTE_ROWS       = int(os.getenv("ML_MIN_PROMOTE_ROWS", "1000"))
+ML_MIN_PROMOTE_WINDOWS    = int(os.getenv("ML_MIN_PROMOTE_WINDOWS", "100"))
 ML_RETRAIN_HOUR_UTC       = int(os.getenv("ML_RETRAIN_HOUR_UTC", "0"))
 ML_RETRAIN_MINUTE_UTC     = int(os.getenv("ML_RETRAIN_MINUTE_UTC", "15"))
 ML_MODEL_STALE_HOURS      = int(os.getenv("ML_MODEL_STALE_HOURS", "72"))
 ML_AUTO_PROMOTE           = os.getenv("ML_AUTO_PROMOTE", "true").lower() == "true"
 PERFORMANCE_HISTORY_FILENAME = os.getenv("PERFORMANCE_HISTORY_FILENAME", "performance_history.json")
+ML_PROMOTION_AP_MARGIN    = float(os.getenv("ML_PROMOTION_AP_MARGIN", "0.03"))
+ML_PROMOTION_MAX_BRIER    = float(os.getenv("ML_PROMOTION_MAX_BRIER", "0.25"))
+ML_PROMOTION_MAX_BRIER_DEGRADE = float(os.getenv("ML_PROMOTION_MAX_BRIER_DEGRADE", "0.01"))
+ML_PROMOTION_WARN_AP_STD  = float(os.getenv("ML_PROMOTION_WARN_AP_STD", "0.05"))
+ML_PROMOTION_BLOCK_AP_STD = float(os.getenv("ML_PROMOTION_BLOCK_AP_STD", "0.08"))
+ML_PROMOTION_BLOCK_AP_DROP = float(os.getenv("ML_PROMOTION_BLOCK_AP_DROP", "0.05"))
+ML_DRIFT_LOOKBACK_ROWS    = int(os.getenv("ML_DRIFT_LOOKBACK_ROWS", "50"))
+ML_DRIFT_CHECK_INTERVAL_MIN = int(os.getenv("ML_DRIFT_CHECK_INTERVAL_MIN", "60"))
+ML_DRIFT_AP_DROP          = float(os.getenv("ML_DRIFT_AP_DROP", "0.07"))
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 UI_REFRESH_S = 1.0
@@ -188,6 +200,7 @@ Files written to logs/ (rotated daily at UTC midnight):
   signals_YYYY-MM-DD.jsonl — every runtime signal snapshot
   prices_YYYY-MM-DD.jsonl  — 5-second BTC price + volume snapshots
   prediction_analytics_YYYY-MM-DD.jsonl — unified prediction/shadow/trade analytics
+  settlements_YYYY-MM-DD.jsonl — market settlement registry for label truth
 """
 
 from collections import defaultdict
@@ -319,6 +332,10 @@ class BotLogger:
     def log_ml_label(self, label_row: dict) -> None:
         today = datetime.now(_UTC).strftime("%Y-%m-%d")
         self._append(f"ml_labels_{today}.jsonl", label_row)
+
+    def log_settlement(self, settlement_row: dict) -> None:
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        self._append(f"settlements_{today}.jsonl", settlement_row)
 
     def log_trade_open(self, position, window_question: str = "") -> None:
         """Record a newly placed trade."""
@@ -2645,6 +2662,51 @@ class MarketClient:
         except Exception:
             return []
 
+    async def get_order_book_snapshot(self, token_id: str) -> dict[str, Any] | None:
+        """Return a best-effort public order book snapshot for a token."""
+        try:
+            book = await self._run(self._client.get_order_book, token_id)
+        except Exception:
+            return None
+        if isinstance(book, dict):
+            return book
+        return getattr(book, "__dict__", None)
+
+    async def fetch_market_settlement(self, condition_id: str) -> SettlementRecord | None:
+        """Best-effort settlement lookup for a resolved market."""
+        if not condition_id:
+            return None
+
+        candidates = [
+            (f"{GAMMA_API}/markets", {"condition_ids": condition_id}),
+            (f"{GAMMA_API}/markets", {"conditionId": condition_id}),
+            (f"{GAMMA_API}/markets/{condition_id}", None),
+        ]
+        for url, params in candidates:
+            try:
+                response = await self._http.get(url, params=params, timeout=2.0)
+                if not response.is_success:
+                    continue
+                payload = response.json()
+            except Exception:
+                continue
+
+            settlement_price = _extract_settlement_price(payload if isinstance(payload, dict) else {"data": payload})
+            if settlement_price is None:
+                continue
+            resolved_at_raw = _extract_resolved_at(payload if isinstance(payload, dict) else {"data": payload})
+            resolved_at = ml_parse_utc_ts(resolved_at_raw) or _utc_now()
+            return SettlementRecord(
+                condition_id=condition_id,
+                resolved_at=_iso_z(resolved_at),
+                settlement_price=settlement_price,
+                settlement_source="market_settlement_lookup",
+                settlement_source_priority=_label_source_priority("market_settlement_lookup"),
+                chainlink_settlement_price=settlement_price,
+                raw_payload=payload if isinstance(payload, dict) else {"data": payload},
+            )
+        return None
+
     # ── Market WebSocket (odds + resolved events) ─────────────────────────────
 
     async def subscribe_market_ws(
@@ -2699,7 +2761,36 @@ class MarketClient:
                             if etype in ("price_change", "book", "last_trade_price"):
                                 _update_odds_from_ws(msg, up_token_id, down_token_id, state)
                             elif etype == "market_resolved":
-                                state.log_event(f"[MKTWS] market_resolved: {msg.get('market')}")
+                                resolved_condition_id = (
+                                    str(msg.get("condition_id") or msg.get("conditionId") or condition_id or "").strip()
+                                )
+                                settlement_price = _extract_settlement_price(msg)
+                                settlement_record: SettlementRecord | None = None
+                                if settlement_price is not None and resolved_condition_id:
+                                    resolved_at = ml_parse_utc_ts(_extract_resolved_at(msg)) or _utc_now()
+                                    settlement_record = SettlementRecord(
+                                        condition_id=resolved_condition_id,
+                                        resolved_at=_iso_z(resolved_at),
+                                        settlement_price=settlement_price,
+                                        settlement_source="chainlink_market_resolved",
+                                        settlement_source_priority=_label_source_priority("chainlink_market_resolved"),
+                                        market_id=str(msg.get("market") or ""),
+                                        chainlink_settlement_price=settlement_price,
+                                        raw_payload=msg,
+                                    )
+                                elif resolved_condition_id:
+                                    settlement_record = await self.fetch_market_settlement(resolved_condition_id)
+
+                                if settlement_record is not None:
+                                    state.logger.log_settlement(settlement_record.to_record())
+                                    state.settlement_registry_cache[settlement_record.condition_id] = settlement_record.to_record()
+                                    state.log_event(
+                                        f"[MKTWS] market_resolved: {settlement_record.condition_id} "
+                                        f"settlement={settlement_record.settlement_price:,.2f} "
+                                        f"source={settlement_record.settlement_source}"
+                                    )
+                                else:
+                                    state.log_event(f"[MKTWS] market_resolved: {msg.get('market')}")
                                 state.market_resolved_event.set()
             except asyncio.CancelledError:
                 raise
@@ -2735,6 +2826,39 @@ def _extract_price(question: str) -> float:
     return 0.0
 
 
+def _normalize_book_levels(levels: Any, depth: int = 5) -> list[tuple[float, float]]:
+    normalized: list[tuple[float, float]] = []
+    if not isinstance(levels, list):
+        return normalized
+    for raw in levels[:depth]:
+        price = 0.0
+        size = 0.0
+        if isinstance(raw, dict):
+            price = _safe_float(raw.get("price") or raw.get("rate"), 0.0)
+            size = _safe_float(
+                raw.get("size")
+                or raw.get("quantity")
+                or raw.get("qty")
+                or raw.get("amount"),
+                0.0,
+            )
+        elif isinstance(raw, (list, tuple)) and len(raw) >= 2:
+            price = _safe_float(raw[0], 0.0)
+            size = _safe_float(raw[1], 0.0)
+        if price > 0.0 and size > 0.0:
+            normalized.append((price, size))
+    return normalized
+
+
+def _compute_ob_imbalance_from_levels(bids: list[tuple[float, float]], asks: list[tuple[float, float]]) -> float:
+    bid_qty = sum(size for _, size in bids[:5])
+    ask_qty = sum(size for _, size in asks[:5])
+    total = bid_qty + ask_qty
+    if total <= 0.0:
+        return 0.0
+    return float(max(-1.0, min(1.0, (bid_qty - ask_qty) / total)))
+
+
 def _update_odds_from_ws(
     msg: dict,
     up_token_id: str,
@@ -2742,14 +2866,21 @@ def _update_odds_from_ws(
     state: "BotState",
 ) -> None:
     asset = msg.get("asset_id", "")
+    bids = _normalize_book_levels(msg.get("bids", []))
+    asks = _normalize_book_levels(msg.get("asks", []))
+    if asset and (bids or asks):
+        state.order_book_snapshots[asset] = OrderBookSnapshot(
+            asset_id=asset,
+            bids=bids,
+            asks=asks,
+            ts=time.time(),
+        )
     price = msg.get("price") or msg.get("last_trade_price")
     if price is None:
         # Try extracting from bids/asks midpoint
-        bids = msg.get("bids", [])
-        asks = msg.get("asks", [])
         if bids and asks:
-            best_bid = float(bids[0].get("price", 0) if isinstance(bids[0], dict) else bids[0])
-            best_ask = float(asks[0].get("price", 0) if isinstance(asks[0], dict) else asks[0])
+            best_bid = bids[0][0]
+            best_ask = asks[0][0]
             price = (best_bid + best_ask) / 2
     if price is None:
         return
@@ -3075,19 +3206,27 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.isotonic import IsotonicRegression
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    confusion_matrix,
+    precision_recall_fscore_support,
+)
+from sklearn.model_selection import TimeSeriesSplit
 from xgboost import XGBClassifier
 
 
 UTC = timezone.utc
 MODEL_NAME = "bandar_avoider_xgb"
-FEATURE_SCHEMA_VERSION = "1.0"
+FEATURE_SCHEMA_VERSION = "2.0"
 LABEL_BUY_UP = "BUY_UP"
 LABEL_BUY_DOWN = "BUY_DOWN"
 LABEL_SKIP = "SKIP"
 PROMOTION_STATES = {"shadow", "assist", "active"}
 ML_FEATURE_GLOB = "ml_features_*.jsonl"
 ML_LABEL_GLOB = "ml_labels_*.jsonl"
+SETTLEMENT_GLOB = "settlements_*.jsonl"
 DEFAULT_MODELS_DIR = "artifacts/ml"
 
 MODEL_FEATURE_COLUMNS = [
@@ -3109,6 +3248,14 @@ MODEL_FEATURE_COLUMNS = [
     "price_roc_30s",
     "cvd_change_last_30s",
     "odds_edge_strength",
+    "elapsed_fraction",
+    "gap_alignment_interaction",
+    "realized_vol_30s",
+    "realized_vol_60s",
+    "gap_signed_pct_lag1",
+    "signal_alignment_lag1",
+    "odds_edge_strength_lag1",
+    "ob_imbalance",
 ]
 
 NUMERIC_DEFAULTS = {
@@ -3135,6 +3282,14 @@ NUMERIC_DEFAULTS = {
     "price_roc_30s": 0.0,
     "cvd_change_last_30s": 0.0,
     "odds_edge_strength": 0.0,
+    "elapsed_fraction": 0.0,
+    "gap_alignment_interaction": 0.0,
+    "realized_vol_30s": 0.0,
+    "realized_vol_60s": 0.0,
+    "gap_signed_pct_lag1": 0.0,
+    "signal_alignment_lag1": 0.0,
+    "odds_edge_strength_lag1": 0.0,
+    "ob_imbalance": 0.0,
     "fair_up": 0.5,
     "fair_down": 0.5,
     "edge_up": 0.0,
@@ -3223,6 +3378,140 @@ def _append_jsonl(path: Path, record: dict) -> None:
         handle.write(json.dumps(record, default=str) + "\n")
 
 
+LABEL_SOURCE_PRIORITY = {
+    "chainlink_market_resolved": 400,
+    "market_settlement_lookup": 350,
+    "binance_15s": 200,
+    "binance_90s": 100,
+    "window_resolution": 50,
+}
+
+
+def _label_source_priority(source: str | None) -> int:
+    return int(LABEL_SOURCE_PRIORITY.get(str(source or "").strip(), 0))
+
+
+def _best_record_by_priority(
+    current: dict[str, Any] | None,
+    candidate: dict[str, Any] | None,
+    *,
+    source_key: str,
+    ts_key: str,
+) -> dict[str, Any] | None:
+    if candidate is None:
+        return current
+    if current is None:
+        return candidate
+
+    current_priority = _label_source_priority(current.get(source_key))
+    candidate_priority = _label_source_priority(candidate.get(source_key))
+    if candidate_priority > current_priority:
+        return candidate
+    if candidate_priority < current_priority:
+        return current
+
+    current_ts = ml_parse_utc_ts(current.get(ts_key))
+    candidate_ts = ml_parse_utc_ts(candidate.get(ts_key))
+    if current_ts is None:
+        return candidate
+    if candidate_ts is None:
+        return current
+    return candidate if candidate_ts >= current_ts else current
+
+
+def _extract_numeric_price(payload: Any, target_keys: set[str]) -> float | None:
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key.lower() in target_keys:
+                raw = _safe_float(value, 0.0)
+                if raw > 1000.0:
+                    return raw
+            nested = _extract_numeric_price(value, target_keys)
+            if nested is not None:
+                return nested
+    elif isinstance(payload, list):
+        for item in payload:
+            nested = _extract_numeric_price(item, target_keys)
+            if nested is not None:
+                return nested
+    return None
+
+
+def _extract_string_value(payload: Any, target_keys: set[str]) -> str:
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key.lower() in target_keys and value not in (None, ""):
+                return str(value)
+            nested = _extract_string_value(value, target_keys)
+            if nested:
+                return nested
+    elif isinstance(payload, list):
+        for item in payload:
+            nested = _extract_string_value(item, target_keys)
+            if nested:
+                return nested
+    return ""
+
+
+def _extract_settlement_price(payload: dict[str, Any]) -> float | None:
+    return _extract_numeric_price(
+        payload,
+        {
+            "settlement_price",
+            "settlementprice",
+            "oracle_price",
+            "oracleprice",
+            "resolution_price",
+            "resolutionprice",
+            "resolved_price",
+            "resolvedprice",
+            "final_price",
+            "finalprice",
+        },
+    )
+
+
+def _extract_resolved_at(payload: dict[str, Any]) -> str:
+    return _extract_string_value(
+        payload,
+        {
+            "resolved_at",
+            "resolvedat",
+            "resolution_ts",
+            "resolutionts",
+            "timestamp",
+            "time",
+            "ts",
+        },
+    )
+
+
+@dataclass
+class SettlementRecord:
+    condition_id: str
+    resolved_at: str
+    settlement_price: float
+    settlement_source: str = "chainlink_market_resolved"
+    settlement_source_priority: int = 0
+    market_id: str = ""
+    chainlink_settlement_price: float | None = None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    schema_version: str = FEATURE_SCHEMA_VERSION
+
+    def to_record(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SettlementInfo:
+    settlement_price: float
+    settlement_source: str
+    resolved_at: datetime | None
+    settlement_source_priority: int
+    chainlink_settlement_price: float | None = None
+    binance_resolution_diff_s: float | None = None
+
+
 @dataclass
 class SignalFeatures:
     row_id: str
@@ -3253,6 +3542,14 @@ class SignalFeatures:
     price_roc_30s: float
     cvd_change_last_30s: float
     odds_edge_strength: float
+    elapsed_fraction: float = 0.0
+    gap_alignment_interaction: float = 0.0
+    realized_vol_30s: float = 0.0
+    realized_vol_60s: float = 0.0
+    gap_signed_pct_lag1: float = 0.0
+    signal_alignment_lag1: float = 0.0
+    odds_edge_strength_lag1: float = 0.0
+    ob_imbalance: float = 0.0
     fair_up: float = 0.5
     fair_down: float = 0.5
     edge_up: float = 0.0
@@ -3283,6 +3580,9 @@ class ResolvedLabelRecord:
     resolved_label: str
     resolved_btc_price: float
     label_source: str = "window_resolution"
+    chainlink_settlement_price: float | None = None
+    binance_resolution_diff_s: float | None = None
+    settlement_source_priority: int = 0
     schema_version: str = FEATURE_SCHEMA_VERSION
 
     def to_record(self) -> dict[str, Any]:
@@ -3380,7 +3680,8 @@ class ModelRegistry:
         if promotion_state not in PROMOTION_STATES:
             promotion_state = "shadow"
 
-        version = _utc_now().strftime("%Y%m%dT%H%M%SZ")
+        schema_suffix = FEATURE_SCHEMA_VERSION.replace(".", "")
+        version = f"{_utc_now().strftime('%Y%m%dT%H%M%SZ')}-s{schema_suffix}"
         version_dir = self.versions_dir / version
         version_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3425,7 +3726,8 @@ class ModelRegistry:
             activation_reason=activation_reason,
         )
         manifest_path.write_text(json.dumps(manifest.to_record(), indent=2), encoding="utf-8")
-        self.active_manifest_path.write_text(json.dumps(manifest.to_record(), indent=2), encoding="utf-8")
+        if promotion_state == "active":
+            self.active_manifest_path.write_text(json.dumps(manifest.to_record(), indent=2), encoding="utf-8")
         self.prune_old_versions(keep=6)
         return manifest
 
@@ -3620,7 +3922,19 @@ class RuntimeSignalEngine:
             if age_h > self.stale_after_hours:
                 return 0.5, f"model stale ({age_h:.1f}h)"
 
-        frame = pd.DataFrame([features.model_record()], columns=MODEL_FEATURE_COLUMNS)
+        feature_list = list(manifest.feature_list or MODEL_FEATURE_COLUMNS)
+        frame = pd.DataFrame(
+            [
+                {
+                    name: _safe_float(
+                        getattr(features, name, NUMERIC_DEFAULTS.get(name, 0.0)),
+                        NUMERIC_DEFAULTS.get(name, 0.0),
+                    )
+                    for name in feature_list
+                }
+            ],
+            columns=feature_list,
+        )
         if frame.isnull().values.any():
             return 0.5, "feature vector contains NaN"
 
@@ -3875,6 +4189,8 @@ def compute_legacy_feature_row(
     edge_down = ml_compute_edge(fair_down, down_odds)
     odds_edge_strength = up_odds - down_odds
     dip_label = ml_compute_dip_label(prices, beat_price, btc_price)
+    realized_vol_30s = float(np.std(np.diff(np.array(prices[-7:], dtype=float)) / np.array(prices[-7:-1], dtype=float))) / math.sqrt(5.0) if len(prices) >= 7 and all(p != 0 for p in prices[-7:-1]) else 0.0
+    realized_vol_60s = float(np.std(np.diff(np.array(prices[-13:], dtype=float)) / np.array(prices[-13:-1], dtype=float))) / math.sqrt(5.0) if len(prices) >= 13 and all(p != 0 for p in prices[-13:-1]) else 0.0
 
     return SignalFeatures(
         row_id=_build_row_id(str(signal_record.get("condition_id", "")), str(signal_record.get("ts", "")), prefix="legacy"),
@@ -3905,6 +4221,14 @@ def compute_legacy_feature_row(
         price_roc_30s=price_roc_30s,
         cvd_change_last_30s=cvd_change_30s,
         odds_edge_strength=odds_edge_strength,
+        elapsed_fraction=max(0.0, min(1.0, elapsed_s / 300.0)),
+        gap_alignment_interaction=gap_signed_pct * signal_alignment,
+        realized_vol_30s=realized_vol_30s,
+        realized_vol_60s=realized_vol_60s,
+        gap_signed_pct_lag1=0.0,
+        signal_alignment_lag1=0.0,
+        odds_edge_strength_lag1=0.0,
+        ob_imbalance=0.0,
         fair_up=fair_up,
         fair_down=fair_down,
         edge_up=edge_up,
@@ -3946,14 +4270,35 @@ def load_price_frame(log_dir: str | Path) -> pd.DataFrame:
     return frame
 
 
-def resolve_label_for_row(row: dict[str, Any], price_frame: pd.DataFrame, max_diff_s: float = 90.0) -> ResolvedLabelRecord | None:
+def load_settlement_registry(log_dir: str | Path) -> dict[str, dict[str, Any]]:
+    registry: dict[str, dict[str, Any]] = {}
+    for path in sorted(Path(log_dir).glob(SETTLEMENT_GLOB)):
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    record = json.loads(line)
+                except Exception:
+                    continue
+                condition_id = str(record.get("condition_id", "")).strip()
+                if not condition_id:
+                    continue
+                registry[condition_id] = _best_record_by_priority(
+                    registry.get(condition_id),
+                    record,
+                    source_key="settlement_source",
+                    ts_key="resolved_at",
+                ) or record
+    return registry
+
+
+def _find_closest_price_resolution(
+    price_frame: pd.DataFrame,
+    window_end_at: datetime,
+    *,
+    max_diff_s: float,
+) -> tuple[datetime, float, float] | None:
     if price_frame.empty:
         return None
-    window_end_at = ml_parse_utc_ts(row.get("window_end_at"))
-    beat_price = _safe_float(row.get("beat_price"), 0.0)
-    if window_end_at is None or beat_price <= 0.0:
-        return None
-
     lo = window_end_at - timedelta(seconds=max_diff_s)
     hi = window_end_at + timedelta(seconds=max_diff_s)
     candidates = price_frame.loc[(price_frame.index >= lo) & (price_frame.index <= hi)]
@@ -3964,6 +4309,50 @@ def resolve_label_for_row(row: dict[str, Any], price_frame: pd.DataFrame, max_di
     deltas = (ts_values - window_end_at).abs()
     closest_ts = deltas.idxmin()
     resolved_btc = _safe_float(candidates.loc[closest_ts]["btc"], 0.0)
+    if resolved_btc <= 0.0:
+        return None
+    diff_s = float(abs((closest_ts.to_pydatetime() - window_end_at).total_seconds()))
+    return closest_ts.to_pydatetime(), resolved_btc, diff_s
+
+
+def resolve_label_for_row(
+    row: dict[str, Any],
+    price_frame: pd.DataFrame,
+    max_diff_s: float = 90.0,
+    *,
+    override_price: float | None = None,
+    label_source: str | None = None,
+    override_resolution_ts: str | datetime | None = None,
+    settlement_source_priority: int | None = None,
+) -> ResolvedLabelRecord | None:
+    window_end_at = ml_parse_utc_ts(row.get("window_end_at"))
+    beat_price = _safe_float(row.get("beat_price"), 0.0)
+    if window_end_at is None or beat_price <= 0.0:
+        return None
+
+    resolved_btc = 0.0
+    resolution_ts = window_end_at
+    source = str(label_source or "").strip()
+    chainlink_settlement_price: float | None = None
+    binance_resolution_diff_s: float | None = None
+    source_priority = int(settlement_source_priority or _label_source_priority(source))
+
+    if override_price is not None and override_price > 0.0:
+        resolved_btc = float(override_price)
+        resolution_ts = ml_parse_utc_ts(override_resolution_ts) or window_end_at
+        if "chainlink" in source or "market_settlement" in source:
+            chainlink_settlement_price = resolved_btc
+    else:
+        resolution = _find_closest_price_resolution(price_frame, window_end_at, max_diff_s=min(15.0, max_diff_s))
+        source = "binance_15s"
+        if resolution is None and max_diff_s > 15.0:
+            resolution = _find_closest_price_resolution(price_frame, window_end_at, max_diff_s=max_diff_s)
+            source = "binance_90s"
+        if resolution is None:
+            return None
+        resolution_ts, resolved_btc, binance_resolution_diff_s = resolution
+        source_priority = _label_source_priority(source)
+
     if resolved_btc <= 0.0 or math.isclose(resolved_btc, beat_price, rel_tol=0.0, abs_tol=1e-9):
         return None
 
@@ -3971,16 +4360,21 @@ def resolve_label_for_row(row: dict[str, Any], price_frame: pd.DataFrame, max_di
     return ResolvedLabelRecord(
         row_id=str(row.get("row_id", "")),
         condition_id=str(row.get("condition_id", "")),
-        resolution_ts=_iso_z(closest_ts.to_pydatetime()),
+        resolution_ts=_iso_z(resolution_ts),
         resolved_label=label,
         resolved_btc_price=resolved_btc,
+        label_source=source or "window_resolution",
+        chainlink_settlement_price=chainlink_settlement_price,
+        binance_resolution_diff_s=binance_resolution_diff_s,
+        settlement_source_priority=source_priority,
     )
 
 
 def backfill_ml_labels(log_dir: str | Path) -> int:
     log_dir = Path(log_dir)
     price_frame = load_price_frame(log_dir)
-    labeled_ids: set[str] = set()
+    settlement_registry = load_settlement_registry(log_dir)
+    labeled_records: dict[str, dict[str, Any]] = {}
     for path in sorted(log_dir.glob(ML_LABEL_GLOB)):
         with open(path, "r", encoding="utf-8") as handle:
             for line in handle:
@@ -3990,7 +4384,12 @@ def backfill_ml_labels(log_dir: str | Path) -> int:
                     continue
                 row_id = str(record.get("row_id", ""))
                 if row_id:
-                    labeled_ids.add(row_id)
+                    labeled_records[row_id] = _best_record_by_priority(
+                        labeled_records.get(row_id),
+                        record,
+                        source_key="label_source",
+                        ts_key="resolution_ts",
+                    ) or record
 
     appended = 0
     for path in sorted(log_dir.glob(ML_FEATURE_GLOB)):
@@ -4001,14 +4400,27 @@ def backfill_ml_labels(log_dir: str | Path) -> int:
                 except Exception:
                     continue
                 row_id = str(record.get("row_id", ""))
-                if not row_id or row_id in labeled_ids:
+                if not row_id:
                     continue
-                label = resolve_label_for_row(record, price_frame)
+                settlement = settlement_registry.get(str(record.get("condition_id", "")).strip())
+                label = resolve_label_for_row(
+                    record,
+                    price_frame,
+                    override_price=_safe_float(settlement.get("settlement_price"), 0.0) if settlement else None,
+                    label_source=str(settlement.get("settlement_source", "")) if settlement else None,
+                    override_resolution_ts=settlement.get("resolved_at") if settlement else None,
+                    settlement_source_priority=int(settlement.get("settlement_source_priority", 0)) if settlement else None,
+                )
                 if label is None:
                     continue
+                existing = labeled_records.get(row_id)
+                if existing is not None:
+                    existing_priority = int(existing.get("settlement_source_priority") or _label_source_priority(existing.get("label_source")))
+                    if existing_priority >= label.settlement_source_priority:
+                        continue
                 label_path = log_dir / f"ml_labels_{label.resolution_ts[:10]}.jsonl"
                 _append_jsonl(label_path, label.to_record())
-                labeled_ids.add(label.row_id)
+                labeled_records[label.row_id] = label.to_record()
                 appended += 1
     return appended
 
@@ -4040,15 +4452,29 @@ def _load_runtime_dataset(log_dir: str | Path) -> pd.DataFrame:
                     continue
                 row_id = str(label.get("row_id", ""))
                 if row_id:
-                    label_records[row_id] = label
+                    label_records[row_id] = _best_record_by_priority(
+                        label_records.get(row_id),
+                        label,
+                        source_key="label_source",
+                        ts_key="resolution_ts",
+                    ) or label
 
     price_frame = load_price_frame(log_dir)
+    settlement_registry = load_settlement_registry(log_dir)
     joined: list[dict[str, Any]] = []
     for record in feature_records:
         row_id = str(record.get("row_id", ""))
         label = label_records.get(row_id)
         if label is None:
-            derived = resolve_label_for_row(record, price_frame)
+            settlement = settlement_registry.get(str(record.get("condition_id", "")).strip())
+            derived = resolve_label_for_row(
+                record,
+                price_frame,
+                override_price=_safe_float(settlement.get("settlement_price"), 0.0) if settlement else None,
+                label_source=str(settlement.get("settlement_source", "")) if settlement else None,
+                override_resolution_ts=settlement.get("resolved_at") if settlement else None,
+                settlement_source_priority=int(settlement.get("settlement_source_priority", 0)) if settlement else None,
+            )
             label = derived.to_record() if derived else None
         if label is None:
             continue
@@ -4058,6 +4484,10 @@ def _load_runtime_dataset(log_dir: str | Path) -> pd.DataFrame:
                 "resolved_label": label["resolved_label"],
                 "resolved_btc_price": label["resolved_btc_price"],
                 "resolution_ts": label["resolution_ts"],
+                "label_source": label.get("label_source", ""),
+                "chainlink_settlement_price": label.get("chainlink_settlement_price"),
+                "binance_resolution_diff_s": label.get("binance_resolution_diff_s"),
+                "settlement_source_priority": label.get("settlement_source_priority", 0),
             }
         )
         joined.append(merged)
@@ -4066,6 +4496,7 @@ def _load_runtime_dataset(log_dir: str | Path) -> pd.DataFrame:
 
 def _load_legacy_bootstrap_dataset(log_dir: str | Path) -> pd.DataFrame:
     price_frame = load_price_frame(log_dir)
+    settlement_registry = load_settlement_registry(log_dir)
     records: list[dict[str, Any]] = []
     for path in sorted(Path(log_dir).glob("signals_*.jsonl")):
         with open(path, "r", encoding="utf-8") as handle:
@@ -4077,7 +4508,15 @@ def _load_legacy_bootstrap_dataset(log_dir: str | Path) -> pd.DataFrame:
                 feature_row = compute_legacy_feature_row(signal_record, price_frame)
                 if feature_row is None:
                     continue
-                label = resolve_label_for_row(feature_row.to_record(), price_frame)
+                settlement = settlement_registry.get(feature_row.condition_id)
+                label = resolve_label_for_row(
+                    feature_row.to_record(),
+                    price_frame,
+                    override_price=_safe_float(settlement.get("settlement_price"), 0.0) if settlement else None,
+                    label_source=str(settlement.get("settlement_source", "")) if settlement else None,
+                    override_resolution_ts=settlement.get("resolved_at") if settlement else None,
+                    settlement_source_priority=int(settlement.get("settlement_source_priority", 0)) if settlement else None,
+                )
                 if label is None:
                     continue
                 merged = feature_row.to_record()
@@ -4086,6 +4525,10 @@ def _load_legacy_bootstrap_dataset(log_dir: str | Path) -> pd.DataFrame:
                         "resolved_label": label.resolved_label,
                         "resolved_btc_price": label.resolved_btc_price,
                         "resolution_ts": label.resolution_ts,
+                        "label_source": label.label_source,
+                        "chainlink_settlement_price": label.chainlink_settlement_price,
+                        "binance_resolution_diff_s": label.binance_resolution_diff_s,
+                        "settlement_source_priority": label.settlement_source_priority,
                     }
                 )
                 records.append(merged)
@@ -4099,16 +4542,67 @@ def load_training_dataset(log_dir: str | Path) -> pd.DataFrame:
     return _load_legacy_bootstrap_dataset(log_dir)
 
 
+def _rolling_return_volatility(values: pd.Series, lookback_returns: int) -> pd.Series:
+    returns = values.pct_change()
+    return returns.rolling(lookback_returns, min_periods=2).std().fillna(0.0) / math.sqrt(5.0)
+
+
 def _prepare_training_frame(dataset: pd.DataFrame) -> pd.DataFrame:
     if dataset.empty:
         return dataset
     frame = dataset.copy()
     frame["ts"] = pd.to_datetime(frame["ts"], utc=True)
+    if "window_end_at" in frame.columns:
+        frame["window_end_at"] = pd.to_datetime(frame["window_end_at"], utc=True, errors="coerce")
     frame = frame.sort_values("ts").reset_index(drop=True)
     frame = frame[frame["resolved_label"].isin([LABEL_BUY_UP, LABEL_BUY_DOWN])].copy()
     for column, default in NUMERIC_DEFAULTS.items():
         if column in frame.columns:
             frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(default)
+    frame["elapsed_fraction"] = (
+        pd.to_numeric(frame.get("elapsed_fraction", pd.Series(index=frame.index)), errors="coerce")
+        .fillna((300.0 - pd.to_numeric(frame["seconds_remaining"], errors="coerce").fillna(0.0)) / 300.0)
+        .clip(lower=0.0, upper=1.0)
+    )
+    frame["gap_alignment_interaction"] = pd.to_numeric(
+        frame.get("gap_alignment_interaction", frame["gap_signed_pct"] * frame["signal_alignment"]),
+        errors="coerce",
+    ).fillna(frame["gap_signed_pct"] * frame["signal_alignment"])
+    frame["ob_imbalance"] = pd.to_numeric(
+        frame.get("ob_imbalance", pd.Series(0.0, index=frame.index)),
+        errors="coerce",
+    ).fillna(0.0)
+
+    if "condition_id" in frame.columns:
+        grouped = frame.groupby("condition_id", sort=False)
+        frame["gap_signed_pct_lag1"] = pd.to_numeric(
+            frame.get("gap_signed_pct_lag1", pd.Series(np.nan, index=frame.index)),
+            errors="coerce",
+        )
+        frame["signal_alignment_lag1"] = pd.to_numeric(
+            frame.get("signal_alignment_lag1", pd.Series(np.nan, index=frame.index)),
+            errors="coerce",
+        )
+        frame["odds_edge_strength_lag1"] = pd.to_numeric(
+            frame.get("odds_edge_strength_lag1", pd.Series(np.nan, index=frame.index)),
+            errors="coerce",
+        )
+        frame["gap_signed_pct_lag1"] = frame["gap_signed_pct_lag1"].fillna(grouped["gap_signed_pct"].shift(1)).fillna(0.0)
+        frame["signal_alignment_lag1"] = frame["signal_alignment_lag1"].fillna(grouped["signal_alignment"].shift(1)).fillna(0.0)
+        frame["odds_edge_strength_lag1"] = frame["odds_edge_strength_lag1"].fillna(grouped["odds_edge_strength"].shift(1)).fillna(0.0)
+        frame["realized_vol_30s"] = pd.to_numeric(
+            frame.get("realized_vol_30s", pd.Series(np.nan, index=frame.index)),
+            errors="coerce",
+        )
+        frame["realized_vol_60s"] = pd.to_numeric(
+            frame.get("realized_vol_60s", pd.Series(np.nan, index=frame.index)),
+            errors="coerce",
+        )
+        computed_vol_30s = grouped["btc_price"].transform(lambda values: _rolling_return_volatility(values.astype(float), 6))
+        computed_vol_60s = grouped["btc_price"].transform(lambda values: _rolling_return_volatility(values.astype(float), 12))
+        frame["realized_vol_30s"] = frame["realized_vol_30s"].fillna(computed_vol_30s).fillna(0.0)
+        frame["realized_vol_60s"] = frame["realized_vol_60s"].fillna(computed_vol_60s).fillna(0.0)
+
     for column in MODEL_FEATURE_COLUMNS:
         frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(NUMERIC_DEFAULTS.get(column, 0.0))
     return frame
@@ -4123,47 +4617,133 @@ def _fit_calibrator(probabilities: np.ndarray, labels: np.ndarray) -> Any:
     return calibrator
 
 
+def _signal_features_from_row(row: Any) -> SignalFeatures:
+    return SignalFeatures(
+        row_id=str(row.row_id),
+        ts=_iso_z(ml_parse_utc_ts(row.ts) or _utc_now()),
+        condition_id=str(row.condition_id),
+        window_start_at=str(row.window_start_at),
+        window_end_at=str(row.window_end_at),
+        beat_price=_safe_float(row.beat_price),
+        btc_price=_safe_float(row.btc_price),
+        up_odds=_safe_float(row.up_odds, 0.5),
+        down_odds=_safe_float(row.down_odds, 0.5),
+        gap_pct=_safe_float(row.gap_pct, 0.0),
+        gap_signed_pct=_safe_float(row.gap_signed_pct, 0.0),
+        seconds_remaining=_safe_int(row.seconds_remaining, 0),
+        signal_alignment=_safe_int(row.signal_alignment, 0),
+        signed_alignment=_safe_float(row.signed_alignment, 0.0),
+        odds_vel=_safe_float(row.odds_vel, 0.0),
+        odds_vel_accel=_safe_float(row.odds_vel_accel, 0.0),
+        cvd_divergence=encode_cvd_divergence(row.cvd_divergence),
+        macd_histogram=_safe_float(row.macd_histogram, 0.0),
+        bb_pct_b=_safe_float(row.bb_pct_b, 0.5),
+        rsi=_safe_float(row.rsi, 50.0),
+        momentum_pct=_safe_float(row.momentum_pct, 0.0),
+        is_late_window=_safe_int(row.is_late_window, 0),
+        is_bandar_zone=_safe_int(row.is_bandar_zone, 0),
+        is_proximity_risk=_safe_int(row.is_proximity_risk, 0),
+        price_roc_15s=_safe_float(row.price_roc_15s, 0.0),
+        price_roc_30s=_safe_float(row.price_roc_30s, 0.0),
+        cvd_change_last_30s=_safe_float(row.cvd_change_last_30s, 0.0),
+        odds_edge_strength=_safe_float(row.odds_edge_strength, 0.0),
+        elapsed_fraction=_safe_float(getattr(row, "elapsed_fraction", 0.0), 0.0),
+        gap_alignment_interaction=_safe_float(getattr(row, "gap_alignment_interaction", 0.0), 0.0),
+        realized_vol_30s=_safe_float(getattr(row, "realized_vol_30s", 0.0), 0.0),
+        realized_vol_60s=_safe_float(getattr(row, "realized_vol_60s", 0.0), 0.0),
+        gap_signed_pct_lag1=_safe_float(getattr(row, "gap_signed_pct_lag1", 0.0), 0.0),
+        signal_alignment_lag1=_safe_float(getattr(row, "signal_alignment_lag1", 0.0), 0.0),
+        odds_edge_strength_lag1=_safe_float(getattr(row, "odds_edge_strength_lag1", 0.0), 0.0),
+        ob_imbalance=_safe_float(getattr(row, "ob_imbalance", 0.0), 0.0),
+        fair_up=_safe_float(row.fair_up, 0.5),
+        fair_down=_safe_float(row.fair_down, 0.5),
+        edge_up=_safe_float(row.edge_up, 0.0),
+        edge_down=_safe_float(row.edge_down, 0.0),
+        direction_bias=str(getattr(row, "direction_bias", "NONE")),
+        dip_label=str(getattr(row, "dip_label", "UNKNOWN")),
+        feature_source=str(getattr(row, "feature_source", "dataset")),
+    )
+
+
+def _compute_scale_pos_weight(labels: np.ndarray) -> float:
+    positives = int(np.sum(labels == 1))
+    negatives = int(np.sum(labels == 0))
+    total = positives + negatives
+    if positives == 0 or negatives == 0 or total == 0:
+        return 1.0
+    pos_ratio = positives / total
+    if 0.40 <= pos_ratio <= 0.60:
+        return 1.0
+    return float(negatives / positives)
+
+
+def _build_xgb_params(labels: np.ndarray) -> dict[str, Any]:
+    params = {
+        "n_estimators": 320,
+        "max_depth": 7,
+        "learning_rate": 0.10,
+        "subsample": 0.85,
+        "colsample_bytree": 0.8,
+        "random_state": 42,
+        "eval_metric": "logloss",
+        "objective": "binary:logistic",
+        "n_jobs": 1,
+    }
+    scale_pos_weight = _compute_scale_pos_weight(labels)
+    if abs(scale_pos_weight - 1.0) >= 1e-9:
+        params["scale_pos_weight"] = scale_pos_weight
+    return params
+
+
+def _window_split_indices(
+    frame: pd.DataFrame,
+    *,
+    n_splits: int = 5,
+    purge_windows: int = 1,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    if frame.empty or "condition_id" not in frame.columns:
+        return []
+    windows = (
+        frame.groupby("condition_id", as_index=False)
+        .agg(window_end_at=("window_end_at", "max"), first_ts=("ts", "min"))
+        .sort_values(["window_end_at", "first_ts", "condition_id"])
+        .reset_index(drop=True)
+    )
+    window_ids = windows["condition_id"].tolist()
+    if len(window_ids) < 2:
+        return []
+
+    splits: list[tuple[np.ndarray, np.ndarray]] = []
+    max_splits = min(n_splits, len(window_ids) - 1)
+    if max_splits >= 2:
+        splitter = TimeSeriesSplit(n_splits=max_splits, gap=min(purge_windows, max(0, len(window_ids) - 2)))
+        for train_window_idx, valid_window_idx in splitter.split(np.arange(len(window_ids))):
+            train_ids = set(windows.iloc[train_window_idx]["condition_id"].tolist())
+            valid_ids = set(windows.iloc[valid_window_idx]["condition_id"].tolist())
+            train_idx = frame.index[frame["condition_id"].isin(train_ids)].to_numpy()
+            valid_idx = frame.index[frame["condition_id"].isin(valid_ids)].to_numpy()
+            if len(train_idx) and len(valid_idx):
+                splits.append((train_idx, valid_idx))
+    if splits:
+        return splits
+
+    split_idx = max(1, int(len(window_ids) * 0.8))
+    if split_idx >= len(window_ids):
+        split_idx = len(window_ids) - 1
+    train_ids = set(window_ids[:split_idx])
+    valid_ids = set(window_ids[split_idx:])
+    train_idx = frame.index[frame["condition_id"].isin(train_ids)].to_numpy()
+    valid_idx = frame.index[frame["condition_id"].isin(valid_ids)].to_numpy()
+    if len(train_idx) and len(valid_idx):
+        return [(train_idx, valid_idx)]
+    return []
+
+
 def _policy_metrics(frame: pd.DataFrame, probabilities: np.ndarray, policy: RuntimePolicy) -> dict[str, Any]:
     predictions: list[str] = []
     realized_returns: list[float] = []
     for row, prob_up in zip(frame.itertuples(index=False), probabilities):
-        features = SignalFeatures(
-            row_id=str(row.row_id),
-            ts=_iso_z(ml_parse_utc_ts(row.ts) or _utc_now()),
-            condition_id=str(row.condition_id),
-            window_start_at=str(row.window_start_at),
-            window_end_at=str(row.window_end_at),
-            beat_price=_safe_float(row.beat_price),
-            btc_price=_safe_float(row.btc_price),
-            up_odds=_safe_float(row.up_odds, 0.5),
-            down_odds=_safe_float(row.down_odds, 0.5),
-            gap_pct=_safe_float(row.gap_pct, 0.0),
-            gap_signed_pct=_safe_float(row.gap_signed_pct, 0.0),
-            seconds_remaining=_safe_int(row.seconds_remaining, 0),
-            signal_alignment=_safe_int(row.signal_alignment, 0),
-            signed_alignment=_safe_float(row.signed_alignment, 0.0),
-            odds_vel=_safe_float(row.odds_vel, 0.0),
-            odds_vel_accel=_safe_float(row.odds_vel_accel, 0.0),
-            cvd_divergence=encode_cvd_divergence(row.cvd_divergence),
-            macd_histogram=_safe_float(row.macd_histogram, 0.0),
-            bb_pct_b=_safe_float(row.bb_pct_b, 0.5),
-            rsi=_safe_float(row.rsi, 50.0),
-            momentum_pct=_safe_float(row.momentum_pct, 0.0),
-            is_late_window=_safe_int(row.is_late_window, 0),
-            is_bandar_zone=_safe_int(row.is_bandar_zone, 0),
-            is_proximity_risk=_safe_int(row.is_proximity_risk, 0),
-            price_roc_15s=_safe_float(row.price_roc_15s, 0.0),
-            price_roc_30s=_safe_float(row.price_roc_30s, 0.0),
-            cvd_change_last_30s=_safe_float(row.cvd_change_last_30s, 0.0),
-            odds_edge_strength=_safe_float(row.odds_edge_strength, 0.0),
-            fair_up=_safe_float(row.fair_up, 0.5),
-            fair_down=_safe_float(row.fair_down, 0.5),
-            edge_up=_safe_float(row.edge_up, 0.0),
-            edge_down=_safe_float(row.edge_down, 0.0),
-            direction_bias=str(getattr(row, "direction_bias", "NONE")),
-            dip_label=str(getattr(row, "dip_label", "UNKNOWN")),
-            feature_source=str(getattr(row, "feature_source", "dataset")),
-        )
+        features = _signal_features_from_row(row)
         decision = policy.decide(
             features,
             float(prob_up),
@@ -4194,133 +4774,160 @@ def train_outcome_model(
     log_dir: str | Path = "logs",
     models_dir: str | Path = DEFAULT_MODELS_DIR,
     promotion_state: str = "shadow",
-    min_rows: int = 200,
+    min_rows: int = ML_MIN_TRAIN_ROWS,
+    min_distinct_windows: int = ML_MIN_TRAIN_WINDOWS,
 ) -> dict[str, Any]:
     dataset = _prepare_training_frame(load_training_dataset(log_dir))
     if dataset.empty:
         raise ValueError("no training rows available")
     if len(dataset) < min_rows:
         raise ValueError(f"need at least {min_rows} rows, found {len(dataset)}")
+    distinct_windows_total = int(dataset["condition_id"].nunique()) if "condition_id" in dataset.columns else 0
+    if distinct_windows_total < min_distinct_windows:
+        raise ValueError(
+            f"need at least {min_distinct_windows} distinct windows, found {distinct_windows_total}"
+        )
 
-    split_idx = max(int(len(dataset) * 0.8), min(100, len(dataset) - 1))
-    train_frame = dataset.iloc[:split_idx].copy()
-    valid_frame = dataset.iloc[split_idx:].copy()
-    if train_frame.empty or valid_frame.empty:
-        raise ValueError("not enough rows for time-based train/validation split")
+    splits = _window_split_indices(dataset, n_splits=5, purge_windows=1)
+    if not splits:
+        raise ValueError("not enough distinct windows for grouped validation")
 
-    y_train = (train_frame["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
-    y_valid = (valid_frame["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
-    if len(np.unique(y_train)) < 2 or len(np.unique(y_valid)) < 2:
-        raise ValueError("training split must contain both BUY_UP and BUY_DOWN labels")
+    y_all = (dataset["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
+    if len(np.unique(y_all)) < 2:
+        raise ValueError("training dataset must contain both BUY_UP and BUY_DOWN labels")
 
-    x_train = train_frame[MODEL_FEATURE_COLUMNS]
-    x_valid = valid_frame[MODEL_FEATURE_COLUMNS]
+    oof_raw = np.full(len(dataset), np.nan, dtype=float)
+    fold_ap_scores: list[float] = []
+    fold_brier_scores: list[float] = []
 
-    model = XGBClassifier(
-        n_estimators=320,
-        max_depth=7,
-        learning_rate=0.10,
-        subsample=0.85,
-        colsample_bytree=0.8,
-        random_state=42,
-        eval_metric="logloss",
-        objective="binary:logistic",
-        n_jobs=1,
-    )
-    model.fit(x_train, y_train)
+    for train_idx, valid_idx in splits:
+        train_frame = dataset.iloc[train_idx].copy()
+        valid_frame = dataset.iloc[valid_idx].copy()
+        y_train = (train_frame["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
+        y_valid = (valid_frame["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
+        if len(np.unique(y_train)) < 2 or len(np.unique(y_valid)) < 2:
+            continue
 
-    raw_valid = model.predict_proba(x_valid)[:, 1]
-    calibrator = _fit_calibrator(raw_valid, y_valid)
-    calibrated_valid = np.asarray(calibrator.predict(raw_valid), dtype=float)
-    calibrated_valid = np.clip(calibrated_valid, 0.0, 1.0)
+        model = XGBClassifier(**_build_xgb_params(y_train))
+        model.fit(train_frame[MODEL_FEATURE_COLUMNS], y_train)
+        raw_valid = model.predict_proba(valid_frame[MODEL_FEATURE_COLUMNS])[:, 1]
+        oof_raw[valid_idx] = raw_valid
+        fold_ap_scores.append(float(average_precision_score(y_valid, raw_valid)))
+        fold_brier_scores.append(float(brier_score_loss(y_valid, np.clip(raw_valid, 0.0, 1.0))))
 
-    pred_valid = (calibrated_valid >= 0.5).astype(int)
-    accuracy = float(accuracy_score(y_valid, pred_valid))
-    precision_up, recall_up, _, _ = precision_recall_fscore_support(y_valid, pred_valid, average="binary", zero_division=0)
-    precision_down, recall_down, _, _ = precision_recall_fscore_support(1 - y_valid, 1 - pred_valid, average="binary", zero_division=0)
-    matrix = confusion_matrix(y_valid, pred_valid).tolist()
+    valid_mask = ~np.isnan(oof_raw)
+    if not np.any(valid_mask):
+        raise ValueError("grouped validation produced no scored rows")
+
+    scored_frame = dataset.loc[valid_mask].copy()
+    y_scored = y_all[valid_mask]
+    raw_scored = oof_raw[valid_mask]
+    calibrator = _fit_calibrator(raw_scored, y_scored)
+    calibrated_scored = np.asarray(calibrator.predict(raw_scored), dtype=float)
+    calibrated_scored = np.clip(calibrated_scored, 0.0, 1.0)
+
+    pred_scored = (calibrated_scored >= 0.5).astype(int)
+    accuracy = float(accuracy_score(y_scored, pred_scored))
+    precision_up, recall_up, _, _ = precision_recall_fscore_support(y_scored, pred_scored, average="binary", zero_division=0)
+    precision_down, recall_down, _, _ = precision_recall_fscore_support(1 - y_scored, 1 - pred_scored, average="binary", zero_division=0)
+    matrix = confusion_matrix(y_scored, pred_scored).tolist()
+
+    params = _build_xgb_params(y_all)
+    model = XGBClassifier(**params)
+    model.fit(dataset[MODEL_FEATURE_COLUMNS], y_all)
 
     policy = RuntimePolicy()
-    policy_stats = _policy_metrics(valid_frame, calibrated_valid, policy)
+    policy_stats = _policy_metrics(scored_frame, calibrated_scored, policy)
     fallback_engine = RuntimeSignalEngine(ModelRegistry(models_dir), policy=policy)
-    fallback_probs = np.asarray([fallback_engine._heuristic_probability(SignalFeatures(  # noqa: SLF001
-        row_id=str(row.row_id),
-        ts=_iso_z(ml_parse_utc_ts(row.ts) or _utc_now()),
-        condition_id=str(row.condition_id),
-        window_start_at=str(row.window_start_at),
-        window_end_at=str(row.window_end_at),
-        beat_price=_safe_float(row.beat_price),
-        btc_price=_safe_float(row.btc_price),
-        up_odds=_safe_float(row.up_odds, 0.5),
-        down_odds=_safe_float(row.down_odds, 0.5),
-        gap_pct=_safe_float(row.gap_pct, 0.0),
-        gap_signed_pct=_safe_float(row.gap_signed_pct, 0.0),
-        seconds_remaining=_safe_int(row.seconds_remaining, 0),
-        signal_alignment=_safe_int(row.signal_alignment, 0),
-        signed_alignment=_safe_float(row.signed_alignment, 0.0),
-        odds_vel=_safe_float(row.odds_vel, 0.0),
-        odds_vel_accel=_safe_float(row.odds_vel_accel, 0.0),
-        cvd_divergence=encode_cvd_divergence(row.cvd_divergence),
-        macd_histogram=_safe_float(row.macd_histogram, 0.0),
-        bb_pct_b=_safe_float(row.bb_pct_b, 0.5),
-        rsi=_safe_float(row.rsi, 50.0),
-        momentum_pct=_safe_float(row.momentum_pct, 0.0),
-        is_late_window=_safe_int(row.is_late_window, 0),
-        is_bandar_zone=_safe_int(row.is_bandar_zone, 0),
-        is_proximity_risk=_safe_int(row.is_proximity_risk, 0),
-        price_roc_15s=_safe_float(row.price_roc_15s, 0.0),
-        price_roc_30s=_safe_float(row.price_roc_30s, 0.0),
-        cvd_change_last_30s=_safe_float(row.cvd_change_last_30s, 0.0),
-        odds_edge_strength=_safe_float(row.odds_edge_strength, 0.0),
-        fair_up=_safe_float(row.fair_up, 0.5),
-        fair_down=_safe_float(row.fair_down, 0.5),
-        edge_up=_safe_float(row.edge_up, 0.0),
-        edge_down=_safe_float(row.edge_down, 0.0),
-        direction_bias=str(getattr(row, "direction_bias", "NONE")),
-        dip_label=str(getattr(row, "dip_label", "UNKNOWN")),
-        feature_source=str(getattr(row, "feature_source", "dataset")),
-    )) for row in valid_frame.itertuples(index=False)], dtype=float)
-    fallback_policy_stats = _policy_metrics(valid_frame, fallback_probs, policy)
+    fallback_probs = np.asarray(
+        [
+            fallback_engine._heuristic_probability(_signal_features_from_row(row))  # noqa: SLF001
+            for row in scored_frame.itertuples(index=False)
+        ],
+        dtype=float,
+    )
+    fallback_policy_stats = _policy_metrics(scored_frame, fallback_probs, policy)
 
     feature_importance = {
         name: float(weight)
         for name, weight in zip(MODEL_FEATURE_COLUMNS, model.feature_importances_)
     }
 
-    ready_for_active = (
-        len(dataset) >= 800
-        and policy_stats["realized_ev_per_trade"] > fallback_policy_stats["realized_ev_per_trade"]
-        and precision_up >= 0.55
-        and precision_down >= 0.55
-    )
+    cv_auc_pr_mean = float(np.mean(fold_ap_scores)) if fold_ap_scores else 0.0
+    cv_auc_pr_std = float(np.std(fold_ap_scores)) if fold_ap_scores else 0.0
+    cv_brier_mean = float(np.mean(fold_brier_scores)) if fold_brier_scores else 1.0
+    auc_pr = float(average_precision_score(y_scored, calibrated_scored))
+    brier = float(brier_score_loss(y_scored, calibrated_scored))
+    prevalence = float(np.mean(y_scored)) if len(y_scored) else 0.0
+
+    registry = ModelRegistry(models_dir)
+    previous_manifest = registry.load_manifest()
+    previous_cv_ap = _safe_float(previous_manifest.metrics.get("cv_auc_pr_mean"), 0.0) if previous_manifest else 0.0
+    previous_brier = _safe_float(previous_manifest.metrics.get("cv_brier_mean"), 0.0) if previous_manifest else 0.0
+
+    promotion_blocks: list[str] = []
+    if len(dataset) < ML_MIN_PROMOTE_ROWS:
+        promotion_blocks.append(f"rows_total {len(dataset)} < {ML_MIN_PROMOTE_ROWS}")
+    if distinct_windows_total < ML_MIN_PROMOTE_WINDOWS:
+        promotion_blocks.append(f"distinct_windows_total {distinct_windows_total} < {ML_MIN_PROMOTE_WINDOWS}")
+    if cv_auc_pr_mean < prevalence + ML_PROMOTION_AP_MARGIN:
+        promotion_blocks.append(
+            f"cv_auc_pr_mean {cv_auc_pr_mean:.3f} < prevalence+margin {(prevalence + ML_PROMOTION_AP_MARGIN):.3f}"
+        )
+    if cv_brier_mean >= ML_PROMOTION_MAX_BRIER:
+        promotion_blocks.append(f"cv_brier_mean {cv_brier_mean:.3f} >= {ML_PROMOTION_MAX_BRIER:.3f}")
+    if previous_brier > 0.0 and cv_brier_mean > previous_brier + ML_PROMOTION_MAX_BRIER_DEGRADE:
+        promotion_blocks.append(
+            f"cv_brier_mean degraded {cv_brier_mean:.3f} > {previous_brier + ML_PROMOTION_MAX_BRIER_DEGRADE:.3f}"
+        )
+    if policy_stats["realized_ev_per_trade"] <= fallback_policy_stats["realized_ev_per_trade"]:
+        promotion_blocks.append("policy EV does not beat fallback EV")
+    if cv_auc_pr_std > ML_PROMOTION_BLOCK_AP_STD:
+        promotion_blocks.append(f"cv_auc_pr_std {cv_auc_pr_std:.3f} > {ML_PROMOTION_BLOCK_AP_STD:.3f}")
+    if previous_cv_ap > 0.0 and cv_auc_pr_mean < previous_cv_ap - ML_PROMOTION_BLOCK_AP_DROP:
+        promotion_blocks.append(
+            f"cv_auc_pr_mean dropped below active baseline by more than {ML_PROMOTION_BLOCK_AP_DROP:.2f}"
+        )
+    ready_for_active = not promotion_blocks
 
     metrics = {
         "rows_total": int(len(dataset)),
-        "rows_train": int(len(train_frame)),
-        "rows_valid": int(len(valid_frame)),
+        "rows_train": int(len(dataset)),
+        "rows_valid": int(np.sum(valid_mask)),
+        "distinct_windows_total": distinct_windows_total,
         "class_balance": {
             LABEL_BUY_UP: int((dataset["resolved_label"] == LABEL_BUY_UP).sum()),
             LABEL_BUY_DOWN: int((dataset["resolved_label"] == LABEL_BUY_DOWN).sum()),
         },
+        "auc_pr": auc_pr,
+        "cv_auc_pr_mean": cv_auc_pr_mean,
+        "cv_auc_pr_std": cv_auc_pr_std,
+        "cv_average_precision_mean": cv_auc_pr_mean,
+        "brier": brier,
+        "cv_brier_mean": cv_brier_mean,
+        "positive_prevalence": prevalence,
         "accuracy": accuracy,
         "precision_up": float(precision_up),
         "recall_up": float(recall_up),
         "precision_down": float(precision_down),
         "recall_down": float(recall_down),
+        "scale_pos_weight": float(params.get("scale_pos_weight", 1.0)),
         "policy_metrics": policy_stats,
         "fallback_policy_metrics": fallback_policy_stats,
         "beats_fallback": policy_stats["realized_ev_per_trade"] > fallback_policy_stats["realized_ev_per_trade"],
         "ready_for_active": ready_for_active,
+        "promotion_block_reason": "; ".join(promotion_blocks),
         "confusion_matrix": matrix,
         "feature_importance": feature_importance,
+        "best_params": params,
+        "search_trials_completed": 0,
         "training_range": {
-            "start": _iso_z(train_frame["ts"].min().to_pydatetime()),
-            "end": _iso_z(valid_frame["ts"].max().to_pydatetime()),
+            "start": _iso_z(dataset["ts"].min().to_pydatetime()),
+            "end": _iso_z(dataset["ts"].max().to_pydatetime()),
         },
         "experimental_3class_status": "deferred_until_action_labels_exist",
     }
 
-    registry = ModelRegistry(models_dir)
     manifest = registry.save_bundle(
         model=model,
         calibrator=calibrator,
@@ -4354,6 +4961,12 @@ def auto_apply_trained_model(
     metrics = result.get("metrics", {}) if isinstance(result, dict) else {}
     if auto_promote:
         target_state = "active" if bool(metrics.get("ready_for_active")) else "shadow"
+
+    if target_state != "active":
+        manifest["promotion_state"] = target_state
+        manifest["applied_state"] = target_state
+        result["manifest"] = manifest
+        return result
 
     applied = registry.set_active_version(
         version,
@@ -4598,6 +5211,14 @@ class DailyHistorySnapshot:
 
 
 @dataclass
+class OrderBookSnapshot:
+    asset_id: str = ""
+    bids: list[tuple[float, float]] = field(default_factory=list)
+    asks: list[tuple[float, float]] = field(default_factory=list)
+    ts: float = 0.0
+
+
+@dataclass
 class BotState:
     # ── Runtime
     start_time: datetime = field(default_factory=datetime.now)
@@ -4637,6 +5258,10 @@ class BotState:
     odds_updated_at: float | None = None
     # Timestamped odds history for velocity computation: (ts, up_odds, down_odds)
     odds_history: deque = field(default_factory=lambda: deque(maxlen=120))
+    order_book_snapshots: dict[str, OrderBookSnapshot] = field(default_factory=dict)
+    order_book_refreshing: set[str] = field(default_factory=set)
+    settlement_registry_cache: dict[str, dict[str, Any]] = field(default_factory=dict)
+    feature_history_by_condition: dict[str, deque] = field(default_factory=lambda: defaultdict(lambda: deque(maxlen=3)))
 
     # ── Filters / AI
     indicator_snapshot: IndicatorSnapshot | None = None
@@ -4696,6 +5321,7 @@ class BotState:
     # ── ML feature tracking ──────────────────────────────────────────────────
     pending_ml_feature_rows: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
     ml_last_retrain_day: str = ""
+    ml_last_drift_check_key: str = ""
 
     # ── BLOCKED tracking
     blocked_windows: list[BlockedWindow] = field(default_factory=list)
@@ -5022,6 +5648,45 @@ class TradingBot:
         self.state.performance_history_cache = history
         self._write_performance_history_cache(history)
 
+    async def _refresh_order_book_snapshot(self, token_id: str) -> None:
+        try:
+            raw = await asyncio.wait_for(self.market.get_order_book_snapshot(token_id), timeout=1.0)
+            if not isinstance(raw, dict):
+                return
+            bids = _normalize_book_levels(raw.get("bids", []))
+            asks = _normalize_book_levels(raw.get("asks", []))
+            if not bids and not asks:
+                return
+            self.state.order_book_snapshots[token_id] = OrderBookSnapshot(
+                asset_id=token_id,
+                bids=bids,
+                asks=asks,
+                ts=time.time(),
+            )
+        except Exception as exc:
+            self.state.log_event(f"[OB] refresh failed for {token_id[:8]}…: {exc}")
+        finally:
+            self.state.order_book_refreshing.discard(token_id)
+
+    def _ensure_order_book_snapshot(self, token_id: str) -> None:
+        if not token_id:
+            return
+        current = self.state.order_book_snapshots.get(token_id)
+        if current is not None and (time.time() - current.ts) <= 2.0:
+            return
+        if token_id in self.state.order_book_refreshing:
+            return
+        self.state.order_book_refreshing.add(token_id)
+        asyncio.create_task(self._refresh_order_book_snapshot(token_id))
+
+    def _current_order_book_imbalance(self, token_id: str) -> float:
+        snapshot = self.state.order_book_snapshots.get(token_id)
+        if snapshot is None:
+            return 0.0
+        if (time.time() - snapshot.ts) > 2.0:
+            return 0.0
+        return _compute_ob_imbalance_from_levels(snapshot.bids, snapshot.asks)
+
     def _build_signal_features(
         self,
         *,
@@ -5063,6 +5728,14 @@ class TradingBot:
         dip_label = compute_dip_label(prices, win.beat_price, btc_price)
         feature_bars = len(prices)
         feature_completeness = min(1.0, feature_bars / 20.0)
+        elapsed_fraction = max(0.0, min(1.0, elapsed_s / 300.0))
+        gap_alignment_interaction = gap_signed_pct * float(snap.signal_alignment)
+        returns = np.diff(np.array(prices, dtype=float)) / np.array(prices[:-1], dtype=float) if len(prices) >= 2 and all(p != 0 for p in prices[:-1]) else np.array([], dtype=float)
+        realized_vol_30s = float(np.std(returns[-6:]) / math.sqrt(5.0)) if len(returns) >= 2 else 0.0
+        realized_vol_60s = float(np.std(returns[-12:]) / math.sqrt(5.0)) if len(returns) >= 2 else 0.0
+        previous_features = self.state.feature_history_by_condition.get(win.condition_id)
+        previous_row = previous_features[-1] if previous_features else {}
+        ob_imbalance = self._current_order_book_imbalance(win.up_token_id)
 
         return SignalFeatures(
             row_id=f"live:{win.condition_id}:{time.time_ns()}",
@@ -5093,6 +5766,14 @@ class TradingBot:
             price_roc_30s=price_roc_30s,
             cvd_change_last_30s=cvd_change_last_30s,
             odds_edge_strength=up_odds - down_odds,
+            elapsed_fraction=elapsed_fraction,
+            gap_alignment_interaction=gap_alignment_interaction,
+            realized_vol_30s=realized_vol_30s,
+            realized_vol_60s=realized_vol_60s,
+            gap_signed_pct_lag1=_safe_float(previous_row.get("gap_signed_pct"), 0.0),
+            signal_alignment_lag1=_safe_float(previous_row.get("signal_alignment"), 0.0),
+            odds_edge_strength_lag1=_safe_float(previous_row.get("odds_edge_strength"), 0.0),
+            ob_imbalance=ob_imbalance,
             fair_up=fair.get("fair_up", 0.5),
             fair_down=fair.get("fair_down", 0.5),
             edge_up=fair.get("edge_up", 0.0),
@@ -5118,6 +5799,7 @@ class TradingBot:
     def _track_ml_feature_row(self, feature_row: SignalFeatures) -> None:
         self.state.logger.log_ml_feature(feature_row.to_record())
         self.state.pending_ml_feature_rows[feature_row.condition_id].add(feature_row.row_id)
+        self.state.feature_history_by_condition[feature_row.condition_id].append(feature_row.model_record())
 
     def _reset_session_signal_state(self, condition_id: str = "") -> None:
         self.state.session_signal_state.reset(condition_id)
@@ -5536,6 +6218,77 @@ class TradingBot:
 
         return None
 
+    def _get_window_settlement_info(
+        self,
+        *,
+        condition_id: str,
+        window_end_at: datetime | None,
+    ) -> SettlementInfo | None:
+        cached = self.state.settlement_registry_cache.get(condition_id)
+        if cached is None and condition_id:
+            cached = load_settlement_registry(self.state.logger._dir).get(condition_id)
+            if cached is not None:
+                self.state.settlement_registry_cache[condition_id] = cached
+        if cached is not None:
+            settlement_price = _safe_float(cached.get("settlement_price"), 0.0)
+            if settlement_price > 0.0:
+                return SettlementInfo(
+                    settlement_price=settlement_price,
+                    settlement_source=str(cached.get("settlement_source", "")) or "chainlink_market_resolved",
+                    resolved_at=ml_parse_utc_ts(cached.get("resolved_at")),
+                    settlement_source_priority=int(cached.get("settlement_source_priority", 0)),
+                    chainlink_settlement_price=_safe_float(cached.get("chainlink_settlement_price"), 0.0) or settlement_price,
+                )
+
+        target = window_end_at
+        if target is None:
+            active_win = self.state.window
+            if active_win and active_win.condition_id == condition_id:
+                target = active_win.end_time
+        if target is None:
+            return None
+
+        history_ts = list(self.state.price_history_ts)
+        if history_ts:
+            closest = min(history_ts, key=lambda x: abs(x[0] - target.timestamp()))
+            diff_s = abs(closest[0] - target.timestamp())
+            if diff_s <= 15.0:
+                return SettlementInfo(
+                    settlement_price=closest[1],
+                    settlement_source="binance_15s",
+                    resolved_at=datetime.fromtimestamp(closest[0], _UTC),
+                    settlement_source_priority=_label_source_priority("binance_15s"),
+                    binance_resolution_diff_s=diff_s,
+                )
+            if diff_s <= 90.0:
+                return SettlementInfo(
+                    settlement_price=closest[1],
+                    settlement_source="binance_90s",
+                    resolved_at=datetime.fromtimestamp(closest[0], _UTC),
+                    settlement_source_priority=_label_source_priority("binance_90s"),
+                    binance_resolution_diff_s=diff_s,
+                )
+
+        logged_price_15s = self.state.logger.find_price_near(target, max_diff_s=15.0)
+        if logged_price_15s is not None:
+            return SettlementInfo(
+                settlement_price=logged_price_15s,
+                settlement_source="binance_15s",
+                resolved_at=target,
+                settlement_source_priority=_label_source_priority("binance_15s"),
+                binance_resolution_diff_s=0.0,
+            )
+        logged_price_90s = self.state.logger.find_price_near(target, max_diff_s=90.0)
+        if logged_price_90s is not None:
+            return SettlementInfo(
+                settlement_price=logged_price_90s,
+                settlement_source="binance_90s",
+                resolved_at=target,
+                settlement_source_priority=_label_source_priority("binance_90s"),
+                binance_resolution_diff_s=0.0,
+            )
+        return None
+
     def _resolve_pending_ml_labels(
         self,
         *,
@@ -5543,6 +6296,7 @@ class TradingBot:
         beat_price: float,
         resolved_btc_price: float | None,
         resolved_at: datetime | None = None,
+        settlement_info: SettlementInfo | None = None,
     ) -> None:
         if resolved_btc_price is None or beat_price <= 0:
             return
@@ -5563,6 +6317,10 @@ class TradingBot:
                 resolution_ts=resolution_ts,
                 resolved_label=label,
                 resolved_btc_price=resolved_btc_price,
+                label_source=settlement_info.settlement_source if settlement_info is not None else "window_resolution",
+                chainlink_settlement_price=settlement_info.chainlink_settlement_price if settlement_info is not None else None,
+                binance_resolution_diff_s=settlement_info.binance_resolution_diff_s if settlement_info is not None else None,
+                settlement_source_priority=settlement_info.settlement_source_priority if settlement_info is not None else 0,
             )
             self.state.logger.log_ml_label(label_row.to_record())
 
@@ -5575,8 +6333,9 @@ class TradingBot:
         result = train_outcome_model(
             log_dir=self.state.logger._dir,
             models_dir=ML_MODELS_DIR,
-            promotion_state=promotion_state,
+            promotion_state="shadow",
             min_rows=ML_MIN_TRAIN_ROWS,
+            min_distinct_windows=ML_MIN_TRAIN_WINDOWS,
         )
         result = auto_apply_trained_model(
             result,
@@ -5587,6 +6346,40 @@ class TradingBot:
         )
         self.signal_engine.reload()
         return result
+
+    def _check_recent_model_drift_once(self) -> dict[str, Any] | None:
+        bundle = self.model_registry.load_active_bundle()
+        if bundle is None:
+            return None
+        model, calibrator, manifest = bundle
+        baseline = _safe_float(manifest.metrics.get("cv_auc_pr_mean"), 0.0)
+        if baseline <= 0.0:
+            return None
+
+        dataset = _prepare_training_frame(load_training_dataset(self.state.logger._dir))
+        if dataset.empty or len(dataset) < ML_DRIFT_LOOKBACK_ROWS:
+            return None
+
+        recent = dataset.tail(ML_DRIFT_LOOKBACK_ROWS).copy()
+        y_recent = (recent["resolved_label"] == LABEL_BUY_UP).astype(int).to_numpy()
+        if len(np.unique(y_recent)) < 2:
+            return None
+
+        feature_list = list(manifest.feature_list or MODEL_FEATURE_COLUMNS)
+        raw = model.predict_proba(recent[feature_list])[:, 1]
+        try:
+            calibrated = np.asarray(calibrator.predict(raw), dtype=float)
+        except Exception:
+            calibrated = np.asarray(raw, dtype=float)
+        calibrated = np.clip(calibrated, 0.0, 1.0)
+        recent_ap = float(average_precision_score(y_recent, calibrated))
+        recent_brier = float(brier_score_loss(y_recent, calibrated))
+        return {
+            "recent_ap": recent_ap,
+            "recent_brier": recent_brier,
+            "baseline_ap": baseline,
+            "drift_detected": recent_ap < baseline - ML_DRIFT_AP_DROP,
+        }
 
     async def _bootstrap_ml_runtime(self) -> None:
         if self._ml_bootstrap_done:
@@ -5612,7 +6405,8 @@ class TradingBot:
             metrics = result["metrics"]
             self.state.log_event(
                 f"[ML] Bootstrap trained {manifest['model_version']} state={manifest['promotion_state']} "
-                f"acc={metrics.get('accuracy', 0.0):.1%} "
+                f"ap={metrics.get('auc_pr', 0.0):.3f} "
+                f"cv_ap={metrics.get('cv_auc_pr_mean', 0.0):.3f} "
                 f"ev={metrics.get('policy_metrics', {}).get('realized_ev_per_trade', 0.0):+.2f}"
             )
         except Exception as exc:
@@ -5623,6 +6417,35 @@ class TradingBot:
         while self.state.running:
             await asyncio.sleep(60)
             now_utc = datetime.now(_UTC)
+            drift_key = now_utc.strftime("%Y-%m-%dT%H")
+            if (
+                now_utc.minute % ML_DRIFT_CHECK_INTERVAL_MIN == 0
+                and self.state.ml_last_drift_check_key != drift_key
+            ):
+                self.state.ml_last_drift_check_key = drift_key
+                try:
+                    drift = await self._run_ml_background(self._check_recent_model_drift_once)
+                    if drift is not None:
+                        self.state.log_event(
+                            f"[ML] Drift check ap={drift['recent_ap']:.3f} "
+                            f"baseline={drift['baseline_ap']:.3f} "
+                            f"brier={drift['recent_brier']:.3f}"
+                        )
+                        if drift.get("drift_detected"):
+                            self.state.log_event("[ML] Drift detected — triggering early retrain")
+                            result = await self._run_ml_background(self._train_ml_once)
+                            self._sync_model_activation_status(reason="auc_drift_detected", allow_auto_promote=True, log_change=True)
+                            self._refresh_performance_history()
+                            manifest = result["manifest"]
+                            metrics = result["metrics"]
+                            self.state.log_event(
+                                f"[ML] Drift retrain {manifest['model_version']} state={manifest['promotion_state']} "
+                                f"ap={metrics.get('auc_pr', 0.0):.3f} "
+                                f"cv_ap={metrics.get('cv_auc_pr_mean', 0.0):.3f}"
+                            )
+                except Exception as exc:
+                    self.state.log_event(f"[ML] Drift check skipped: {exc}")
+
             if (
                 now_utc.hour != ML_RETRAIN_HOUR_UTC
                 or now_utc.minute < ML_RETRAIN_MINUTE_UTC
@@ -5648,7 +6471,8 @@ class TradingBot:
                 metrics = result["metrics"]
                 self.state.log_event(
                     f"[ML] Trained {manifest['model_version']} state={manifest['promotion_state']} "
-                    f"acc={metrics.get('accuracy', 0.0):.1%} "
+                    f"ap={metrics.get('auc_pr', 0.0):.3f} "
+                    f"cv_ap={metrics.get('cv_auc_pr_mean', 0.0):.3f} "
                     f"ev={metrics.get('policy_metrics', {}).get('realized_ev_per_trade', 0.0):+.2f}"
                 )
             except Exception as exc:
@@ -5754,6 +6578,9 @@ class TradingBot:
                 self._reset_session_signal_state(win.condition_id)
                 self.state.latest_fair_prob = {}
                 self.state.latest_beat_chop = {}
+                self.state.feature_history_by_condition.pop(win.condition_id, None)
+                self.state.order_book_snapshots.pop(win.up_token_id, None)
+                self.state.order_book_snapshots.pop(win.down_token_id, None)
                 self.state.set_engine_status("NEW_WINDOW", reason="monitoring new window")
                 # Only reset the attempt budget for a genuinely NEW window.
                 # If this window's condition_id was already attempted, keep the guard
@@ -5940,6 +6767,7 @@ class TradingBot:
             beat_chop = compute_beat_chop_metrics(prices_now, win.beat_price)
             self.state.latest_fair_prob = fair
             self.state.latest_beat_chop = beat_chop
+            self._ensure_order_book_snapshot(win.up_token_id)
 
             feature_row = self._build_signal_features(
                 win=win,
@@ -6397,6 +7225,10 @@ class TradingBot:
     async def _settle_position(self, pos: "Position", actual_winner: str, amount: float) -> None:
         """Apply win/loss to a position and fire all downstream notifications."""
         settlement_btc = self._get_settlement_btc(pos)
+        settlement_info = self._get_window_settlement_info(
+            condition_id=pos.condition_id,
+            window_end_at=pos.window_end_at,
+        )
         won = self._did_trade_win(pos.direction, actual_winner)
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
@@ -6470,6 +7302,7 @@ class TradingBot:
             beat_price=pos.window_beat,
             resolved_btc_price=settlement_btc,
             resolved_at=datetime.now(_UTC),
+            settlement_info=settlement_info,
         )
         self.state.logger.log_trade_close(pos)
         self.state.logger.log_trade_execution_resolved(pos, won)
@@ -6603,6 +7436,10 @@ class TradingBot:
             beat_price=win.beat_price,
             resolved_btc_price=settlement_btc,
             resolved_at=now,
+            settlement_info=self._get_window_settlement_info(
+                condition_id=win.condition_id,
+                window_end_at=win.end_time,
+            ),
         )
 
     @staticmethod
@@ -6730,24 +7567,11 @@ class TradingBot:
         condition_id: str,
         window_end_at: datetime | None,
     ) -> float | None:
-        target = window_end_at
-        if target is None:
-            active_win = self.state.window
-            if active_win and active_win.condition_id == condition_id:
-                target = active_win.end_time
-
-        if target is not None:
-            history_ts = list(self.state.price_history_ts)
-            if history_ts:
-                closest = min(history_ts, key=lambda x: abs(x[0] - target.timestamp()))
-                if abs(closest[0] - target.timestamp()) <= SETTLEMENT_MAX_DIFF_S:
-                    return closest[1]
-
-            logged_price = self.state.logger.find_price_near(target, max_diff_s=SETTLEMENT_MAX_DIFF_S)
-            if logged_price is not None:
-                return logged_price
-
-        return None
+        settlement_info = self._get_window_settlement_info(
+            condition_id=condition_id,
+            window_end_at=window_end_at,
+        )
+        return settlement_info.settlement_price if settlement_info is not None else None
 
     def _get_settlement_btc(self, pos: "Position") -> float | None:
         return self._get_settlement_btc_for_window(
@@ -7610,6 +8434,7 @@ if __name__ == "__main__":
 
     train_parser = subparsers.add_parser("train-ml", help="Train the XGBoost outcome model from logs")
     train_parser.add_argument("--min-rows", type=int, default=ML_MIN_TRAIN_ROWS)
+    train_parser.add_argument("--min-windows", type=int, default=ML_MIN_TRAIN_WINDOWS)
     train_parser.add_argument(
         "--promotion-state",
         choices=["shadow", "assist", "active"],
@@ -7638,6 +8463,7 @@ if __name__ == "__main__":
                     models_dir=ML_MODELS_DIR,
                     promotion_state=args.promotion_state,
                     min_rows=args.min_rows,
+                    min_distinct_windows=args.min_windows,
                 )
                 result = auto_apply_trained_model(
                     result,
@@ -7656,7 +8482,9 @@ if __name__ == "__main__":
                     f"[green]trained[/green] {manifest['model_version']} "
                     f"state={manifest['promotion_state']} "
                     f"rows={metrics.get('rows_total', 0)} "
-                    f"acc={metrics.get('accuracy', 0.0):.1%} "
+                    f"windows={metrics.get('distinct_windows_total', 0)} "
+                    f"ap={metrics.get('auc_pr', 0.0):.3f} "
+                    f"cv_ap={metrics.get('cv_auc_pr_mean', 0.0):.3f} "
                     f"ev={metrics.get('policy_metrics', {}).get('realized_ev_per_trade', 0.0):+.2f} "
                     f"labels_backfilled={appended}"
                 )

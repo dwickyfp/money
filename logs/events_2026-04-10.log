@@ -1900,3 +1900,243 @@
 2026-04-10T12:54:21.940Z  [SIGNAL/GOLD] SKIP conf=0.89 src=ml U=11.4% D=88.6% | ml: edge -10.9% below 5%
 2026-04-10T12:54:26.974Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%
 2026-04-10T12:54:52.187Z  [SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%
+2026-04-10T12:54:57.221Z  [SIGNAL/TOO_LATE] SKIP conf=0.81 src=ml U=18.7% D=81.3% | ml: edge -17.9% below 5%
+2026-04-10T12:55:01.480Z  [MKT] Window: Bitcoin Up or Down - April 10, 8:55AM-9:00AM ET | beat=$72,232.21 | ends 13:00:00 UTC
+2026-04-10T12:55:02.255Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T12:55:06.944Z  [MKTWS] Market WebSocket connected
+2026-04-10T12:55:31.517Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T12:55:36.560Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T12:55:42.615Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%
+2026-04-10T12:55:55.695Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T12:56:01.754Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T12:56:09.813Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T12:56:11.844Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T12:56:22.927Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -6.6% below 5%
+2026-04-10T12:56:28.979Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -10.7% below 5%
+2026-04-10T12:56:39.063Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%
+2026-04-10T12:56:39.064Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T12:56:46.128Z  [SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T12:56:46.129Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T12:56:53.228Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+19.9%
+2026-04-10T12:56:53.228Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T12:56:58.284Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T12:57:07.350Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.82 src=ml U=82.4% D=17.6% | ml: BUY_UP prob=82% edge=+64.7%
+2026-04-10T12:57:07.350Z  [SHADOW] BUY_UP conf=82% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T12:57:13.425Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T12:57:22.469Z  [SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge +0.4% below 5%
+2026-04-10T12:57:26.506Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T12:57:48.680Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -16.3% below 5%
+2026-04-10T12:57:51.713Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T12:58:01.793Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.0% D=16.0% | ml: BUY_UP prob=84% edge=+68.0%
+2026-04-10T12:58:01.794Z  [SHADOW] BUY_UP conf=84% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T12:58:11.878Z  [SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge +2.3% below 5%
+2026-04-10T12:58:20.962Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T12:58:21.967Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T12:59:00.352Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%
+2026-04-10T12:59:02.370Z  [SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: confidence 84% below 85%
+2026-04-10T12:59:30.577Z  [SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T12:59:30.578Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_LATE_PROXIMITY_RISK
+2026-04-10T12:59:33.605Z  [SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +4.1% below 5%
+2026-04-10T12:59:46.741Z  [SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: confidence 84% below 85%
+2026-04-10T12:59:54.807Z  [SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-10T13:00:04.450Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:00AM-9:05AM ET | beat=$72,282.68 | ends 13:05:00 UTC
+2026-04-10T13:00:04.896Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:00:05.138Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:00:17.015Z  [SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%
+2026-04-10T13:00:20.604Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=12:55
+2026-04-10T13:00:20.605Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=12:55
+2026-04-10T13:00:20.606Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=12:55
+2026-04-10T13:00:20.607Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=12:55
+2026-04-10T13:00:20.610Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=12:55
+2026-04-10T13:00:20.611Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=12:55
+2026-04-10T13:00:27.095Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:00:32.137Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:00:43.232Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:00:48.312Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:01:14.580Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:01:19.625Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:01:23.664Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -6.3% below 5%
+2026-04-10T13:01:40.799Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:01:42.814Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:02:23.146Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%
+2026-04-10T13:02:57.426Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:03:12.549Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:03:36.769Z  [SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%
+2026-04-10T13:03:42.816Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:03:51.931Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -15.0% below 5%
+2026-04-10T13:03:57.976Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:04:08.065Z  [SIGNAL/GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 85%
+2026-04-10T13:04:12.092Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:04:52.452Z  [SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%
+2026-04-10T13:05:00.281Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:05AM-9:10AM ET | beat=$72,218.17 | ends 13:10:00 UTC
+2026-04-10T13:05:00.508Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:05:05.854Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:05:07.578Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:05:12.620Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%
+2026-04-10T13:05:46.896Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:06:02.033Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:06:17.197Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:06:22.243Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:06:42.422Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:06:48.482Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:07:08.555Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-10T13:07:12.702Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:07:14.043Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:07:26.848Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:07:36.930Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%
+2026-04-10T13:07:54.096Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:07:57.123Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -11.2% below 5%
+2026-04-10T13:08:04.187Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:08:07.201Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:08:12.244Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -30.6% below 5%
+2026-04-10T13:08:18.298Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%
+2026-04-10T13:08:18.299Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:26.436Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:31.477Z  [SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T13:08:31.478Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:32.483Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:37.538Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:44.607Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:48.661Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%
+2026-04-10T13:08:48.661Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:53.703Z  [SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T13:08:53.704Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:08:58.740Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:09:04.787Z  [SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+8.6%
+2026-04-10T13:09:04.790Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_LATE_PROXIMITY_RISK
+2026-04-10T13:09:08.853Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%
+2026-04-10T13:09:22.987Z  [SIGNAL/GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%
+2026-04-10T13:09:22.989Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_LATE_PROXIMITY_RISK
+2026-04-10T13:09:31.047Z  [SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: confidence 84% below 85%
+2026-04-10T13:09:39.118Z  [SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +3.5% below 5%
+2026-04-10T13:09:46.175Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%
+2026-04-10T13:09:52.225Z  [SIGNAL/TOO_LATE] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -22.2% below 5%
+2026-04-10T13:10:00.790Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:10AM-9:15AM ET | beat=$72,240.70 | ends 13:15:00 UTC
+2026-04-10T13:10:01.359Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:10:01.476Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:10:07.414Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:10:20.635Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.637Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.638Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.640Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.641Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.641Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.643Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.644Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.645Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:05
+2026-04-10T13:10:20.646Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=13:05
+2026-04-10T13:10:20.647Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=13:05
+2026-04-10T13:10:27.596Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:10:32.634Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:10:57.873Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:11:22.135Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:11:27.173Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:11:42.243Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:11:47.279Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:11:52.318Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:11:57.368Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:12:02.407Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:12:07.449Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:12:12.488Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%
+2026-04-10T13:12:17.533Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:12:23.606Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -14.5% below 5%
+2026-04-10T13:12:27.623Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:12:39.733Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:12:44.769Z  [SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -5.3% below 5%
+2026-04-10T13:12:54.855Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:12:57.870Z  [SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T13:12:57.871Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:13:05.973Z  [SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%
+2026-04-10T13:13:05.974Z  [SHADOW] BUY_UP conf=95% — blocked by GATE_EXECUTION_WINDOW
+2026-04-10T13:13:18.057Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:13:22.075Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: edge -11.7% below 5%
+2026-04-10T13:13:32.140Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:14:02.365Z  [SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:14:07.401Z  [SIGNAL/GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge +2.2% below 5%
+2026-04-10T13:14:12.452Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 85%
+2026-04-10T13:14:27.587Z  [SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%
+2026-04-10T13:14:32.640Z  [SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:14:37.734Z  [SIGNAL/GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 85%
+2026-04-10T13:14:47.771Z  [SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 85%
+2026-04-10T13:14:52.807Z  [SIGNAL/TOO_LATE] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 85%
+2026-04-10T13:14:57.850Z  [SIGNAL/TOO_LATE] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 85%
+2026-04-10T13:15:03.721Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:15AM-9:20AM ET | beat=$72,232.89 | ends 13:20:00 UTC
+2026-04-10T13:15:03.917Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:15:09.453Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:15:13.003Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:15:18.041Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:15:20.676Z  [PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=13:10
+2026-04-10T13:15:20.677Z  [PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=13:10
+2026-04-10T13:15:33.180Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:15:38.224Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:15:42.268Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:15:47.309Z  [SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%
+2026-04-10T13:15:52.345Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:16:23.666Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:16:32.754Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:16:48.925Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -0.2% below 5%
+2026-04-10T13:17:03.072Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:17:44.538Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:17:47.570Z  [SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%
+2026-04-10T13:17:56.651Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:17:59.685Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -0.2% below 5%
+2026-04-10T13:18:03.728Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:18:07.774Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:18:12.815Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:18:17.861Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:18:23.921Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -1.0% below 5%
+2026-04-10T13:18:27.936Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:18:33.003Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:18:38.046Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:18:44.093Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:19:03.287Z  [SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:19:14.384Z  [SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%
+2026-04-10T13:19:17.399Z  [SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%
+2026-04-10T13:19:34.522Z  [SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:19:49.636Z  [SIGNAL/TOO_LATE] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:19:57.734Z  [SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%
+2026-04-10T13:20:02.429Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:20AM-9:25AM ET | beat=$72,237.28 | ends 13:25:00 UTC
+2026-04-10T13:20:02.800Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%
+2026-04-10T13:20:03.078Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:20:07.821Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:20:17.900Z  [SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%
+2026-04-10T13:20:22.939Z  [SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small
+2026-04-10T13:20:27.977Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:20:48.079Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:21:18.330Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:21:23.350Z  [SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%
+2026-04-10T13:21:28.396Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:21:48.541Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:21:52.565Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -15.6% below 5%
+2026-04-10T13:21:57.614Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:22:44.080Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:22:51.145Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:23:01.219Z  [SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%
+2026-04-10T13:23:07.277Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%
+2026-04-10T13:23:31.478Z  [SIGNAL/PRE_GOLD] SKIP conf=0.83 src=ml U=83.4% D=16.6% | ml: edge -11.3% below 5%
+2026-04-10T13:23:42.551Z  [SIGNAL/PRE_GOLD] SKIP conf=0.72 src=ml U=72.0% D=28.0% | ml: confidence 72% below 80%
+2026-04-10T13:23:52.662Z  [SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -12.3% below 5%
+2026-04-10T13:24:19.862Z  [SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%
+2026-04-10T13:24:29.972Z  [SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-10T13:24:38.035Z  [SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%
+2026-04-10T13:24:43.079Z  [SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.4% below 5%
+2026-04-10T13:24:47.411Z  [BOT] Starting up…
+2026-04-10T13:24:47.433Z  [HISTORY] Warmed 6 settled outcomes for calibration/context
+2026-04-10T13:24:47.450Z  [PAPER] Warmed 116 resolved paper analytics entries
+2026-04-10T13:24:47.450Z  [PAPER] Restored 770 pending paper prediction(s)
+2026-04-10T13:24:47.453Z  [ML] Activated model 20260410T123120Z source=ml state=active
+2026-04-10T13:24:47.481Z  [ML] Starting background bootstrap
+2026-04-10T13:24:47.576Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:20AM-9:25AM ET | beat=$0.00 | ends 13:25:00 UTC
+2026-04-10T13:24:47.951Z  [BTC] Binance WebSocket connected
+2026-04-10T13:24:48.246Z  [ML] Backfilled 43 pending label(s) from feature logs
+2026-04-10T13:24:49.868Z  [ML] Bootstrap trained 20260410T132449Z-s20 state=shadow ap=0.668 cv_ap=0.684 ev=+0.51
+2026-04-10T13:24:50.069Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:24:52.940Z  [MKT] Beat price set retroactively: $72,270.80
+2026-04-10T13:24:57.502Z  [SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%
+2026-04-10T13:25:03.928Z  [MKT] Window: Bitcoin Up or Down - April 10, 9:25AM-9:30AM ET | beat=$72,260.86 | ends 13:30:00 UTC
+2026-04-10T13:25:04.525Z  [SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%
+2026-04-10T13:25:04.989Z  [MKTWS] Market WebSocket connected
+2026-04-10T13:25:12.550Z  [SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%
+2026-04-10T13:25:17.565Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%
+2026-04-10T13:25:45.651Z  [SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small
+2026-04-10T13:26:00.696Z  [SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%

@@ -153,6 +153,126 @@ def test_train_outcome_model_and_use_active_model(tmp_path):
     assert prediction.signal == ml.LABEL_BUY_UP
 
 
+def test_backfill_prefers_chainlink_settlement_over_binance(tmp_path):
+    log_dir = tmp_path / "logs"
+    ts = datetime(2026, 4, 10, 0, 0, tzinfo=UTC)
+    feature = _sample_feature(direction="UP", ts=ts, idx=44)
+    _write_jsonl(log_dir / "ml_features_2026-04-10.jsonl", [feature.to_record()])
+    _write_jsonl(
+        log_dir / "prices_2026-04-10.jsonl",
+        [
+            {
+                "ts": feature.window_end_at,
+                "btc": 99.80,
+                "buy_vol": 0.1,
+                "sell_vol": 0.0,
+                "cvd": 0.1,
+                "up_odds": 0.6,
+                "dn_odds": 0.4,
+            }
+        ],
+    )
+    _write_jsonl(
+        log_dir / "settlements_2026-04-10.jsonl",
+        [
+            ml.SettlementRecord(
+                condition_id=feature.condition_id,
+                resolved_at=feature.window_end_at,
+                settlement_price=100.40,
+                settlement_source="chainlink_market_resolved",
+                settlement_source_priority=ml._label_source_priority("chainlink_market_resolved"),
+                chainlink_settlement_price=100.40,
+            ).to_record()
+        ],
+    )
+
+    appended = ml.backfill_ml_labels(log_dir)
+    label_file = next(log_dir.glob("ml_labels_*.jsonl"))
+    record = json.loads(label_file.read_text(encoding="utf-8").strip())
+
+    assert appended == 1
+    assert record["resolved_label"] == ml.LABEL_BUY_UP
+    assert record["label_source"] == "chainlink_market_resolved"
+    assert record["chainlink_settlement_price"] == 100.40
+
+
+def test_grouped_window_splits_do_not_overlap_conditions(tmp_path):
+    rows = []
+    start = datetime(2026, 4, 1, 0, 0, tzinfo=UTC)
+    for idx in range(8):
+        for sample in range(3):
+            ts = start + timedelta(minutes=5 * idx, seconds=5 * sample)
+            feature = _sample_feature(direction="UP" if idx % 2 == 0 else "DOWN", ts=ts, idx=idx * 10 + sample)
+            feature.condition_id = f"cond-{idx}"
+            rows.append(feature.to_record() | {"resolved_label": ml.LABEL_BUY_UP if idx % 2 == 0 else ml.LABEL_BUY_DOWN})
+    frame = ml._prepare_training_frame(ml.pd.DataFrame(rows))
+
+    splits = ml._window_split_indices(frame, n_splits=3, purge_windows=1)
+
+    assert splits
+    for train_idx, valid_idx in splits:
+        train_conditions = set(frame.iloc[train_idx]["condition_id"])
+        valid_conditions = set(frame.iloc[valid_idx]["condition_id"])
+        assert not (train_conditions & valid_conditions)
+
+
+def test_shadow_training_does_not_replace_existing_active_manifest(tmp_path):
+    log_dir = tmp_path / "logs"
+    model_dir = tmp_path / "models"
+    start = datetime(2026, 4, 1, 0, 0, tzinfo=UTC)
+
+    features = []
+    labels = []
+    for idx in range(180):
+        direction = "UP" if idx % 2 == 0 else "DOWN"
+        ts = start + timedelta(minutes=5 * idx)
+        feature = _sample_feature(direction=direction, ts=ts, idx=idx)
+        features.append(feature.to_record())
+        labels.append(
+            ml.ResolvedLabelRecord(
+                row_id=feature.row_id,
+                condition_id=feature.condition_id,
+                resolution_ts=feature.window_end_at,
+                resolved_label=ml.LABEL_BUY_UP if direction == "UP" else ml.LABEL_BUY_DOWN,
+                resolved_btc_price=100.25 if direction == "UP" else 99.75,
+            ).to_record()
+        )
+
+    _write_jsonl(log_dir / "ml_features_2026-04-10.jsonl", features)
+    _write_jsonl(log_dir / "ml_labels_2026-04-10.jsonl", labels)
+
+    registry = ml.ModelRegistry(model_dir)
+    active_result = ml.train_outcome_model(
+        log_dir=log_dir,
+        models_dir=model_dir,
+        promotion_state="active",
+        min_rows=100,
+        min_distinct_windows=50,
+    )
+    active_version = active_result["manifest"]["model_version"]
+
+    shadow_result = ml.train_outcome_model(
+        log_dir=log_dir,
+        models_dir=model_dir,
+        promotion_state="shadow",
+        min_rows=100,
+        min_distinct_windows=50,
+    )
+    applied = ml.auto_apply_trained_model(
+        shadow_result,
+        registry,
+        auto_promote=False,
+        fallback_state="shadow",
+        activation_reason="test_shadow",
+    )
+
+    active_manifest = registry.load_manifest()
+
+    assert applied["manifest"]["promotion_state"] == "shadow"
+    assert active_manifest is not None
+    assert active_manifest.model_version == active_version
+
+
 def test_runtime_signal_engine_hot_reloads_auto_promoted_model(tmp_path):
     log_dir = tmp_path / "logs"
     model_dir = tmp_path / "models"
