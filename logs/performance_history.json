@@ -26,19 +26,19 @@
     },
     "paper": {
       "losses": 2,
-      "pnl": 5.366947,
-      "total": 11,
-      "win_rate": 81.82,
-      "wins": 9
+      "pnl": 6.366947,
+      "total": 12,
+      "win_rate": 83.33,
+      "wins": 10
     },
     "status": {
       "active_model_version": "20260410T162435Z-s20",
       "active_signal_source": "ml",
       "balance_usdc": 0.730126,
-      "bets_this_hour": 0,
+      "bets_this_hour": 1,
       "daily_halted": false,
       "daily_loss": 0.0,
-      "daily_profit": 0.0,
+      "daily_profit": 1.0,
       "daily_profit_halted": false,
       "mode": "paper",
       "open_positions": 0,
@@ -46,16 +46,16 @@
         "blocked_profitable_rate": {
           "GATE_ALREADY_ATTEMPTED": 1.0,
           "GATE_BANDAR_PUSH": 0.75,
-          "GATE_EXECUTION_WINDOW": 0.6123,
-          "GATE_LATE_PROXIMITY_RISK": 0.9375,
+          "GATE_EXECUTION_WINDOW": 0.614,
+          "GATE_LATE_PROXIMITY_RISK": 0.9545,
           "GATE_TOO_LATE": 1.0,
           "GATE_TOO_SURE": 1.0
         },
         "buy_prediction_rate": 1.0,
         "executed_bet_rate": 0.25,
-        "reserved_signal_rate": 0.2083,
+        "reserved_signal_rate": 0.2917,
         "win_rate_by_execution_bucket": {
-          "EARLY_EXEC": 0.0,
+          "EARLY_EXEC": 0.5,
           "LATE_EXEC": 1.0,
           "TOO_LATE": 1.0
         },
@@ -69,14 +69,14 @@
         "has_l2_credentials": true,
         "last_auth_error": "",
         "last_auth_failure_at": "",
-        "last_auth_success_at": "2026-04-10T17:24:31.253Z",
+        "last_auth_success_at": "2026-04-10T17:49:32.889Z",
         "last_heartbeat_ok_at": "",
         "market_ws_connected": true,
-        "market_ws_last_message_at": "2026-04-10T17:24:34.155Z",
+        "market_ws_last_message_at": "2026-04-10T17:50:31.224Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
-      "updated_at": "2026-04-10T17:24:34.314Z"
+      "updated_at": "2026-04-10T17:50:31.336Z"
     }
   }
 }
