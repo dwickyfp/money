@@ -4565,3 +4565,4 @@
 2026-04-10T17:41:58.888Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=61.5% D=38.5% | ml: confidence 61% below 80%
 2026-04-10T17:42:22.064Z  [SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=53.3% D=46.7% | ml: confidence 53% below 80%
 2026-04-10T17:42:37.154Z  [SIGNAL/OBSERVE] SKIP conf=0.62 src=ml U=37.7% D=62.3% | ml: confidence 62% below 80%
+2026-04-10T17:42:42.171Z  [SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=45.2% D=54.8% | ml: confidence 55% below 80%
