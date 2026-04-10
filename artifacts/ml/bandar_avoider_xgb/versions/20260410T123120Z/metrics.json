@@ -1,0 +1,59 @@
+{
+  "rows_total": 3532,
+  "rows_train": 2825,
+  "rows_valid": 707,
+  "class_balance": {
+    "BUY_UP": 1841,
+    "BUY_DOWN": 1691
+  },
+  "accuracy": 0.6817538896746818,
+  "precision_up": 0.684964200477327,
+  "recall_up": 0.7552631578947369,
+  "precision_down": 0.6770833333333334,
+  "recall_down": 0.5963302752293578,
+  "policy_metrics": {
+    "trade_rate": 0.05799151343705799,
+    "realized_ev_per_trade": 0.5040907805056599
+  },
+  "fallback_policy_metrics": {
+    "trade_rate": 0.2942008486562942,
+    "realized_ev_per_trade": 0.27095485157371285
+  },
+  "beats_fallback": true,
+  "ready_for_active": true,
+  "confusion_matrix": [
+    [
+      195,
+      132
+    ],
+    [
+      93,
+      287
+    ]
+  ],
+  "feature_importance": {
+    "gap_signed_pct": 0.11449408531188965,
+    "seconds_remaining": 0.050378650426864624,
+    "signal_alignment": 0.03720012679696083,
+    "signed_alignment": 0.037084851413965225,
+    "odds_vel": 0.032999299466609955,
+    "odds_vel_accel": 0.039398014545440674,
+    "cvd_divergence": 0.04910282790660858,
+    "macd_histogram": 0.04166998341679573,
+    "bb_pct_b": 0.03913400322198868,
+    "rsi": 0.04980164393782616,
+    "momentum_pct": 0.03769291564822197,
+    "is_late_window": 0.17490807175636292,
+    "is_bandar_zone": 0.060915883630514145,
+    "is_proximity_risk": 0.05213457718491554,
+    "price_roc_15s": 0.03547827526926994,
+    "price_roc_30s": 0.037206608802080154,
+    "cvd_change_last_30s": 0.04071897640824318,
+    "odds_edge_strength": 0.06968116760253906
+  },
+  "training_range": {
+    "start": "2026-04-09T19:29:00.158Z",
+    "end": "2026-04-10T12:29:56.218Z"
+  },
+  "experimental_3class_status": "deferred_until_action_labels_exist"
+}

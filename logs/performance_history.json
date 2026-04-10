@@ -1,0 +1,48 @@
+{
+  "2026-04-09": {
+    "live": {
+      "losses": 0,
+      "pnl": 0.0,
+      "total": 0,
+      "win_rate": 0.0,
+      "wins": 0
+    },
+    "paper": {
+      "losses": 0,
+      "pnl": 3.010101,
+      "total": 4,
+      "win_rate": 100.0,
+      "wins": 4
+    },
+    "status": {}
+  },
+  "2026-04-10": {
+    "live": {
+      "losses": 0,
+      "pnl": 0.0,
+      "total": 0,
+      "win_rate": 0.0,
+      "wins": 0
+    },
+    "paper": {
+      "losses": 1,
+      "pnl": 0.0,
+      "total": 2,
+      "win_rate": 50.0,
+      "wins": 1
+    },
+    "status": {
+      "active_model_version": "20260410T123120Z",
+      "active_signal_source": "ml",
+      "balance_usdc": 0.730126,
+      "bets_this_hour": 0,
+      "daily_halted": false,
+      "daily_loss": 0.0,
+      "daily_profit": 0.0,
+      "daily_profit_halted": false,
+      "mode": "paper",
+      "open_positions": 0,
+      "updated_at": "2026-04-10T12:31:20.895Z"
+    }
+  }
+}

@@ -1,0 +1,477 @@
+import asyncio
+from collections import deque
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+
+from rich.console import Console
+
+import trade_full as tf
+
+
+class DummyNotifier:
+    def __init__(self) -> None:
+        self.signal_calls = []
+        self.shadow_calls = []
+        self.bet_calls = []
+
+    def notify_signal(self, signal, win, snap, **kwargs) -> None:
+        self.signal_calls.append((signal.signal, win.condition_id, kwargs))
+        return None
+
+    def notify_shadow_signal(self, signal, win, snap, **kwargs) -> None:
+        self.shadow_calls.append((signal.signal, win.condition_id, kwargs))
+        return None
+
+    def notify_bet(self, direction, bet_size, entry_odds, win, order_id, simulated, snap) -> None:
+        self.bet_calls.append((direction, bet_size, entry_odds, simulated))
+        return None
+
+    def notify_result(self, pos, state) -> None:
+        return None
+
+
+def make_bot(tmp_path):
+    bot = tf.TradingBot.__new__(tf.TradingBot)
+    bot.state = tf.BotState(logger=tf.BotLogger(tmp_path / "logs"))
+    bot.notifier = DummyNotifier()
+    return bot
+
+
+def make_window(*, condition_id: str, beat_price: float, end_time: datetime) -> tf.WindowInfo:
+    return tf.WindowInfo(
+        condition_id=condition_id,
+        question="BTC Up or Down?",
+        start_time=end_time - timedelta(minutes=5),
+        end_time=end_time,
+        beat_price=beat_price,
+        up_token_id="up-token",
+        down_token_id="down-token",
+        window_label=end_time.strftime("%H:%M"),
+    )
+
+
+def make_position(*, condition_id: str, direction: str, order_id: str, now: datetime) -> tf.Position:
+    return tf.Position(
+        condition_id=condition_id,
+        direction=direction,
+        token_id="token",
+        size=4.0,
+        entry_price=0.5,
+        placed_at=now - timedelta(minutes=4),
+        order_id=order_id,
+        simulated=True,
+        amount_usdc=2.0,
+        window_beat=100.0,
+        window_end_at=now - timedelta(seconds=5),
+        elapsed_at_bet=240,
+        gap_pct_at_bet=0.15,
+        ai_confidence=0.82,
+        ai_raw_confidence=0.86,
+        signal_alignment=5,
+    )
+
+
+def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):
+    logger = tf.BotLogger(tmp_path / "logs")
+    now = datetime.now(timezone.utc)
+
+    resolved = tf.WindowPredictionRecord(
+        row_id="row-resolved",
+        condition_id="0xresolved",
+        window_label="12:00",
+        window_end_at=now - timedelta(seconds=1),
+        beat_price=100.0,
+        mode="paper",
+        signal="BUY_UP",
+        predicted_direction="UP",
+        decision_action="paper_trade",
+        executed_order_id="SIM-RESOLVED",
+        simulated_order_id="SIM-RESOLVED",
+        confidence=0.81,
+        raw_confidence=0.84,
+        alignment=4,
+        actual_winner="UP",
+        prediction_correct=True,
+        paper_trade_won=True,
+        resolved_at=now,
+        last_updated_at=now,
+    )
+    pending = tf.WindowPredictionRecord(
+        row_id="row-pending",
+        condition_id="0xpending",
+        window_label="12:05",
+        window_end_at=now + timedelta(minutes=1),
+        beat_price=100.0,
+        mode="paper",
+        signal="BUY_DOWN",
+        predicted_direction="DOWN",
+        decision_action="paper_trade",
+        executed_order_id="SIM-PENDING",
+        simulated_order_id="SIM-PENDING",
+        confidence=0.79,
+        raw_confidence=0.82,
+        alignment=4,
+        last_updated_at=now,
+    )
+
+    logger.log_paper_prediction_resolved(resolved)
+    logger.log_paper_prediction_state(pending)
+    logger.log_paper_trade_resolved(
+        make_position(
+            condition_id="0xresolved",
+            direction="UP",
+            order_id="SIM-RESOLVED",
+            now=now,
+        ),
+        True,
+    )
+    logger.log_paper_trade_resolved(
+        make_position(
+            condition_id="0xpending",
+            direction="DOWN",
+            order_id="SIM-PENDING",
+            now=now,
+        ),
+        False,
+    )
+
+    pending_records, counts = logger.load_paper_analytics(today=now.strftime("%Y-%m-%d"))
+
+    assert counts["prediction_correct_total"] == 1
+    assert counts["prediction_incorrect_total"] == 0
+    assert counts["paper_trade_wins_total"] == 1
+    assert counts["paper_trade_losses_total"] == 1
+    assert pending_records["row-pending"]["predicted_direction"] == "DOWN"
+    assert pending_records["row-pending"]["paper_trade_won"] is False
+    assert "row-resolved" not in pending_records
+
+
+def test_each_buy_prediction_snapshot_is_resolved_independently(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        end_time = datetime.now(timezone.utc) - timedelta(seconds=1)
+        win = make_window(condition_id="0xwindow", beat_price=100.0, end_time=end_time)
+        snap = SimpleNamespace(signal_alignment=4)
+
+        await bot._upsert_paper_prediction(
+            win,
+            SimpleNamespace(signal="BUY_UP", confidence=0.76, raw_confidence=0.8),
+            snap,
+            decision_action="blocked",
+        )
+        await bot._upsert_paper_prediction(
+            win,
+            SimpleNamespace(signal="BUY_DOWN", confidence=0.83, raw_confidence=0.87),
+            snap,
+            decision_action="blocked",
+        )
+
+        bot.state.price_history_ts = deque([(win.end_time.timestamp(), 95.0)], maxlen=10)
+
+        await bot._resolve_paper_predictions()
+        await bot._resolve_paper_predictions()
+
+        record = bot.state.paper_prediction_records["0xwindow"]
+        assert record.predicted_direction == "DOWN"
+        assert record.actual_winner == "DOWN"
+        assert record.prediction_correct is True
+        assert bot.state.paper_stats.prediction_total == 2
+        assert bot.state.paper_stats.prediction_correct_total == 1
+        assert bot.state.paper_stats.prediction_incorrect_total == 1
+
+    asyncio.run(run_case())
+
+
+def test_settling_simulated_trade_updates_paper_trade_stats(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xtrade",
+            direction="UP",
+            order_id="SIM-TRADE",
+            now=now,
+        )
+        bot.state.paper_prediction_records[pos.condition_id] = tf.WindowPredictionRecord(
+            row_id="row-trade",
+            condition_id=pos.condition_id,
+            window_label="12:10",
+            window_end_at=pos.window_end_at,
+            beat_price=pos.window_beat,
+            mode="paper",
+            signal="BUY_UP",
+            predicted_direction=pos.direction,
+            decision_action="paper_trade",
+            executed_order_id=pos.order_id,
+            simulated_order_id=pos.order_id,
+            confidence=pos.ai_confidence,
+            raw_confidence=pos.ai_raw_confidence,
+            alignment=pos.signal_alignment,
+            last_updated_at=now,
+        )
+        bot.state.prediction_records["row-trade"] = bot.state.paper_prediction_records[pos.condition_id]
+        pos.prediction_row_id = "row-trade"
+
+        await bot._settle_position(pos, "UP", pos.amount_usdc)
+
+        assert pos.status == "won"
+        assert bot.state.paper_stats.paper_trade_wins_total == 1
+        assert bot.state.paper_stats.paper_trade_losses_total == 0
+        assert bot.state.paper_prediction_records[pos.condition_id].paper_trade_won is True
+
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+        assert "paper_trade_resolved" in contents
+        history = (tmp_path / "logs" / "performance_history.json").read_text(encoding="utf-8")
+        assert pos.window_end_at.strftime("%Y-%m-%d") in history
+
+    asyncio.run(run_case())
+
+
+def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        record = tf.WindowPredictionRecord(
+            row_id="row-shadow",
+            condition_id="0xshadow",
+            window_label="12:15",
+            window_end_at=now - timedelta(seconds=1),
+            beat_price=100.0,
+            mode="live",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            decision_action="blocked",
+            confidence=0.68,
+            raw_confidence=0.71,
+            blocked_gate="GATE_LATE_PROXIMITY_RISK",
+            blocked_reason="late proximity risk",
+            up_odds=0.60,
+            down_odds=0.40,
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.price_history_ts = deque([(record.window_end_at.timestamp(), 101.0)], maxlen=10)
+
+        await bot._resolve_prediction_analytics()
+
+        resolved = bot.state.prediction_records["row-shadow"]
+        assert resolved.actual_winner == "UP"
+        assert resolved.prediction_correct is True
+        assert resolved.counterfactual_pnl is not None
+
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+        assert "prediction_resolved" in contents
+        assert "GATE_LATE_PROXIMITY_RISK" in contents
+
+    asyncio.run(run_case())
+
+
+def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
+    bot = make_bot(tmp_path)
+    bot.state.paper_stats.paper_trade_wins_total = 3
+    bot.state.paper_stats.paper_trade_losses_total = 1
+    bot.state.paper_stats.paper_trade_wins_today = 1
+    bot.state.paper_stats.paper_trade_losses_today = 0
+
+    panel = tf.render_results(bot.state)
+    console = Console(record=True, width=120)
+    console.print(panel)
+    text = console.export_text()
+
+    assert "Paper Trades" in text
+    assert "Trades Today" in text
+    assert "Predictions" not in text
+    assert "Pred Today" not in text
+
+
+def test_stable_buy_sends_single_shadow_notification(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        win = make_window(
+            condition_id="0xnotify",
+            beat_price=100.0,
+            end_time=datetime.now(timezone.utc) + timedelta(seconds=30),
+        )
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.82,
+            raw_confidence=0.84,
+            reason="stable signal",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+
+        row1 = tf.WindowPredictionRecord(
+            row_id="row-1",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source=signal.source,
+            up_odds=0.55,
+            down_odds=0.45,
+            last_updated_at=datetime.now(timezone.utc),
+        )
+        row2 = tf.WindowPredictionRecord(
+            row_id="row-2",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source=signal.source,
+            up_odds=0.55,
+            down_odds=0.45,
+            last_updated_at=datetime.now(timezone.utc),
+        )
+        bot.state.prediction_records[row1.row_id] = row1
+        bot.state.prediction_records[row2.row_id] = row2
+        bot.state.paper_prediction_records[win.condition_id] = row2
+
+        first = await bot._advance_session_signal_state(
+            condition_id=win.condition_id,
+            signal=signal,
+            row_id=row1.row_id,
+            sample_seq=1,
+            execution_window_open=True,
+            signal_edge=0.08,
+            execution_ready=False,
+        )
+        second = await bot._advance_session_signal_state(
+            condition_id=win.condition_id,
+            signal=signal,
+            row_id=row2.row_id,
+            sample_seq=2,
+            execution_window_open=True,
+            signal_edge=0.08,
+            execution_ready=False,
+        )
+
+        assert first is False
+        assert second is True
+
+        emitted = await bot._emit_locked_signal_notification(
+            locked_now=True,
+            signal=signal,
+            win=win,
+            snap=snap,
+            decision=tf.TradeDecision(action="SKIP", direction="UP", confidence=0.82, reason="blocked", gate="GATE_LATE_PROXIMITY_RISK"),
+            execution_block=("GATE_LATE_PROXIMITY_RISK", "late proximity"),
+            btc_price=100.2,
+            up_odds=0.55,
+            down_odds=0.45,
+        )
+        emitted_again = await bot._emit_locked_signal_notification(
+            locked_now=False,
+            signal=tf.AISignal(signal="SKIP", confidence=0.0, reason="hold"),
+            win=win,
+            snap=snap,
+            decision=tf.TradeDecision(action="SKIP", direction="NONE", confidence=0.0, reason="hold", gate="GATE_AI_HOLD"),
+            execution_block=("GATE_LATE_PROXIMITY_RISK", "late proximity"),
+            btc_price=100.2,
+            up_odds=0.55,
+            down_odds=0.45,
+        )
+
+        assert emitted is True
+        assert emitted_again is False
+        assert len(bot.notifier.shadow_calls) == 1
+        assert len(bot.notifier.signal_calls) == 0
+        assert bot.state.session_signal_state.telegram_sent is True
+        assert bot.state.prediction_records["row-2"].notification_sent is True
+
+    asyncio.run(run_case())
+
+
+def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path):
+    class StubMarket:
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            return tf.TradeResult(
+                success=True,
+                order_id="SIM-123",
+                simulated=True,
+                size=round(amount_usdc / current_odds, 4),
+                price=current_odds,
+                amount_usdc=amount_usdc,
+            )
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xpaper", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="paper trade",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        bot.state.up_odds = 0.56
+        bot.state.down_odds = 0.44
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id="row-paper",
+        )
+
+        assert len(bot.state.positions) == 1
+        assert bot.state.positions[0].simulated is True
+        assert bot.state.positions[0].prediction_row_id == "row-paper"
+        assert len(bot.notifier.bet_calls) == 1
+
+    asyncio.run(run_case())
+
+
+def test_tie_settlement_is_void_not_down_win(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xtie",
+            direction="DOWN",
+            order_id="SIM-TIE",
+            now=now,
+        )
+        bot.state.positions.append(pos)
+        bot.state.price_history_ts = deque([(pos.window_end_at.timestamp(), pos.window_beat)], maxlen=10)
+
+        await bot._check_positions()
+
+        assert pos.status == "void"
+        assert pos.pnl == 0.0
+        assert bot.state.win_count == 0
+        assert bot.state.loss_count == 0
+        assert bot.state.paper_stats.paper_trade_total == 0
+
+    asyncio.run(run_case())
+
+
+def test_settlement_requires_close_aligned_price_sample(tmp_path):
+    bot = make_bot(tmp_path)
+    bot.state.btc_price = 150.0
+    target = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+    settlement = bot._get_settlement_btc_for_window(
+        condition_id="0xlate",
+        window_end_at=target,
+    )
+
+    assert settlement is None
