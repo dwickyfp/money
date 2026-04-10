@@ -4703,3 +4703,8 @@
 {"ts": "2026-04-10T17:56:02.577Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.76 src=ml U=76.5% D=23.5% | ml: confidence 76% below 80%"}
 {"ts": "2026-04-10T17:56:07.610Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: confidence 64% below 80%"}
 {"ts": "2026-04-10T17:56:12.647Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.73 src=ml U=72.9% D=27.1% | ml: confidence 73% below 80%"}
+{"ts": "2026-04-10T17:56:17.671Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: confidence 64% below 80%"}
+{"ts": "2026-04-10T17:56:42.934Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%"}
+{"ts": "2026-04-10T17:56:47.978Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=45.2% D=54.8% | ml: confidence 55% below 80%"}
+{"ts": "2026-04-10T17:57:08.182Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: edge -3.5% below 5%"}
+{"ts": "2026-04-10T17:57:14.205Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.6% D=40.4% | ml: confidence 60% below 80%"}
