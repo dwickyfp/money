@@ -47,6 +47,13 @@ SIGNAL_COOLDOWN_S    = 1
 MAX_BETS_PER_HOUR    = 10
 HEARTBEAT_INTERVAL_S = 30     # POST /heartbeats to keep session alive
 LIVE_TRADING         = os.getenv("LIVE_TRADING", "false").lower() == "true"
+POLY_CREDS_REFRESH_INTERVAL_S = int(os.getenv("POLY_CREDS_REFRESH_INTERVAL_S", str(23 * 3600)))
+POLY_CREDS_REFRESH_RETRY_S = int(os.getenv("POLY_CREDS_REFRESH_RETRY_S", "3600"))
+POLY_AUTH_HEALTHCHECK_INTERVAL_S = int(os.getenv("POLY_AUTH_HEALTHCHECK_INTERVAL_S", "300"))
+POLY_WS_PING_INTERVAL_S = int(os.getenv("POLY_WS_PING_INTERVAL_S", "10"))
+POLY_WS_IDLE_RECONNECT_S = int(os.getenv("POLY_WS_IDLE_RECONNECT_S", "30"))
+POLY_HTTP_CLOSE_GRACE_S = int(os.getenv("POLY_HTTP_CLOSE_GRACE_S", "5"))
+POLY_FATAL_SESSION_FAILURES = int(os.getenv("POLY_FATAL_SESSION_FAILURES", "3"))
 
 # Tambahkan di config (optional, untuk eksperimen)
 LATE_RISK_WINDOW_S     = 90     # final 90 detik = zona berbahaya
@@ -2390,6 +2397,7 @@ import math
 import re
 import ssl
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import partial
@@ -2444,10 +2452,25 @@ class ClosedTrade:
 
 class MarketClient:
     def __init__(self) -> None:
+        self._session_lock = asyncio.Lock()
         self._client = self._build_client()
-        self._http = httpx.AsyncClient(timeout=15, verify=certifi.where())
+        self._http = self._build_http_client()
+        self._session_generation = 0
+        self._refresh_in_progress = False
+        self._creds_refreshed_at = time.time()
+        self._last_auth_success_at = 0.0
+        self._last_auth_failure_at = 0.0
+        self._last_heartbeat_ok_at = 0.0
+        self._last_auth_error = ""
+        self._consecutive_auth_failures = 0
+        self._market_ws_reconnect_requested = False
+        self._market_ws_connected = False
+        self._last_market_ws_msg_at = 0.0
 
     # ── Setup ─────────────────────────────────────────────────────────────────
+
+    def _build_http_client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(timeout=15, verify=certifi.where())
 
     def _build_client(self):
         from py_clob_client.client import ClobClient
@@ -2486,26 +2509,185 @@ class MarketClient:
         client.set_api_creds(creds)
         return client
 
+    def can_refresh_credentials(self) -> bool:
+        return bool(POLY_ETH_PRIVATE_KEY)
+
+    def has_l2_credentials(self) -> bool:
+        creds = getattr(self._client, "creds", None)
+        return bool(
+            creds
+            and getattr(creds, "api_key", "")
+            and getattr(creds, "api_secret", "")
+            and getattr(creds, "api_passphrase", "")
+        )
+
+    @staticmethod
+    def _looks_like_auth_error(detail: str) -> bool:
+        lowered = str(detail or "").lower()
+        needles = (
+            "401",
+            "403",
+            "unauthorized",
+            "forbidden",
+            "invalid signature",
+            "signature",
+            "api key",
+            "passphrase",
+            "not authenticated",
+            "not authorized",
+        )
+        return any(token in lowered for token in needles)
+
+    def _mark_auth_success(self, source: str = "") -> None:
+        now = time.time()
+        self._last_auth_success_at = now
+        self._last_auth_error = ""
+        self._consecutive_auth_failures = 0
+        if source == "heartbeat":
+            self._last_heartbeat_ok_at = now
+
+    def _mark_auth_failure(self, detail: str, *, source: str = "", auth_related: bool | None = None) -> None:
+        if auth_related is None:
+            auth_related = self._looks_like_auth_error(detail)
+        self._last_auth_failure_at = time.time()
+        if detail:
+            self._last_auth_error = detail
+        if auth_related:
+            self._consecutive_auth_failures += 1
+        elif source == "heartbeat" and not self._last_auth_error:
+            self._last_auth_error = "heartbeat failed"
+
+    def request_market_ws_reconnect(self) -> None:
+        self._market_ws_reconnect_requested = True
+
+    def consume_market_ws_reconnect_request(self) -> bool:
+        pending = self._market_ws_reconnect_requested
+        self._market_ws_reconnect_requested = False
+        return pending
+
+    def set_market_ws_connected(self, connected: bool) -> None:
+        self._market_ws_connected = connected
+        if connected:
+            self._last_market_ws_msg_at = time.time()
+
+    def touch_market_ws_message(self) -> None:
+        self._last_market_ws_msg_at = time.time()
+
+    def session_snapshot(self) -> dict[str, Any]:
+        def _fmt(ts: float) -> str:
+            if ts <= 0:
+                return ""
+            return _iso_z(datetime.fromtimestamp(ts, tz=_UTC))
+
+        return {
+            "generation": self._session_generation,
+            "refresh_in_progress": self._refresh_in_progress,
+            "can_refresh_credentials": self.can_refresh_credentials(),
+            "has_l2_credentials": self.has_l2_credentials(),
+            "creds_refreshed_at": _fmt(self._creds_refreshed_at),
+            "last_auth_success_at": _fmt(self._last_auth_success_at),
+            "last_auth_failure_at": _fmt(self._last_auth_failure_at),
+            "last_heartbeat_ok_at": _fmt(self._last_heartbeat_ok_at),
+            "last_auth_error": self._last_auth_error,
+            "consecutive_auth_failures": self._consecutive_auth_failures,
+            "market_ws_connected": self._market_ws_connected,
+            "market_ws_last_message_at": _fmt(self._last_market_ws_msg_at),
+            "market_ws_reconnect_requested": self._market_ws_reconnect_requested,
+        }
+
+    async def _retire_http_client(self, client: httpx.AsyncClient | None) -> None:
+        if client is None:
+            return
+        if POLY_HTTP_CLOSE_GRACE_S > 0:
+            await asyncio.sleep(POLY_HTTP_CLOSE_GRACE_S)
+        with suppress(Exception):
+            await client.aclose()
+
+    async def _get_client_snapshot(self):
+        async with self._session_lock:
+            return self._client, self._http, self._session_generation
+
+    @staticmethod
+    def _probe_balance_params():
+        from py_clob_client.clob_types import AssetType, BalanceAllowanceParams
+
+        return BalanceAllowanceParams(
+            asset_type=AssetType.COLLATERAL,
+            signature_type=1,
+        )
+
     async def _run(self, fn, *args, **kwargs):
         """Run a synchronous py_clob_client call in the thread pool."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, partial(fn, *args, **kwargs))
 
-    async def refresh_credentials(self) -> bool:
-        """Re-derive L2 API credentials from the ETH key.
-
-        Polymarket L2 sessions expire roughly every 24 hours. Call this
-        periodically to keep the session alive without restarting the bot.
-        Returns True on success, False on failure (caller should retry later).
-        """
-        if not POLY_ETH_PRIVATE_KEY:
-            return False
+    async def auth_health_check(self) -> tuple[bool, str]:
+        """Run a read-only authenticated probe against the active client."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            creds = await self._run(self._client.create_or_derive_api_creds)
-            self._client.set_api_creds(creds)
-            return True
-        except Exception:
-            return False
+            result = await self._run(client.get_balance_allowance, self._probe_balance_params())
+            if isinstance(result, dict) and ("balance" in result or "allowance" in result):
+                self._mark_auth_success("auth_probe")
+                return True, ""
+            detail = f"unexpected auth probe response: {type(result).__name__}"
+            self._mark_auth_failure(detail, source="auth_probe", auth_related=True)
+            return False, detail
+        except Exception as exc:
+            detail = str(exc)
+            self._mark_auth_failure(detail, source="auth_probe")
+            return False, detail
+
+    async def refresh_session(self) -> tuple[bool, str]:
+        """Build a fresh authenticated client bundle and verify it before swap."""
+        if not self.can_refresh_credentials():
+            return False, "POLY_ETH_PRIVATE_KEY missing"
+
+        async with self._session_lock:
+            if self._refresh_in_progress:
+                return False, "refresh already in progress"
+            self._refresh_in_progress = True
+
+        new_http: httpx.AsyncClient | None = None
+        try:
+            new_client = await self._run(self._build_client)
+            new_http = self._build_http_client()
+            try:
+                result = await self._run(new_client.get_balance_allowance, self._probe_balance_params())
+                if not (isinstance(result, dict) and ("balance" in result or "allowance" in result)):
+                    detail = f"auth probe failed after refresh: {type(result).__name__}"
+                    self._mark_auth_failure(detail, source="refresh", auth_related=True)
+                    return False, detail
+            except Exception as exc:
+                detail = str(exc)
+                self._mark_auth_failure(detail, source="refresh")
+                return False, detail
+
+            async with self._session_lock:
+                old_http = self._http
+                self._client = new_client
+                self._http = new_http
+                self._session_generation += 1
+                self._creds_refreshed_at = time.time()
+                self._refresh_in_progress = False
+                self.request_market_ws_reconnect()
+
+            asyncio.create_task(self._retire_http_client(old_http))
+            self._mark_auth_success("refresh")
+            return True, ""
+        finally:
+            async with self._session_lock:
+                self._refresh_in_progress = False
+            if new_http is not None and self._http is not new_http:
+                asyncio.create_task(self._retire_http_client(new_http))
+
+    async def refresh_credentials(self) -> bool:
+        ok, _ = await self.refresh_session()
+        return ok
+
+    async def close(self) -> None:
+        _, http_client, _ = await self._get_client_snapshot()
+        with suppress(Exception):
+            await http_client.aclose()
 
     # ── Market discovery (slug-probe approach) ────────────────────────────────
 
@@ -2526,7 +2708,8 @@ class MarketClient:
             ts = base_ts + offset
             slug = f"btc-updown-5m-{ts}"
             try:
-                resp = await self._http.get(f"{GAMMA_API}/events/slug/{slug}")
+                _, http_client, _ = await self._get_client_snapshot()
+                resp = await http_client.get(f"{GAMMA_API}/events/slug/{slug}")
                 if resp.status_code != 200:
                     continue
                 event = resp.json()
@@ -2590,9 +2773,10 @@ class MarketClient:
     async def get_odds(self, up_token_id: str, down_token_id: str) -> tuple[float, float]:
         """Return (up_odds, down_odds) as floats via GET /midpoint (two parallel calls)."""
         try:
+            _, http_client, _ = await self._get_client_snapshot()
             r_up, r_dn = await asyncio.gather(
-                self._http.get(f"{CLOB_HOST}/midpoint", params={"token_id": up_token_id}),
-                self._http.get(f"{CLOB_HOST}/midpoint", params={"token_id": down_token_id}),
+                http_client.get(f"{CLOB_HOST}/midpoint", params={"token_id": up_token_id}),
+                http_client.get(f"{CLOB_HOST}/midpoint", params={"token_id": down_token_id}),
                 return_exceptions=True,
             )
             def _mid(r) -> float:
@@ -2612,18 +2796,14 @@ class MarketClient:
 
     async def get_balance(self) -> float:
         """Return USDC collateral balance."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            from py_clob_client.clob_types import AssetType, BalanceAllowanceParams
-            result = await self._run(
-                self._client.get_balance_allowance,
-                BalanceAllowanceParams(
-                    asset_type=AssetType.COLLATERAL,
-                    signature_type=1,
-                ),
-            )
+            result = await self._run(client.get_balance_allowance, self._probe_balance_params())
             raw = result.get("balance", "0") if isinstance(result, dict) else "0"
+            self._mark_auth_success("get_balance")
             return float(raw) / 1e6   # USDC has 6 decimals
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="get_balance")
             return 0.0
 
     # ── Order placement ───────────────────────────────────────────────────────
@@ -2656,6 +2836,7 @@ class MarketClient:
                       "Export your Ethereum private key and add it to .env",
             )
 
+        client, _, _ = await self._get_client_snapshot()
         try:
             from py_clob_client.clob_types import OrderArgs, OrderType
 
@@ -2691,10 +2872,11 @@ class MarketClient:
                 size=size,
                 side="BUY",  # direction is encoded in token_id (up_token vs down_token)
             )
-            signed = await self._run(self._client.create_order, order_args)
-            resp   = await self._run(self._client.post_order, signed, OrderType.GTC)
+            signed = await self._run(client.create_order, order_args)
+            resp = await self._run(client.post_order, signed, OrderType.GTC)
 
             if resp and resp.get("success"):
+                self._mark_auth_success("place_bet")
                 return TradeResult(
                     success=True,
                     order_id=resp.get("orderID"),
@@ -2702,15 +2884,18 @@ class MarketClient:
                     price=price,
                     amount_usdc=actual_amount_usdc,
                 )
-            else:
-                return TradeResult(success=False, error=str(resp.get("errorMsg", "unknown")))
+            error_msg = str(resp.get("errorMsg", "unknown")) if isinstance(resp, dict) else "unknown"
+            self._mark_auth_failure(error_msg, source="place_bet")
+            return TradeResult(success=False, error=error_msg)
         except Exception as exc:
+            self._mark_auth_failure(str(exc), source="place_bet")
             return TradeResult(success=False, error=str(exc))
 
     async def get_min_order_size(self, token_id: str) -> float:
         """Return the market minimum order size from the public order book."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            book = await self._run(self._client.get_order_book, token_id)
+            book = await self._run(client.get_order_book, token_id)
             raw = getattr(book, "min_order_size", None)
             if raw is None and isinstance(book, dict):
                 raw = book.get("min_order_size")
@@ -2724,10 +2909,13 @@ class MarketClient:
 
     async def send_heartbeat(self) -> bool:
         """POST /heartbeats to keep the CLOB session alive."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            await self._run(self._client.post_heartbeat)
+            await self._run(client.post_heartbeat)
+            self._mark_auth_success("heartbeat")
             return True
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="heartbeat")
             return False
 
     # ── Order management ──────────────────────────────────────────────────────
@@ -2739,10 +2927,13 @@ class MarketClient:
           LIVE | MATCHED | CANCELED | CANCELED_MARKET_RESOLVED | INVALID
         Returns empty dict on failure.
         """
+        client, _, _ = await self._get_client_snapshot()
         try:
-            result = await self._run(self._client.get_order, order_id)
+            result = await self._run(client.get_order, order_id)
+            self._mark_auth_success("get_order")
             return result if isinstance(result, dict) else {}
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="get_order")
             return {}
 
     async def cancel_order(self, order_id: str) -> tuple[bool, str]:
@@ -2752,15 +2943,20 @@ class MarketClient:
         Returns (False, reason) on failure, where reason comes from the
         not_canceled map in the API response, e.g. "Order not found or already canceled".
         """
+        client, _, _ = await self._get_client_snapshot()
         try:
-            result = await self._run(self._client.cancel, {"orderID": order_id})
+            result = await self._run(client.cancel, {"orderID": order_id})
             if not isinstance(result, dict):
+                self._mark_auth_failure("unexpected response format", source="cancel_order", auth_related=False)
                 return False, "unexpected response format"
             if order_id in result.get("canceled", []):
+                self._mark_auth_success("cancel_order")
                 return True, ""
             reason = result.get("not_canceled", {}).get(order_id, "unknown reason")
+            self._mark_auth_failure(reason, source="cancel_order")
             return False, reason
         except Exception as exc:
+            self._mark_auth_failure(str(exc), source="cancel_order")
             return False, str(exc)
 
     async def cancel_orders(self, order_ids: list[str]) -> dict:
@@ -2768,18 +2964,24 @@ class MarketClient:
 
         Returns {"canceled": [...], "not_canceled": {...}}.
         """
+        client, _, _ = await self._get_client_snapshot()
         try:
-            result = await self._run(self._client.cancel_orders, order_ids)
+            result = await self._run(client.cancel_orders, order_ids)
+            self._mark_auth_success("cancel_orders")
             return result if isinstance(result, dict) else {}
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="cancel_orders")
             return {}
 
     async def cancel_all_orders(self) -> bool:
         """DELETE /cancel-all — cancel every open order for this account."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            await self._run(self._client.cancel_all)
+            await self._run(client.cancel_all)
+            self._mark_auth_success("cancel_all_orders")
             return True
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="cancel_all_orders")
             return False
 
     async def get_user_orders(
@@ -2791,34 +2993,23 @@ class MarketClient:
 
         Returns list of order dicts.
         """
+        client, _, _ = await self._get_client_snapshot()
         try:
             from py_clob_client.clob_types import OpenOrderParams
             params = OpenOrderParams(market=market, asset_id=asset_id)
-            result = await self._run(self._client.get_orders, params)
+            result = await self._run(client.get_orders, params)
+            self._mark_auth_success("get_user_orders")
             return result.get("data", []) if isinstance(result, dict) else []
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="get_user_orders")
             return []
 
-    async def get_order_scoring(self, order_id: str) -> bool:
-        """GET /order-scoring?order_id=... — check if order earns LP rewards."""
-        try:
-            headers = self._l2_auth_headers("GET", "/order-scoring")
-            r = await self._http.get(
-                f"{CLOB_HOST}/order-scoring",
-                params={"order_id": order_id},
-                headers=headers,
-            )
-            return bool(r.json().get("scoring", False))
-        except Exception:
-            return False
-
-    def _l2_auth_headers(self, method: str, path: str, body: str = "") -> dict:
+    def _l2_auth_headers(self, creds, method: str, path: str, body: str = "") -> dict:
         """Build HMAC L2 authentication headers for direct CLOB HTTP calls."""
         import base64
         import hashlib
         import hmac as _hmac
 
-        creds = self._client.creds
         ts = str(int(time.time()))
         msg = ts + method.upper() + path + body
         sig = base64.b64encode(
@@ -2837,14 +3028,38 @@ class MarketClient:
             "Content-Type":    "application/json",
         }
 
+    async def get_order_scoring(self, order_id: str) -> bool:
+        """GET /order-scoring?order_id=... — check if order earns LP rewards."""
+        client, http_client, _ = await self._get_client_snapshot()
+        try:
+            headers = self._l2_auth_headers(client.creds, "GET", "/order-scoring")
+            r = await http_client.get(
+                f"{CLOB_HOST}/order-scoring",
+                params={"order_id": order_id},
+                headers=headers,
+            )
+            if r.is_success:
+                self._mark_auth_success("get_order_scoring")
+                return bool(r.json().get("scoring", False))
+            self._mark_auth_failure(
+                f"order scoring http {r.status_code}",
+                source="get_order_scoring",
+                auth_related=r.status_code in (401, 403),
+            )
+            return False
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="get_order_scoring")
+            return False
+
     # ── Trades (position tracking) ────────────────────────────────────────────
 
     async def get_recent_trades(self, after_ts: float | None = None) -> list[ClosedTrade]:
         """Return trades for our address via GET /trades."""
+        client, _, _ = await self._get_client_snapshot()
         try:
             from py_clob_client.clob_types import TradeParams
             params = TradeParams(maker_address=POLY_ADDRESS)
-            result = await self._run(self._client.get_trades, params)
+            result = await self._run(client.get_trades, params)
 
             trades = []
             data = result.get("data", []) if isinstance(result, dict) else []
@@ -2858,14 +3073,17 @@ class MarketClient:
                     match_time=t.get("match_time", ""),
                     transaction_hash=t.get("transaction_hash"),
                 ))
+            self._mark_auth_success("get_recent_trades")
             return trades
-        except Exception:
+        except Exception as exc:
+            self._mark_auth_failure(str(exc), source="get_recent_trades")
             return []
 
     async def get_order_book_snapshot(self, token_id: str) -> dict[str, Any] | None:
         """Return a best-effort public order book snapshot for a token."""
+        client, _, _ = await self._get_client_snapshot()
         try:
-            book = await self._run(self._client.get_order_book, token_id)
+            book = await self._run(client.get_order_book, token_id)
         except Exception:
             return None
         if isinstance(book, dict):
@@ -2884,7 +3102,8 @@ class MarketClient:
         ]
         for url, params in candidates:
             try:
-                response = await self._http.get(url, params=params, timeout=2.0)
+                _, http_client, _ = await self._get_client_snapshot()
+                response = await http_client.get(url, params=params, timeout=2.0)
                 if not response.is_success:
                     continue
                 payload = response.json()
@@ -2941,18 +3160,32 @@ class MarketClient:
                     ping_interval=None,  # Polymarket server ignores RFC 6455 pings → disable
                     close_timeout=5,
                 ) as ws:
+                    self.consume_market_ws_reconnect_request()
                     await ws.send(sub_msg)
+                    self.set_market_ws_connected(True)
+                    self.touch_market_ws_message()
                     state.log_event("[MKTWS] Market WebSocket connected")
                     while True:
                         # Exit if window changed
                         if condition_id and (state.window is None or state.window.condition_id != condition_id):
+                            self.set_market_ws_connected(False)
                             return
-                        try:
-                            raw = await asyncio.wait_for(ws.recv(), timeout=30)
-                        except asyncio.TimeoutError:
-                            # No message for 30s — connection stale, reconnect
-                            state.log_event("[MKTWS] idle 30s, reconnecting…")
+                        if self.consume_market_ws_reconnect_request():
+                            state.log_event("[MKTWS] session refresh requested, reconnecting…")
                             break
+                        try:
+                            raw = await asyncio.wait_for(ws.recv(), timeout=POLY_WS_PING_INTERVAL_S)
+                        except asyncio.TimeoutError:
+                            idle_for = time.time() - self._last_market_ws_msg_at
+                            if idle_for >= POLY_WS_IDLE_RECONNECT_S:
+                                state.log_event(f"[MKTWS] idle {POLY_WS_IDLE_RECONNECT_S}s, reconnecting…")
+                                break
+                            try:
+                                await ws.send("{}")
+                            except Exception:
+                                break
+                            continue
+                        self.touch_market_ws_message()
                         msgs = json.loads(raw)
                         if isinstance(msgs, dict):
                             msgs = [msgs]
@@ -2992,9 +3225,12 @@ class MarketClient:
                                 else:
                                     state.log_event(f"[MKTWS] market_resolved: {msg.get('market')}")
                                 state.market_resolved_event.set()
+                    self.set_market_ws_connected(False)
             except asyncio.CancelledError:
+                self.set_market_ws_connected(False)
                 raise
             except Exception as exc:
+                self.set_market_ws_connected(False)
                 state.log_event(f"[MKTWS] error: {exc}, reconnecting…")
                 await asyncio.sleep(5)
 
@@ -5788,10 +6024,13 @@ class TradingBot:
                 safe_loop(self._position_monitor_loop,    "pos_mon",   self.state),
                 safe_loop(self._results_loop,             "results",   self.state),
                 safe_loop(self._balance_loop,             "balance",   self.state),
+                safe_loop(self._polymarket_heartbeat_loop,"poly_hb",   self.state),
+                safe_loop(self._polymarket_auth_health_loop, "poly_auth", self.state),
                 safe_loop(self._creds_refresh_loop,       "creds",     self.state),
                 safe_loop(self._ml_maintenance_loop,      "ml_maint",  self.state),
             )
         finally:
+            await self.market.close()
             self._ml_executor.shutdown(wait=False, cancel_futures=True)
 
     @staticmethod
@@ -5875,6 +6114,7 @@ class TradingBot:
         paper = self._finalize_mode_stats(dict(base.get("paper", self._empty_mode_stats())))
         live = self._finalize_mode_stats(dict(base.get("live", self._empty_mode_stats())))
         if include_current_status:
+            market_client = getattr(self, "market", None)
             status = {
                 "mode": "live" if LIVE_TRADING else "paper",
                 "balance_usdc": round(float(self.state.balance_usdc or 0.0), 6),
@@ -5886,6 +6126,7 @@ class TradingBot:
                 "open_positions": len([p for p in self.state.positions if p.status == "open"]),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
+                "polymarket_session": market_client.session_snapshot() if market_client is not None else {},
                 "participation_recent24": self.state.logger.compute_recent_participation_metrics(limit=24),
                 "updated_at": _iso_z(_utc_now()),
             }
@@ -8186,6 +8427,59 @@ class TradingBot:
                 self.state.balance_usdc = bal
             await asyncio.sleep(120)
 
+    async def _refresh_polymarket_session(self, reason: str) -> bool:
+        ok, detail = await self.market.refresh_session()
+        snapshot = self.market.session_snapshot()
+        if ok:
+            self.state.log_event(
+                f"[CREDS] Polymarket session refreshed reason={reason} "
+                f"gen={snapshot.get('generation', 0)}"
+            )
+        else:
+            suffix = f" ({detail})" if detail else ""
+            self.state.log_event(
+                f"[CREDS] Polymarket session refresh failed reason={reason}{suffix}"
+            )
+        self._refresh_performance_history()
+        return ok
+
+    async def _polymarket_heartbeat_loop(self) -> None:
+        if not LIVE_TRADING:
+            while self.state.running:
+                await asyncio.sleep(300)
+            return
+
+        while self.state.running:
+            ok = await self.market.send_heartbeat()
+            if not ok:
+                snapshot = self.market.session_snapshot()
+                detail = snapshot.get("last_auth_error") or "heartbeat failed"
+                self.state.log_event(f"[HEARTBEAT] failed: {detail}")
+                if snapshot.get("consecutive_auth_failures", 0) >= 1:
+                    await self._refresh_polymarket_session("heartbeat_failed")
+            await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+
+    async def _polymarket_auth_health_loop(self) -> None:
+        if not self.market.can_refresh_credentials():
+            while self.state.running:
+                await asyncio.sleep(300)
+            return
+
+        while self.state.running:
+            await asyncio.sleep(POLY_AUTH_HEALTHCHECK_INTERVAL_S)
+            ok, detail = await self.market.auth_health_check()
+            if ok:
+                continue
+            self.state.log_event(f"[AUTH] Polymarket auth probe failed: {detail or 'unknown'}")
+            refreshed = await self._refresh_polymarket_session("auth_probe_failed")
+            if not refreshed:
+                snapshot = self.market.session_snapshot()
+                failures = int(snapshot.get("consecutive_auth_failures", 0) or 0)
+                if failures >= POLY_FATAL_SESSION_FAILURES:
+                    self.state.log_event(
+                        f"[AUTH] session remains degraded after {failures} auth failure(s)"
+                    )
+
     # ── Credential refresh loop ───────────────────────────────────────────────
 
     async def _creds_refresh_loop(self) -> None:
@@ -8195,18 +8489,18 @@ class TradingBot:
         them every 23 hours so the bot never hits an expired-session error.
         On failure it retries every hour until success.
         """
-        _REFRESH_INTERVAL_S = 23 * 3600   # refresh before 24-hour expiry
-        _RETRY_INTERVAL_S   = 3600        # retry interval on failure
+        if not self.market.can_refresh_credentials():
+            while self.state.running:
+                await asyncio.sleep(300)
+            return
 
-        await asyncio.sleep(_REFRESH_INTERVAL_S)
+        await asyncio.sleep(POLY_CREDS_REFRESH_INTERVAL_S)
         while self.state.running:
-            ok = await self.market.refresh_credentials()
+            ok = await self._refresh_polymarket_session("scheduled")
             if ok:
-                self.state.log_event("[CREDS] Polymarket L2 session refreshed")
-                await asyncio.sleep(_REFRESH_INTERVAL_S)
+                await asyncio.sleep(POLY_CREDS_REFRESH_INTERVAL_S)
             else:
-                self.state.log_event("[CREDS] L2 session refresh failed — retrying in 1 h")
-                await asyncio.sleep(_RETRY_INTERVAL_S)
+                await asyncio.sleep(POLY_CREDS_REFRESH_RETRY_S)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

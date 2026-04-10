@@ -1,5 +1,8 @@
+import asyncio
 import json
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 import trade_full as ml
 
@@ -400,3 +403,99 @@ def test_runtime_policy_keeps_late_exec_safety_floor():
         assert prediction.runtime_skip_reason_code == "RUNTIME_CONFIDENCE_FLOOR"
     finally:
         ml.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_market_client_refresh_session_rotates_bundle_and_requests_ws_reconnect(monkeypatch):
+    class FakeCreds:
+        def __init__(self, suffix: str):
+            self.api_key = f"key-{suffix}"
+            self.api_secret = f"secret-{suffix}"
+            self.api_passphrase = f"pass-{suffix}"
+
+    class FakeClient:
+        def __init__(self, suffix: str):
+            self.creds = FakeCreds(suffix)
+
+        def get_balance_allowance(self, *_args, **_kwargs):
+            return {"balance": "1000000", "allowance": "0"}
+
+    class FakeHttp:
+        def __init__(self, suffix: str):
+            self.suffix = suffix
+            self.closed = False
+
+        async def aclose(self):
+            self.closed = True
+
+    build_count = {"client": 0, "http": 0}
+    created_http: list[FakeHttp] = []
+
+    def fake_build_client(self):
+        build_count["client"] += 1
+        return FakeClient(str(build_count["client"]))
+
+    def fake_build_http_client(self):
+        build_count["http"] += 1
+        http = FakeHttp(str(build_count["http"]))
+        created_http.append(http)
+        return http
+
+    monkeypatch.setattr(ml, "POLY_ETH_PRIVATE_KEY", "0xabc")
+    monkeypatch.setattr(ml, "POLY_HTTP_CLOSE_GRACE_S", 0)
+    monkeypatch.setattr(ml.MarketClient, "_build_client", fake_build_client)
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", fake_build_http_client)
+
+    async def _run():
+        market = ml.MarketClient()
+        original_http = market._http
+        ok, detail = await market.refresh_session()
+        await asyncio.sleep(0)
+        snapshot = market.session_snapshot()
+        reconnect_requested = market.consume_market_ws_reconnect_request()
+        await market.close()
+        return ok, detail, snapshot, reconnect_requested, original_http
+
+    ok, detail, snapshot, reconnect_requested, original_http = asyncio.run(_run())
+
+    assert ok is True
+    assert detail == ""
+    assert snapshot["generation"] == 1
+    assert snapshot["last_auth_success_at"]
+    assert reconnect_requested is True
+    assert build_count["client"] == 2
+    assert build_count["http"] == 2
+    assert original_http.closed is True
+
+
+def test_market_client_heartbeat_failure_marks_session_degraded(monkeypatch):
+    class FakeCreds:
+        api_key = "key"
+        api_secret = "secret"
+        api_passphrase = "pass"
+
+    class FakeClient:
+        def __init__(self):
+            self.creds = FakeCreds()
+
+        def post_heartbeat(self):
+            raise RuntimeError("401 invalid signature")
+
+    class FakeHttp:
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+
+    async def _run():
+        market = ml.MarketClient()
+        ok = await market.send_heartbeat()
+        snapshot = market.session_snapshot()
+        await market.close()
+        return ok, snapshot
+
+    ok, snapshot = asyncio.run(_run())
+
+    assert ok is False
+    assert snapshot["consecutive_auth_failures"] == 1
+    assert "invalid signature" in snapshot["last_auth_error"].lower()
