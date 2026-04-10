@@ -14,7 +14,15 @@ def _write_jsonl(path, records):
             handle.write(json.dumps(record, default=str) + "\n")
 
 
-def _sample_feature(*, direction: str, ts: datetime, idx: int = 0) -> ml.SignalFeatures:
+def _sample_feature(
+    *,
+    direction: str,
+    ts: datetime,
+    idx: int = 0,
+    seconds_remaining: int = 50,
+    phase_bucket: str = "LATE_EXEC",
+    elapsed_fraction: float | None = None,
+) -> ml.SignalFeatures:
     beat_price = 100.0
     gap_signed_pct = 0.18 if direction == "UP" else -0.18
     btc_price = beat_price * (1.0 + gap_signed_pct / 100.0)
@@ -27,6 +35,8 @@ def _sample_feature(*, direction: str, ts: datetime, idx: int = 0) -> ml.SignalF
     signal_alignment = 5
     signed_alignment = 5.0 if direction == "UP" else -5.0
     odds_vel = 0.004 if direction == "UP" else -0.004
+    if elapsed_fraction is None:
+        elapsed_fraction = max(0.0, min(1.0, (300 - seconds_remaining) / 300.0))
 
     return ml.SignalFeatures(
         row_id=f"row-{idx}",
@@ -40,7 +50,7 @@ def _sample_feature(*, direction: str, ts: datetime, idx: int = 0) -> ml.SignalF
         down_odds=down_odds,
         gap_pct=abs(gap_signed_pct),
         gap_signed_pct=gap_signed_pct,
-        seconds_remaining=50,
+        seconds_remaining=seconds_remaining,
         signal_alignment=signal_alignment,
         signed_alignment=signed_alignment,
         odds_vel=odds_vel,
@@ -57,6 +67,7 @@ def _sample_feature(*, direction: str, ts: datetime, idx: int = 0) -> ml.SignalF
         price_roc_30s=0.24 if direction == "UP" else -0.24,
         cvd_change_last_30s=1.4 if direction == "UP" else -1.4,
         odds_edge_strength=up_odds - down_odds,
+        elapsed_fraction=elapsed_fraction,
         fair_up=fair_up,
         fair_down=fair_down,
         edge_up=ml.compute_edge(fair_up, up_odds),
@@ -64,6 +75,7 @@ def _sample_feature(*, direction: str, ts: datetime, idx: int = 0) -> ml.SignalF
         direction_bias=direction,
         dip_label="SUSTAINED_ABOVE" if direction == "UP" else "SUSTAINED_MOVE",
         feature_source="test",
+        phase_bucket=phase_bucket,
     )
 
 
@@ -320,3 +332,71 @@ def test_runtime_signal_engine_hot_reloads_auto_promoted_model(tmp_path):
     assert result["manifest"]["promotion_state"] == "active"
     assert prediction.source == "ml"
     assert prediction.signal == ml.LABEL_BUY_UP
+
+
+def test_runtime_policy_uses_bucketed_thresholds_and_skip_codes():
+    previous = ml.BET_FREQUENCY_EXPANSION_PHASE
+    ml.BET_FREQUENCY_EXPANSION_PHASE = "C"
+    try:
+        policy = ml.RuntimePolicy()
+        reserve_feature = _sample_feature(
+            direction="UP",
+            ts=datetime.now(UTC),
+            idx=900,
+            seconds_remaining=110,
+            phase_bucket="RESERVE",
+        )
+
+        reserve_skip = policy.decide(
+            reserve_feature,
+            0.77,
+            0.23,
+            reason_prefix="ml",
+            source="ml",
+            model_version="test",
+            promotion_state="active",
+        )
+        reserve_buy = policy.decide(
+            reserve_feature,
+            0.79,
+            0.21,
+            reason_prefix="ml",
+            source="ml",
+            model_version="test",
+            promotion_state="active",
+        )
+
+        assert reserve_skip.signal == ml.LABEL_SKIP
+        assert reserve_skip.runtime_skip_reason_code == "RUNTIME_CONFIDENCE_FLOOR"
+        assert reserve_buy.signal == ml.LABEL_BUY_UP
+    finally:
+        ml.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_runtime_policy_keeps_late_exec_safety_floor():
+    previous = ml.BET_FREQUENCY_EXPANSION_PHASE
+    ml.BET_FREQUENCY_EXPANSION_PHASE = "C"
+    try:
+        policy = ml.RuntimePolicy()
+        late_feature = _sample_feature(
+            direction="UP",
+            ts=datetime.now(UTC),
+            idx=901,
+            seconds_remaining=35,
+            phase_bucket="LATE_EXEC",
+        )
+
+        prediction = policy.decide(
+            late_feature,
+            0.77,
+            0.23,
+            reason_prefix="ml",
+            source="ml",
+            model_version="test",
+            promotion_state="active",
+        )
+
+        assert prediction.signal == ml.LABEL_SKIP
+        assert prediction.runtime_skip_reason_code == "RUNTIME_CONFIDENCE_FLOOR"
+    finally:
+        ml.BET_FREQUENCY_EXPANSION_PHASE = previous

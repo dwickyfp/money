@@ -25,24 +25,41 @@
       "wins": 0
     },
     "paper": {
-      "losses": 1,
+      "losses": 2,
       "pnl": 3.366947,
-      "total": 7,
-      "win_rate": 85.71,
-      "wins": 6
+      "total": 9,
+      "win_rate": 77.78,
+      "wins": 7
     },
     "status": {
-      "active_model_version": "20260410T123120Z",
+      "active_model_version": "20260410T162435Z-s20",
       "active_signal_source": "ml",
       "balance_usdc": 0.730126,
-      "bets_this_hour": 1,
+      "bets_this_hour": 2,
       "daily_halted": false,
-      "daily_loss": 0.0,
-      "daily_profit": 2.176471,
+      "daily_loss": 1.0,
+      "daily_profit": 1.0,
       "daily_profit_halted": false,
       "mode": "paper",
       "open_positions": 0,
-      "updated_at": "2026-04-10T16:05:27.247Z"
+      "participation_recent24": {
+        "blocked_profitable_rate": {
+          "GATE_ALREADY_ATTEMPTED": 1.0,
+          "GATE_BANDAR_PUSH": 0.8,
+          "GATE_EXECUTION_WINDOW": 0.6046,
+          "GATE_LATE_PROXIMITY_RISK": 1.0,
+          "GATE_TOO_SURE": 0.0
+        },
+        "buy_prediction_rate": 1.0,
+        "executed_bet_rate": 0.2083,
+        "reserved_signal_rate": 0.0833,
+        "win_rate_by_execution_bucket": {
+          "EARLY_EXEC": 0.0,
+          "LATE_EXEC": 1.0
+        },
+        "window_count": 24
+      },
+      "updated_at": "2026-04-10T16:50:33.311Z"
     }
   }
 }

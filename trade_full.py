@@ -84,11 +84,12 @@ MIN_BET_USDC        = 1.00    # floor (never bet less than this)
 MAX_BET_USDC        = 10.00   # ceiling (never bet more than this per trade)
 PAPER_BANKROLL_USDC = 200.0   # simulated bankroll in paper mode for Kelly sizing
 
-# ── Last-minute entry window (the ONLY entry window) ─────────────────────────
-# The bot waits silently for 2 minutes then fires in the final ~3 minutes.
-# Starting at 120s gives more opportunity to catch direction before Polymarket
-# fully prices it in (by 180s odds are typically already at 0.99+).
-GOLD_ZONE_START_S      = 240    # start looking at 210s elapsed (90s = 1.5 min remaining)
+# ── Last-minute entry window (reserve first, execute later) ─────────────────
+SIGNAL_LOCK_START_S    = int(os.getenv("SIGNAL_LOCK_START_S", "180"))
+EXECUTION_START_S      = int(os.getenv("EXECUTION_START_S", "210"))
+LATE_EXEC_START_S      = int(os.getenv("LATE_EXEC_START_S", "240"))
+GOLD_ZONE_START_S      = EXECUTION_START_S
+BET_FREQUENCY_EXPANSION_PHASE = os.getenv("BET_FREQUENCY_EXPANSION_PHASE", "A").strip().upper()
 GOLD_ZONE_MIN_MOVE_PCT = 0.02   # BTC must be ≥ 0.02% from beat (~$17 at $85k)
 GOLD_ZONE_MIN_CONF     = 0.70   # minimum calibrated confidence to execute a bet
 GOLD_ZONE_MAX_ODDS     = 0.82   # leading side must still be ≤ this (not fully priced)
@@ -417,10 +418,18 @@ class BotLogger:
             "blocked_gate":        record.blocked_gate,
             "blocked_reason":      record.blocked_reason,
             "phase_bucket":        record.phase_bucket,
+            "execution_bucket":    record.execution_bucket,
             "seconds_remaining":   record.seconds_remaining,
             "btc_price":           record.btc_price,
             "up_odds":             record.up_odds,
             "down_odds":           record.down_odds,
+            "signal_reason":       record.signal_reason,
+            "decision_reason":     record.decision_reason,
+            "runtime_skip_reason_code": record.runtime_skip_reason_code,
+            "decision_skip_reason_code": record.decision_skip_reason_code,
+            "reservation_locked":  record.reservation_locked,
+            "reservation_carried_to_execution": record.reservation_carried_to_execution,
+            "soft_penalties_applied": record.soft_penalties_applied,
             "notification_locked": record.notification_locked,
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
@@ -459,10 +468,18 @@ class BotLogger:
             "blocked_gate":        record.blocked_gate,
             "blocked_reason":      record.blocked_reason,
             "phase_bucket":        record.phase_bucket,
+            "execution_bucket":    record.execution_bucket,
             "seconds_remaining":   record.seconds_remaining,
             "btc_price":           record.btc_price,
             "up_odds":             record.up_odds,
             "down_odds":           record.down_odds,
+            "signal_reason":       record.signal_reason,
+            "decision_reason":     record.decision_reason,
+            "runtime_skip_reason_code": record.runtime_skip_reason_code,
+            "decision_skip_reason_code": record.decision_skip_reason_code,
+            "reservation_locked":  record.reservation_locked,
+            "reservation_carried_to_execution": record.reservation_carried_to_execution,
+            "soft_penalties_applied": record.soft_penalties_applied,
             "notification_locked": record.notification_locked,
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
@@ -500,10 +517,18 @@ class BotLogger:
             "blocked_gate":        record.blocked_gate,
             "blocked_reason":      record.blocked_reason,
             "phase_bucket":        record.phase_bucket,
+            "execution_bucket":    record.execution_bucket,
             "seconds_remaining":   record.seconds_remaining,
             "btc_price":           record.btc_price,
             "up_odds":             record.up_odds,
             "down_odds":           record.down_odds,
+            "signal_reason":       record.signal_reason,
+            "decision_reason":     record.decision_reason,
+            "runtime_skip_reason_code": record.runtime_skip_reason_code,
+            "decision_skip_reason_code": record.decision_skip_reason_code,
+            "reservation_locked":  record.reservation_locked,
+            "reservation_carried_to_execution": record.reservation_carried_to_execution,
+            "soft_penalties_applied": record.soft_penalties_applied,
             "notification_locked": record.notification_locked,
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
@@ -538,6 +563,7 @@ class BotLogger:
             "confidence":         position.ai_confidence,
             "raw_confidence":     position.ai_raw_confidence,
             "alignment":          position.signal_alignment,
+            "execution_bucket":   getattr(position, "execution_bucket", ""),
             "resolved_at":        self._ts(),
         })
 
@@ -892,6 +918,118 @@ class BotLogger:
         today: str | None = None,
     ) -> tuple[dict[str, dict], dict[str, Any]]:
         return self.load_prediction_analytics(lookback_days=lookback_days, today=today)
+
+    def compute_recent_participation_metrics(self, limit: int = 24) -> dict[str, Any]:
+        files = sorted(self._dir.glob("prediction_analytics_*.jsonl"))
+        windows: dict[str, dict[str, Any]] = {}
+        for path in files:
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        try:
+                            record = json.loads(line)
+                        except Exception:
+                            continue
+                        condition_id = str(record.get("condition_id", "") or "").strip()
+                        if not condition_id:
+                            continue
+                        event = str(record.get("event", "") or "")
+                        bucket = windows.setdefault(
+                            condition_id,
+                            {
+                                "resolved_at": "",
+                                "has_buy_prediction": False,
+                                "reserved_signal": False,
+                                "executed_bet": False,
+                                "execution_bucket": "",
+                                "won": None,
+                                "blocked_by_gate": {},
+                            },
+                        )
+                        signal = str(record.get("signal", "") or "")
+                        if signal in ("BUY_UP", "BUY_DOWN"):
+                            bucket["has_buy_prediction"] = True
+                        if bool(record.get("reservation_locked", False)):
+                            bucket["reserved_signal"] = True
+                        if str(record.get("execution_bucket", "") or ""):
+                            bucket["execution_bucket"] = str(record.get("execution_bucket", "") or "")
+                        if event == "prediction_resolved":
+                            resolved_at = str(record.get("resolved_at") or record.get("ts") or "")
+                            if resolved_at:
+                                bucket["resolved_at"] = resolved_at
+                            gate = str(record.get("blocked_gate", "") or "")
+                            correct = record.get("prediction_correct")
+                            if gate and isinstance(correct, bool):
+                                stats = bucket["blocked_by_gate"].setdefault(gate, {"hits": 0, "total": 0})
+                                stats["total"] += 1
+                                if correct:
+                                    stats["hits"] += 1
+                            won_value = record.get("paper_trade_won")
+                            if not isinstance(won_value, bool):
+                                won_value = record.get("live_trade_won")
+                            if isinstance(won_value, bool):
+                                bucket["executed_bet"] = True
+                                bucket["won"] = won_value
+                        elif event in ("paper_trade_resolved", "live_trade_resolved"):
+                            resolved_at = str(record.get("resolved_at") or record.get("ts") or "")
+                            if resolved_at:
+                                bucket["resolved_at"] = resolved_at
+                            won_value = record.get("paper_trade_won")
+                            if not isinstance(won_value, bool):
+                                won_value = record.get("live_trade_won")
+                            if isinstance(won_value, bool):
+                                bucket["executed_bet"] = True
+                                bucket["won"] = won_value
+            except Exception:
+                continue
+
+        resolved_windows = [
+            record for record in windows.values()
+            if str(record.get("resolved_at", "")).strip()
+        ]
+        resolved_windows.sort(key=lambda item: str(item.get("resolved_at", "")))
+        recent = resolved_windows[-limit:]
+        total = len(recent)
+        metrics: dict[str, Any] = {
+            "window_count": total,
+            "buy_prediction_rate": 0.0,
+            "reserved_signal_rate": 0.0,
+            "executed_bet_rate": 0.0,
+            "blocked_profitable_rate": {},
+            "win_rate_by_execution_bucket": {},
+        }
+        if total == 0:
+            return metrics
+
+        metrics["buy_prediction_rate"] = round(sum(1 for row in recent if row.get("has_buy_prediction")) / total, 4)
+        metrics["reserved_signal_rate"] = round(sum(1 for row in recent if row.get("reserved_signal")) / total, 4)
+        metrics["executed_bet_rate"] = round(sum(1 for row in recent if row.get("executed_bet")) / total, 4)
+
+        gate_hits: dict[str, int] = defaultdict(int)
+        gate_totals: dict[str, int] = defaultdict(int)
+        bucket_wins: dict[str, int] = defaultdict(int)
+        bucket_totals: dict[str, int] = defaultdict(int)
+        for row in recent:
+            for gate, stats in row.get("blocked_by_gate", {}).items():
+                gate_hits[gate] += int(stats.get("hits", 0) or 0)
+                gate_totals[gate] += int(stats.get("total", 0) or 0)
+            execution_bucket = str(row.get("execution_bucket", "") or "")
+            if execution_bucket and isinstance(row.get("won"), bool):
+                bucket_totals[execution_bucket] += 1
+                if row["won"]:
+                    bucket_wins[execution_bucket] += 1
+
+        metrics["blocked_profitable_rate"] = {
+            gate: round(gate_hits[gate] / total_count, 4)
+            for gate, total_count in gate_totals.items()
+            if total_count > 0
+        }
+        metrics["win_rate_by_execution_bucket"] = {
+            bucket: round(bucket_wins[bucket] / total_count, 4)
+            for bucket, total_count in bucket_totals.items()
+            if total_count > 0
+        }
+        return metrics
 
     @staticmethod
     def _trade_key(record: dict) -> str:
@@ -1651,6 +1789,8 @@ class AISignal:
     prob_up: float = 0.5
     prob_down: float = 0.5
     promotion_state: str = ""
+    runtime_skip_reason_code: str = ""
+    soft_penalties_applied: list[str] = field(default_factory=list)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1762,7 +1902,7 @@ class DecisionMaker:
     """Stateless evaluator — create one instance and reuse across calls."""
 
     def _check_late_reversal_risk(self, ctx: DecisionContext) -> TradeDecision | None:
-        """PATCH: Proteksi khusus final 90 detik — gap kecil = HIGH reversal risk"""
+        """Hard block only for the riskiest late proximity setups."""
         if ctx.seconds_remaining > LATE_RISK_WINDOW_S:
             return None
 
@@ -1770,7 +1910,29 @@ class DecisionMaker:
         if gap_pct >= LATE_GAP_RISK_PCT:
             return None
 
-        if ctx.signal_alignment < 5:
+        if not _bet_frequency_phase_at_least("B"):
+            if ctx.signal_alignment < 5:
+                return TradeDecision(
+                    action="SKIP",
+                    direction=ctx.snap.direction_bias or "NONE",
+                    confidence=0.0,
+                    reason=f"LATE_PROXIMITY_RISK: gap={gap_pct:.3f}% < {LATE_GAP_RISK_PCT:.2f}% di final {ctx.seconds_remaining}s (align={ctx.signal_alignment}/6)",
+                    gate="GATE_LATE_PROXIMITY_RISK",
+                )
+            return None
+
+        if ctx.seconds_remaining >= 30:
+            if gap_pct < 0.04 or ctx.signal_alignment <= 3:
+                return TradeDecision(
+                    action="SKIP",
+                    direction=ctx.snap.direction_bias or "NONE",
+                    confidence=0.0,
+                    reason=f"LATE_PROXIMITY_RISK: gap={gap_pct:.3f}% < {LATE_GAP_RISK_PCT:.2f}% di final {ctx.seconds_remaining}s (align={ctx.signal_alignment}/6)",
+                    gate="GATE_LATE_PROXIMITY_RISK",
+                )
+            return None
+
+        if ctx.signal_alignment < 5 or gap_pct < LATE_GAP_RISK_PCT:
             return TradeDecision(
                 action="SKIP",
                 direction=ctx.snap.direction_bias or "NONE",
@@ -1781,7 +1943,7 @@ class DecisionMaker:
         return None
     
     def _check_bandar_push(self, ctx: DecisionContext) -> TradeDecision | None:
-        """Gate khusus mendeteksi tanda bandar/whale push di final 45 detik"""
+        """Hard block only for the strongest final-seconds bandar push."""
         if ctx.seconds_remaining > BANDAR_FINAL_SECONDS:
             return None
 
@@ -1789,8 +1951,16 @@ class DecisionMaker:
         if snap is None:
             return None
 
-        # Odds velocity ekstrem
-        if abs(snap.odds_vel_value) > BANDAR_ODDS_VEL_THRESHOLD:
+        vel = abs(snap.odds_vel_value)
+        accel = abs(snap.odds_vel_accel)
+        vel_threshold = BANDAR_ODDS_VEL_THRESHOLD
+        accel_threshold = BANDAR_CVD_ACCEL_THRESHOLD
+        if not _bet_frequency_phase_at_least("B"):
+            hard_multiplier = 1.0
+        else:
+            hard_multiplier = 1.5 if ctx.seconds_remaining >= 30 else 1.0
+
+        if vel > vel_threshold * hard_multiplier:
             return TradeDecision(
                 action="SKIP",
                 direction=ctx.snap.direction_bias or "NONE",
@@ -1799,8 +1969,7 @@ class DecisionMaker:
                 gate="GATE_BANDAR_PUSH",
             )
 
-        # CVD acceleration ekstrem
-        if abs(snap.odds_vel_accel) > BANDAR_CVD_ACCEL_THRESHOLD:
+        if accel > accel_threshold * hard_multiplier:
             return TradeDecision(
                 action="SKIP",
                 direction=ctx.snap.direction_bias or "NONE",
@@ -1810,6 +1979,28 @@ class DecisionMaker:
             )
 
         return None
+
+    def soft_penalties(self, ctx: DecisionContext) -> list[str]:
+        penalties: list[str] = []
+        if not _bet_frequency_phase_at_least("B"):
+            return penalties
+        snap = ctx.snap
+        if snap is None:
+            return penalties
+
+        if 30 <= ctx.seconds_remaining <= LATE_RISK_WINDOW_S:
+            gap_pct = abs(ctx.btc_price - ctx.win.beat_price) / ctx.win.beat_price * 100 if ctx.win and ctx.win.beat_price > 0 else 0.0
+            if gap_pct < LATE_GAP_RISK_PCT and gap_pct >= 0.04 and ctx.signal_alignment >= 4:
+                penalties.append("SOFT_LATE_PROXIMITY_RISK")
+
+        if 30 <= ctx.seconds_remaining <= BANDAR_FINAL_SECONDS:
+            if (
+                abs(_safe_float(getattr(snap, "odds_vel_value", 0.0), 0.0)) > BANDAR_ODDS_VEL_THRESHOLD
+                or abs(_safe_float(getattr(snap, "odds_vel_accel", 0.0), 0.0)) > BANDAR_CVD_ACCEL_THRESHOLD
+            ):
+                penalties.append("SOFT_BANDAR_PUSH")
+
+        return penalties
 
     # ── Pre-AI market gates ───────────────────────────────────────────────────
 
@@ -2011,6 +2202,7 @@ class DecisionMaker:
         # it's a transient move. Block low-confidence contrarian bets here.
         ai_dir = "UP" if signal.signal == "BUY_UP" else "DOWN"
         selected_odds = ctx.up_odds if ai_dir == "UP" else ctx.down_odds
+        soft_penalties = self.soft_penalties(ctx)
         if selected_odds <= 0.0 or selected_odds >= 1.0:
             return TradeDecision(
                 action="SKIP", direction=ai_dir, confidence=signal.confidence,
@@ -2068,6 +2260,10 @@ class DecisionMaker:
 
         min_conf_edge = max(0.02, min_conf_edge)
         required_conf = max(base_floor, selected_odds + min_conf_edge)
+        if "SOFT_LATE_PROXIMITY_RISK" in soft_penalties:
+            required_conf += 0.02
+        if "SOFT_BANDAR_PUSH" in soft_penalties:
+            required_conf += 0.02
 
         if signal.confidence < required_conf:
             required_conf = base_floor
@@ -2083,6 +2279,10 @@ class DecisionMaker:
 
             required_conf = max(0.60, required_conf)  # safety floor
             required_conf = max(required_conf, selected_odds + min_conf_edge)
+            if "SOFT_LATE_PROXIMITY_RISK" in soft_penalties:
+                required_conf += 0.02
+            if "SOFT_BANDAR_PUSH" in soft_penalties:
+                required_conf += 0.02
 
             if signal.confidence < required_conf:
                 return TradeDecision(
@@ -3362,6 +3562,27 @@ def _clip_probability(value: float) -> float:
     return float(max(0.001, min(0.999, value)))
 
 
+def _phase_bucket_from_timing(elapsed_s: int, seconds_remaining: int) -> str:
+    if seconds_remaining <= 0:
+        return "CLOSED"
+    if seconds_remaining < LAST_MIN_SECONDS_GUARD:
+        return "TOO_LATE"
+    if elapsed_s < SIGNAL_LOCK_START_S:
+        return "OBSERVE"
+    if elapsed_s < EXECUTION_START_S:
+        return "RESERVE"
+    if elapsed_s < LATE_EXEC_START_S:
+        return "EARLY_EXEC"
+    return "LATE_EXEC"
+
+
+def _bet_frequency_phase_at_least(phase: str) -> bool:
+    ordering = {"A": 1, "B": 2, "C": 3}
+    current = ordering.get(BET_FREQUENCY_EXPANSION_PHASE, 1)
+    target = ordering.get(str(phase).strip().upper(), current)
+    return current >= target
+
+
 def _prob_to_signal(prob_up: float, threshold: float = 0.5) -> str:
     if prob_up >= threshold:
         return LABEL_BUY_UP
@@ -3600,6 +3821,8 @@ class SignalPrediction:
     prob_down: float
     promotion_state: str
     raw_confidence: float = 0.0
+    runtime_skip_reason_code: str = ""
+    soft_penalties_applied: list[str] = field(default_factory=list)
     shadow: dict[str, Any] | None = None
 
 
@@ -3783,10 +4006,72 @@ class ModelRegistry:
 
 @dataclass
 class RuntimePolicy:
-    min_confidence: float = 0.80
-    min_edge: float = 0.05
+    observe_min_confidence: float = 0.80
+    observe_min_edge: float = 0.05
+    observe_spread_floor: float = 0.02
+    reserve_min_confidence: float = 0.78
+    reserve_min_edge: float = 0.04
+    reserve_spread_floor: float = 0.015
+    early_exec_min_confidence: float = 0.76
+    early_exec_min_edge: float = 0.03
+    early_exec_spread_floor: float = 0.015
+    late_exec_min_confidence: float = 0.80
+    late_exec_min_edge: float = 0.05
+    late_exec_spread_floor: float = 0.02
     late_window_confidence: float = 0.85
-    spread_floor: float = 0.02
+    early_exec_safety_floor: float = 0.74
+    late_exec_safety_floor: float = 0.78
+
+    @staticmethod
+    def _phase_bucket(features: SignalFeatures) -> str:
+        bucket = str(getattr(features, "phase_bucket", "") or "").upper()
+        if bucket:
+            return bucket
+        elapsed_s = int(round(_safe_float(getattr(features, "elapsed_fraction", 0.0), 0.0) * 300.0))
+        seconds_remaining = _safe_int(getattr(features, "seconds_remaining", 0), 0)
+        return _phase_bucket_from_timing(elapsed_s, seconds_remaining)
+
+    def _thresholds(self, features: SignalFeatures) -> tuple[str, float, float, float, float]:
+        bucket = self._phase_bucket(features)
+        if not _bet_frequency_phase_at_least("C"):
+            return (
+                bucket,
+                self.observe_min_confidence,
+                self.observe_min_edge,
+                self.observe_spread_floor,
+                self.observe_min_confidence,
+            )
+        if bucket == "RESERVE":
+            return (
+                bucket,
+                self.reserve_min_confidence,
+                self.reserve_min_edge,
+                self.reserve_spread_floor,
+                self.reserve_min_confidence,
+            )
+        if bucket == "EARLY_EXEC":
+            return (
+                bucket,
+                self.early_exec_min_confidence,
+                self.early_exec_min_edge,
+                self.early_exec_spread_floor,
+                self.early_exec_safety_floor,
+            )
+        if bucket == "LATE_EXEC":
+            return (
+                bucket,
+                self.late_exec_min_confidence,
+                self.late_exec_min_edge,
+                self.late_exec_spread_floor,
+                self.late_exec_safety_floor,
+            )
+        return (
+            bucket,
+            self.observe_min_confidence,
+            self.observe_min_edge,
+            self.observe_spread_floor,
+            self.observe_min_confidence,
+        )
 
     def decide(self, features: SignalFeatures, prob_up: float, prob_down: float, reason_prefix: str, source: str, model_version: str, promotion_state: str) -> SignalPrediction:
         prob_up = _clip_probability(prob_up)
@@ -3796,11 +4081,13 @@ class RuntimePolicy:
         market_odds = features.up_odds if side == LABEL_BUY_UP else features.down_odds
         edge = (confidence / market_odds - 1.0) if 0.0 < market_odds < 1.0 else 0.0
         spread = abs(prob_up - prob_down)
-        required_conf = self.late_window_confidence if features.is_bandar_zone else self.min_confidence
-        if features.is_proximity_risk:
+        phase_bucket, base_confidence, min_edge, spread_floor, safety_floor = self._thresholds(features)
+        required_conf = self.late_window_confidence if features.is_bandar_zone else base_confidence
+        if features.is_proximity_risk or phase_bucket == "LATE_EXEC":
             required_conf = max(required_conf, self.late_window_confidence)
+        required_conf = max(required_conf, safety_floor)
 
-        if spread < self.spread_floor:
+        if spread < spread_floor:
             return SignalPrediction(
                 signal=LABEL_SKIP,
                 confidence=confidence,
@@ -3811,19 +4098,21 @@ class RuntimePolicy:
                 prob_up=prob_up,
                 prob_down=prob_down,
                 promotion_state=promotion_state,
+                runtime_skip_reason_code="RUNTIME_SPREAD_FLOOR",
             )
 
-        if edge < self.min_edge:
+        if edge < min_edge:
             return SignalPrediction(
                 signal=LABEL_SKIP,
                 confidence=confidence,
                 raw_confidence=confidence,
-                reason=f"{reason_prefix}: edge {edge:+.1%} below {self.min_edge:.0%}",
+                reason=f"{reason_prefix}: edge {edge:+.1%} below {min_edge:.0%}",
                 source=source,
                 model_version=model_version,
                 prob_up=prob_up,
                 prob_down=prob_down,
                 promotion_state=promotion_state,
+                runtime_skip_reason_code="RUNTIME_EDGE_FLOOR",
             )
 
         if confidence < required_conf:
@@ -3837,6 +4126,7 @@ class RuntimePolicy:
                 prob_up=prob_up,
                 prob_down=prob_down,
                 promotion_state=promotion_state,
+                runtime_skip_reason_code="RUNTIME_CONFIDENCE_FLOOR",
             )
 
         return SignalPrediction(
@@ -3849,6 +4139,7 @@ class RuntimePolicy:
             prob_up=prob_up,
             prob_down=prob_down,
             promotion_state=promotion_state,
+            runtime_skip_reason_code="",
         )
 
 
@@ -5006,6 +5297,7 @@ class Position:
     ai_raw_confidence: float = 0.0
     signal_alignment: int = 0
     prediction_row_id: str = ""
+    execution_bucket: str = ""
 
 
 @dataclass
@@ -5049,10 +5341,18 @@ class WindowPredictionRecord:
     blocked_gate: str = ""
     blocked_reason: str = ""
     phase_bucket: str = ""
+    execution_bucket: str = ""
     seconds_remaining: int = 0
     btc_price: float = 0.0
     up_odds: float = 0.0
     down_odds: float = 0.0
+    signal_reason: str = ""
+    decision_reason: str = ""
+    runtime_skip_reason_code: str = ""
+    decision_skip_reason_code: str = ""
+    reservation_locked: bool = False
+    reservation_carried_to_execution: bool = False
+    soft_penalties_applied: list[str] = field(default_factory=list)
     actual_winner: str = ""
     prediction_correct: bool | None = None
     counterfactual_pnl: float | None = None
@@ -5169,6 +5469,10 @@ class SessionSignalState:
     locked_signal: str = ""
     locked_row_id: str = ""
     locked_gate: str = ""
+    locked_confidence: float = 0.0
+    locked_phase_bucket: str = ""
+    reservation_locked: bool = False
+    reservation_carry_used: bool = False
     telegram_sent: bool = False
     locked_at: datetime | None = None
 
@@ -5180,6 +5484,10 @@ class SessionSignalState:
         self.locked_signal = ""
         self.locked_row_id = ""
         self.locked_gate = ""
+        self.locked_confidence = 0.0
+        self.locked_phase_bucket = ""
+        self.reservation_locked = False
+        self.reservation_carry_used = False
         self.telegram_sent = False
         self.locked_at = None
 
@@ -5423,8 +5731,14 @@ class TradingBot:
         self.signal_engine = RuntimeSignalEngine(
             self.model_registry,
             policy=RuntimePolicy(
-                min_confidence=GOLD_ZONE_MIN_CONF,
-                min_edge=MINIMUM_EDGE_THRESHOLD,
+                observe_min_confidence=0.80,
+                observe_min_edge=0.05,
+                reserve_min_confidence=0.78,
+                reserve_min_edge=0.04,
+                early_exec_min_confidence=0.76,
+                early_exec_min_edge=0.03,
+                late_exec_min_confidence=GOLD_ZONE_MIN_CONF,
+                late_exec_min_edge=MINIMUM_EDGE_THRESHOLD,
                 late_window_confidence=LATE_DYNAMIC_MIN_CONF,
             ),
             stale_after_hours=ML_MODEL_STALE_HOURS,
@@ -5572,6 +5886,7 @@ class TradingBot:
                 "open_positions": len([p for p in self.state.positions if p.status == "open"]),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
+                "participation_recent24": self.state.logger.compute_recent_participation_metrics(limit=24),
                 "updated_at": _iso_z(_utc_now()),
             }
         else:
@@ -5788,13 +6103,7 @@ class TradingBot:
 
     @staticmethod
     def _phase_bucket(elapsed_s: int, seconds_remaining: int) -> str:
-        if seconds_remaining <= 0:
-            return "CLOSED"
-        if elapsed_s < GOLD_ZONE_START_S:
-            return "PRE_GOLD"
-        if seconds_remaining < LAST_MIN_SECONDS_GUARD:
-            return "TOO_LATE"
-        return "GOLD"
+        return _phase_bucket_from_timing(elapsed_s, seconds_remaining)
 
     def _track_ml_feature_row(self, feature_row: SignalFeatures) -> None:
         self.state.logger.log_ml_feature(feature_row.to_record())
@@ -5855,6 +6164,8 @@ class TradingBot:
             prob_up=prediction.prob_up,
             prob_down=prediction.prob_down,
             promotion_state=prediction.promotion_state,
+            runtime_skip_reason_code=prediction.runtime_skip_reason_code,
+            soft_penalties_applied=list(prediction.soft_penalties_applied or []),
         )
         if prediction.shadow:
             self.state.log_event(
@@ -5930,6 +6241,8 @@ class TradingBot:
         sent: bool | None = None,
         signal: str | None = None,
         gate: str | None = None,
+        reservation_locked: bool | None = None,
+        reservation_carried_to_execution: bool | None = None,
     ) -> WindowPredictionRecord | None:
         async with self.state._lock:
             record = self.state.prediction_records.get(row_id)
@@ -5943,10 +6256,59 @@ class TradingBot:
                 record.notification_signal = signal
             if gate is not None:
                 record.notification_gate = gate
+            if reservation_locked is not None:
+                record.reservation_locked = reservation_locked
+            if reservation_carried_to_execution is not None:
+                record.reservation_carried_to_execution = reservation_carried_to_execution
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
         self.state.logger.log_prediction_state(record)
         return record
+
+    def _maybe_apply_reserved_signal_carry(
+        self,
+        *,
+        condition_id: str,
+        signal: AISignal,
+        phase_bucket: str,
+    ) -> tuple[AISignal, bool]:
+        session = self.state.session_signal_state
+        if session.condition_id != condition_id:
+            return signal, False
+        if not session.reservation_locked or session.reservation_carry_used:
+            return signal, False
+        if phase_bucket not in ("EARLY_EXEC", "LATE_EXEC"):
+            return signal, False
+
+        preferred_signal = signal.signal
+        if preferred_signal not in ("BUY_UP", "BUY_DOWN"):
+            preferred_signal = LABEL_BUY_UP if signal.prob_up >= signal.prob_down else LABEL_BUY_DOWN
+        if preferred_signal != session.locked_signal:
+            return signal, False
+        if signal.confidence < max(0.0, session.locked_confidence - 0.05):
+            return signal, False
+
+        session.reservation_carry_used = True
+        if signal.signal == session.locked_signal:
+            return signal, True
+
+        carried = AISignal(
+            signal=session.locked_signal,
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence or signal.confidence,
+            reason=f"reserve carry: {signal.reason[:96]}",
+            latency_ms=signal.latency_ms,
+            timestamp=signal.timestamp,
+            dip_label=signal.dip_label,
+            source=f"{signal.source}_reserve",
+            model_version=signal.model_version,
+            prob_up=signal.prob_up,
+            prob_down=signal.prob_down,
+            promotion_state=signal.promotion_state,
+            runtime_skip_reason_code=signal.runtime_skip_reason_code,
+            soft_penalties_applied=list(signal.soft_penalties_applied or []),
+        )
+        return carried, True
 
     async def _advance_session_signal_state(
         self,
@@ -5955,7 +6317,7 @@ class TradingBot:
         signal: AISignal,
         row_id: str,
         sample_seq: int,
-        execution_window_open: bool,
+        phase_bucket: str,
         signal_edge: float,
         execution_ready: bool,
     ) -> bool:
@@ -5967,16 +6329,17 @@ class TradingBot:
         if session.locked_signal:
             return False
 
-        if not execution_window_open:
+        if phase_bucket in ("CLOSED", "TOO_LATE", "OBSERVE"):
             session.candidate_signal = ""
             session.candidate_streak = 0
             session.candidate_first_seq = -1
             return False
 
         if signal.signal not in ("BUY_UP", "BUY_DOWN"):
-            session.candidate_signal = ""
-            session.candidate_streak = 0
-            session.candidate_first_seq = -1
+            if phase_bucket in ("EARLY_EXEC", "LATE_EXEC"):
+                session.candidate_signal = ""
+                session.candidate_streak = 0
+                session.candidate_first_seq = -1
             return False
 
         if session.candidate_signal == signal.signal:
@@ -5994,11 +6357,15 @@ class TradingBot:
 
         session.locked_signal = signal.signal
         session.locked_row_id = row_id
+        session.locked_confidence = signal.confidence
+        session.locked_phase_bucket = phase_bucket
+        session.reservation_locked = phase_bucket == "RESERVE"
         session.locked_at = datetime.now(_UTC)
         await self._mark_prediction_notification(
             row_id,
             locked=True,
             signal=signal.signal,
+            reservation_locked=session.reservation_locked,
         )
         return True
 
@@ -6024,7 +6391,7 @@ class TradingBot:
         session.telegram_sent = True
         session.locked_gate = gate
 
-        if execution_block is not None:
+        if execution_block is not None and gate != "GATE_EXECUTION_WINDOW":
             self.notifier.notify_shadow_signal(
                 signal,
                 win,
@@ -6065,6 +6432,10 @@ class TradingBot:
         snap: "IndicatorSnapshot",
         decision_action: str,
         execution_allowed: bool,
+        decision_reason: str = "",
+        decision_skip_reason_code: str = "",
+        reservation_locked: bool = False,
+        reservation_carried_to_execution: bool = False,
     ) -> WindowPredictionRecord:
         return WindowPredictionRecord(
             row_id=feature_row.row_id,
@@ -6086,10 +6457,18 @@ class TradingBot:
             alignment=snap.signal_alignment,
             execution_allowed=execution_allowed,
             phase_bucket=feature_row.phase_bucket,
+            execution_bucket=feature_row.phase_bucket,
             seconds_remaining=feature_row.seconds_remaining,
             btc_price=feature_row.btc_price,
             up_odds=feature_row.up_odds,
             down_odds=feature_row.down_odds,
+            signal_reason=signal.reason,
+            decision_reason=decision_reason,
+            runtime_skip_reason_code=signal.runtime_skip_reason_code,
+            decision_skip_reason_code=decision_skip_reason_code,
+            reservation_locked=reservation_locked,
+            reservation_carried_to_execution=reservation_carried_to_execution,
+            soft_penalties_applied=list(signal.soft_penalties_applied or []),
             notification_signal=signal.signal,
             sample_seq=self.state.price_sample_seq,
             last_updated_at=datetime.now(_UTC),
@@ -6116,6 +6495,8 @@ class TradingBot:
             record.execution_allowed = False
             record.blocked_gate = gate
             record.blocked_reason = reason
+            record.decision_reason = reason
+            record.decision_skip_reason_code = gate
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
 
@@ -6175,8 +6556,8 @@ class TradingBot:
         if signal.signal not in ("BUY_UP", "BUY_DOWN"):
             return None
 
-        if elapsed_s < GOLD_ZONE_START_S:
-            return ("GATE_EXECUTION_WINDOW", f"elapsed={elapsed_s}s < {GOLD_ZONE_START_S}s start")
+        if elapsed_s < EXECUTION_START_S:
+            return ("GATE_EXECUTION_WINDOW", f"elapsed={elapsed_s}s < {EXECUTION_START_S}s start")
         if seconds_remaining < LAST_MIN_SECONDS_GUARD:
             return ("GATE_TOO_LATE", f"seconds_remaining={seconds_remaining}s < {LAST_MIN_SECONDS_GUARD}s guard")
         if decision.action != "BUY":
@@ -6826,17 +7207,13 @@ class TradingBot:
             else:
                 signal.raw_confidence = signal.confidence
 
-            self.state.last_signal = signal
-            execution_window_open = elapsed_s >= GOLD_ZONE_START_S and seconds_remaining >= LAST_MIN_SECONDS_GUARD
-            record = self._build_prediction_record(
-                win=win,
-                feature_row=feature_row,
+            signal, reservation_carried = self._maybe_apply_reserved_signal_carry(
+                condition_id=win.condition_id,
                 signal=signal,
-                snap=snap,
-                decision_action="observe" if signal.signal in ("BUY_UP", "BUY_DOWN") else "model_skip",
-                execution_allowed=execution_window_open,
+                phase_bucket=feature_row.phase_bucket,
             )
-            await self._store_prediction_record(record)
+            self.state.last_signal = signal
+            execution_window_open = feature_row.phase_bucket in ("EARLY_EXEC", "LATE_EXEC")
 
             self.state.set_engine_status(
                 "SIGNAL_DONE",
@@ -6865,9 +7242,28 @@ class TradingBot:
             ctx.ai_signal = signal
             ctx.dip_label = signal.dip_label
             ctx.signal_alignment = snap.signal_alignment
+            signal.soft_penalties_applied = self.decision.soft_penalties(ctx)
             decision = self.decision.apply_execution_policy(ctx)
             self.state.last_pre_ai_decision = decision if decision.gate != GATE_OK else None
             self.state.last_trade_decision = decision
+
+            record = self._build_prediction_record(
+                win=win,
+                feature_row=feature_row,
+                signal=signal,
+                snap=snap,
+                decision_action="observe" if signal.signal in ("BUY_UP", "BUY_DOWN") else "model_skip",
+                execution_allowed=execution_window_open and decision.action == "BUY",
+                decision_reason=decision.reason,
+                decision_skip_reason_code=decision.gate if decision.action != "BUY" else "",
+                reservation_carried_to_execution=reservation_carried,
+            )
+            await self._store_prediction_record(record)
+            if reservation_carried:
+                await self._mark_prediction_notification(
+                    record.row_id,
+                    reservation_carried_to_execution=True,
+                )
 
             execution_block = self._execution_block(
                 win=win,
@@ -6883,7 +7279,7 @@ class TradingBot:
                 signal=signal,
                 row_id=record.row_id,
                 sample_seq=self.state.price_sample_seq,
-                execution_window_open=execution_window_open,
+                phase_bucket=feature_row.phase_bucket,
                 signal_edge=signal_edge,
                 execution_ready=execution_block is None and decision.action == "BUY",
             )
@@ -6901,6 +7297,9 @@ class TradingBot:
 
             if execution_block is not None:
                 gate, reason = execution_block
+                if gate == "GATE_EXECUTION_WINDOW":
+                    self.state.set_engine_status("DECISION_WAIT", gate, reason)
+                    continue
                 if signal.signal in ("BUY_UP", "BUY_DOWN"):
                     blocked = await self._mark_prediction_blocked(
                         record.row_id,
@@ -7002,6 +7401,7 @@ class TradingBot:
                 ai_raw_confidence=signal.raw_confidence or signal.confidence,
                 signal_alignment=snap.signal_alignment,
                 prediction_row_id=prediction_row_id,
+                execution_bucket=self._phase_bucket(elapsed_bet, max(0, int((win.end_time - now_utc).total_seconds()))),
             )
             async with self.state._lock:
                 self.state.positions.append(pos)
@@ -7638,10 +8038,18 @@ class TradingBot:
                 blocked_gate=str(raw.get("blocked_gate", "")),
                 blocked_reason=str(raw.get("blocked_reason", "")),
                 phase_bucket=str(raw.get("phase_bucket", "")),
+                execution_bucket=str(raw.get("execution_bucket", raw.get("phase_bucket", ""))),
                 seconds_remaining=int(raw.get("seconds_remaining", 0) or 0),
                 btc_price=float(raw.get("btc_price", 0.0) or 0.0),
                 up_odds=float(raw.get("up_odds", 0.0) or 0.0),
                 down_odds=float(raw.get("down_odds", 0.0) or 0.0),
+                signal_reason=str(raw.get("signal_reason", "")),
+                decision_reason=str(raw.get("decision_reason", "")),
+                runtime_skip_reason_code=str(raw.get("runtime_skip_reason_code", "")),
+                decision_skip_reason_code=str(raw.get("decision_skip_reason_code", "")),
+                reservation_locked=bool(raw.get("reservation_locked", False)),
+                reservation_carried_to_execution=bool(raw.get("reservation_carried_to_execution", False)),
+                soft_penalties_applied=list(raw.get("soft_penalties_applied", []) or []),
                 actual_winner=str(raw.get("actual_winner", "")),
                 prediction_correct=raw.get("prediction_correct") if isinstance(raw.get("prediction_correct"), bool) else None,
                 counterfactual_pnl=float(raw.get("counterfactual_pnl", 0.0)) if raw.get("counterfactual_pnl") is not None else None,

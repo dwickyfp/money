@@ -34,6 +34,7 @@ def make_bot(tmp_path):
     bot = tf.TradingBot.__new__(tf.TradingBot)
     bot.state = tf.BotState(logger=tf.BotLogger(tmp_path / "logs"))
     bot.notifier = DummyNotifier()
+    bot.decision = tf.DecisionMaker()
     return bot
 
 
@@ -344,7 +345,7 @@ def test_stable_buy_sends_single_shadow_notification(tmp_path):
             signal=signal,
             row_id=row1.row_id,
             sample_seq=1,
-            execution_window_open=True,
+            phase_bucket="EARLY_EXEC",
             signal_edge=0.08,
             execution_ready=False,
         )
@@ -353,7 +354,7 @@ def test_stable_buy_sends_single_shadow_notification(tmp_path):
             signal=signal,
             row_id=row2.row_id,
             sample_seq=2,
-            execution_window_open=True,
+            phase_bucket="EARLY_EXEC",
             signal_edge=0.08,
             execution_ready=False,
         )
@@ -475,3 +476,227 @@ def test_settlement_requires_close_aligned_price_sample(tmp_path):
     )
 
     assert settlement is None
+
+
+def test_observe_phase_buy_does_not_lock(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        signal = tf.AISignal(signal="BUY_UP", confidence=0.82, raw_confidence=0.84, reason="observe", source="ml")
+        row = tf.WindowPredictionRecord(row_id="row-observe", condition_id="0xobserve")
+        bot.state.prediction_records[row.row_id] = row
+
+        locked = await bot._advance_session_signal_state(
+            condition_id="0xobserve",
+            signal=signal,
+            row_id=row.row_id,
+            sample_seq=1,
+            phase_bucket="OBSERVE",
+            signal_edge=0.08,
+            execution_ready=False,
+        )
+
+        assert locked is False
+        assert bot.state.session_signal_state.locked_signal == ""
+
+    asyncio.run(run_case())
+
+
+def test_reserve_buy_locks_and_carries_into_execute(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        reserve_signal = tf.AISignal(signal="BUY_UP", confidence=0.82, raw_confidence=0.84, reason="reserve", source="ml")
+        row1 = tf.WindowPredictionRecord(
+            row_id="row-reserve-1",
+            condition_id="0xreserve",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=reserve_signal.confidence,
+            raw_confidence=reserve_signal.raw_confidence,
+            source="ml",
+            up_odds=0.55,
+            down_odds=0.45,
+            last_updated_at=datetime.now(timezone.utc),
+        )
+        row2 = tf.WindowPredictionRecord(
+            row_id="row-reserve-2",
+            condition_id="0xreserve",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=reserve_signal.confidence,
+            raw_confidence=reserve_signal.raw_confidence,
+            source="ml",
+            up_odds=0.55,
+            down_odds=0.45,
+            last_updated_at=datetime.now(timezone.utc),
+        )
+        bot.state.prediction_records[row1.row_id] = row1
+        bot.state.prediction_records[row2.row_id] = row2
+
+        first = await bot._advance_session_signal_state(
+            condition_id="0xreserve",
+            signal=reserve_signal,
+            row_id=row1.row_id,
+            sample_seq=1,
+            phase_bucket="RESERVE",
+            signal_edge=0.08,
+            execution_ready=False,
+        )
+        locked = await bot._advance_session_signal_state(
+            condition_id="0xreserve",
+            signal=reserve_signal,
+            row_id=row2.row_id,
+            sample_seq=2,
+            phase_bucket="RESERVE",
+            signal_edge=0.08,
+            execution_ready=False,
+        )
+        carried_signal, carried = bot._maybe_apply_reserved_signal_carry(
+            condition_id="0xreserve",
+            signal=tf.AISignal(
+                signal="SKIP",
+                confidence=0.79,
+                raw_confidence=0.81,
+                reason="confidence floor",
+                source="ml",
+                prob_up=0.79,
+                prob_down=0.21,
+                runtime_skip_reason_code="RUNTIME_CONFIDENCE_FLOOR",
+            ),
+            phase_bucket="EARLY_EXEC",
+        )
+
+        assert first is False
+        assert locked is True
+        assert bot.state.session_signal_state.reservation_locked is True
+        assert carried is True
+        assert carried_signal.signal == "BUY_UP"
+        assert carried_signal.source.endswith("_reserve")
+
+    asyncio.run(run_case())
+
+
+def test_execution_window_opens_at_210_seconds(tmp_path):
+    bot = make_bot(tmp_path)
+    win = make_window(condition_id="0xwindow", beat_price=100.0, end_time=datetime.now(timezone.utc) + timedelta(minutes=1))
+    signal = tf.AISignal(signal="BUY_UP", confidence=0.82, raw_confidence=0.84, reason="buy", source="ml")
+    decision = tf.TradeDecision(action="BUY", direction="UP", confidence=0.82, reason="ok", gate=tf.GATE_OK)
+
+    blocked_209 = bot._execution_block(
+        win=win,
+        signal=signal,
+        decision=decision,
+        elapsed_s=209,
+        seconds_remaining=91,
+        now=datetime.now(timezone.utc).timestamp(),
+    )
+    blocked_210 = bot._execution_block(
+        win=win,
+        signal=signal,
+        decision=decision,
+        elapsed_s=210,
+        seconds_remaining=90,
+        now=datetime.now(timezone.utc).timestamp(),
+    )
+
+    assert blocked_209 is not None
+    assert blocked_209[0] == "GATE_EXECUTION_WINDOW"
+    assert blocked_210 is None
+
+
+def test_soft_bandar_push_only_hard_blocks_under_30_seconds():
+    previous = tf.BET_FREQUENCY_EXPANSION_PHASE
+    tf.BET_FREQUENCY_EXPANSION_PHASE = "B"
+    try:
+        decision = tf.DecisionMaker()
+        snap = SimpleNamespace(direction_bias="UP", odds_vel_value=0.009, odds_vel_accel=0.0)
+        ctx_soft = tf.DecisionContext(
+            win=SimpleNamespace(beat_price=100.0),
+            elapsed_s=260,
+            seconds_remaining=40,
+            btc_price=100.2,
+            up_odds=0.58,
+            down_odds=0.42,
+            snap=snap,
+        )
+        ctx_hard = tf.DecisionContext(
+            win=SimpleNamespace(beat_price=100.0),
+            elapsed_s=275,
+            seconds_remaining=25,
+            btc_price=100.2,
+            up_odds=0.58,
+            down_odds=0.42,
+            snap=snap,
+        )
+
+        assert decision._check_bandar_push(ctx_soft) is None
+        assert "SOFT_BANDAR_PUSH" in decision.soft_penalties(ctx_soft)
+        hard = decision._check_bandar_push(ctx_hard)
+        assert hard is not None
+        assert hard.gate == "GATE_BANDAR_PUSH"
+    finally:
+        tf.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
+    previous = tf.BET_FREQUENCY_EXPANSION_PHASE
+    tf.BET_FREQUENCY_EXPANSION_PHASE = "B"
+    try:
+        decision = tf.DecisionMaker()
+        snap = SimpleNamespace(direction_bias="UP")
+        ctx_soft = tf.DecisionContext(
+            win=SimpleNamespace(beat_price=100.0),
+            elapsed_s=255,
+            seconds_remaining=40,
+            btc_price=100.05,
+            up_odds=0.58,
+            down_odds=0.42,
+            snap=snap,
+            signal_alignment=4,
+        )
+        ctx_hard = tf.DecisionContext(
+            win=SimpleNamespace(beat_price=100.0),
+            elapsed_s=255,
+            seconds_remaining=40,
+            btc_price=100.02,
+            up_odds=0.58,
+            down_odds=0.42,
+            snap=snap,
+            signal_alignment=3,
+        )
+
+        assert decision._check_late_reversal_risk(ctx_soft) is None
+        assert "SOFT_LATE_PROXIMITY_RISK" in decision.soft_penalties(ctx_soft)
+        hard = decision._check_late_reversal_risk(ctx_hard)
+        assert hard is not None
+        assert hard.gate == "GATE_LATE_PROXIMITY_RISK"
+    finally:
+        tf.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_prediction_state_logs_structured_skip_reason_codes(tmp_path):
+    bot = make_bot(tmp_path)
+    now = datetime.now(timezone.utc)
+    record = tf.WindowPredictionRecord(
+        row_id="row-skip-code",
+        condition_id="0xskip",
+        window_label="12:30",
+        window_end_at=now,
+        beat_price=100.0,
+        signal="SKIP",
+        predicted_direction="NONE",
+        confidence=0.77,
+        raw_confidence=0.79,
+        runtime_skip_reason_code="RUNTIME_CONFIDENCE_FLOOR",
+        decision_skip_reason_code="GATE_LOW_CONF",
+        execution_bucket="EARLY_EXEC",
+        last_updated_at=now,
+    )
+
+    bot.state.logger.log_prediction_state(record)
+
+    analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+    contents = analytics_path.read_text(encoding="utf-8")
+
+    assert "RUNTIME_CONFIDENCE_FLOOR" in contents
+    assert "GATE_LOW_CONF" in contents
+    assert "EARLY_EXEC" in contents
