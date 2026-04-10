@@ -26,23 +26,23 @@
     },
     "paper": {
       "losses": 1,
-      "pnl": 2.366947,
-      "total": 6,
-      "win_rate": 83.33,
-      "wins": 5
+      "pnl": 3.366947,
+      "total": 7,
+      "win_rate": 85.71,
+      "wins": 6
     },
     "status": {
       "active_model_version": "20260410T123120Z",
       "active_signal_source": "ml",
       "balance_usdc": 0.730126,
-      "bets_this_hour": 2,
+      "bets_this_hour": 1,
       "daily_halted": false,
       "daily_loss": 0.0,
-      "daily_profit": 1.176471,
+      "daily_profit": 2.176471,
       "daily_profit_halted": false,
       "mode": "paper",
       "open_positions": 0,
-      "updated_at": "2026-04-10T15:15:26.864Z"
+      "updated_at": "2026-04-10T16:05:27.247Z"
     }
   }
 }
