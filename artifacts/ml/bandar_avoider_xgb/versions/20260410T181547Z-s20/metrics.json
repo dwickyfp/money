@@ -1,0 +1,246 @@
+{
+  "rows_total": 7173,
+  "rows_train": 7173,
+  "rows_valid": 6010,
+  "distinct_windows_total": 143,
+  "class_balance": {
+    "BUY_UP": 4192,
+    "BUY_DOWN": 2981
+  },
+  "auc_pr": 0.776144917563111,
+  "cv_auc_pr_mean": 0.7738430680608475,
+  "cv_auc_pr_std": 0.14000958424447194,
+  "cv_average_precision_mean": 0.7738430680608475,
+  "brier": 0.1985438422339191,
+  "cv_brier_mean": 0.252084431421063,
+  "positive_prevalence": 0.5672212978369384,
+  "accuracy": 0.6835274542429285,
+  "precision_up": 0.6762573099415204,
+  "recall_up": 0.8480492813141683,
+  "precision_down": 0.7014409221902017,
+  "recall_down": 0.46789696270665126,
+  "scale_pos_weight": 1.0,
+  "policy_metrics": {
+    "trade_rate": 0.20682196339434275,
+    "realized_ev_per_trade": 1.280509227895194
+  },
+  "fallback_policy_metrics": {
+    "trade_rate": 0.502828618968386,
+    "realized_ev_per_trade": 0.3924398986515944
+  },
+  "runtime_thresholds": {
+    "observe": 0.7,
+    "reserve": 0.82,
+    "early_exec": 0.81,
+    "late_exec": 0.82,
+    "observe_seed": 0.78,
+    "late_risk_bump": 0.02,
+    "version": "auto_0.82_0.81_0.82",
+    "source": "auto_tuned"
+  },
+  "threshold_mode": "auto",
+  "threshold_tuning_summary": {
+    "lookback_days": 14,
+    "window_count": 64,
+    "min_windows": 40,
+    "min_win_rate": 0.8,
+    "coverage_target": 0.6,
+    "counterfactual_recent24": {
+      "0.72": {
+        "total_windows": 24,
+        "executed_windows": 14,
+        "coverage": 0.5833,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.74": {
+        "total_windows": 24,
+        "executed_windows": 14,
+        "coverage": 0.5833,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.76": {
+        "total_windows": 24,
+        "executed_windows": 14,
+        "coverage": 0.5833,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.78": {
+        "total_windows": 24,
+        "executed_windows": 14,
+        "coverage": 0.5833,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      }
+    },
+    "counterfactual_recent100": {
+      "0.72": {
+        "total_windows": 64,
+        "executed_windows": 14,
+        "coverage": 0.2188,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.74": {
+        "total_windows": 64,
+        "executed_windows": 14,
+        "coverage": 0.2188,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.76": {
+        "total_windows": 64,
+        "executed_windows": 14,
+        "coverage": 0.2188,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.78": {
+        "total_windows": 64,
+        "executed_windows": 14,
+        "coverage": 0.2188,
+        "win_rate": 0.8571,
+        "win_rate_by_phase": {
+          "RESERVE": 0.75,
+          "LATE_EXEC": 1.0,
+          "EARLY_EXEC": 0.6667
+        }
+      }
+    },
+    "evaluated_profiles": 2197,
+    "selected_profile": {
+      "observe": 0.7,
+      "reserve": 0.82,
+      "early_exec": 0.81,
+      "late_exec": 0.82,
+      "observe_seed": 0.78,
+      "late_risk_bump": 0.02,
+      "version": "auto_0.82_0.81_0.82",
+      "source": "auto_tuned"
+    },
+    "selected_metrics": {
+      "total_windows": 64,
+      "executed_windows": 14,
+      "coverage": 0.2188,
+      "win_rate": 0.8571,
+      "win_rate_by_phase": {
+        "RESERVE": 0.75,
+        "LATE_EXEC": 1.0,
+        "EARLY_EXEC": 0.6667
+      }
+    },
+    "selected_recent24": {
+      "total_windows": 24,
+      "executed_windows": 14,
+      "coverage": 0.5833,
+      "win_rate": 0.8571,
+      "win_rate_by_phase": {
+        "RESERVE": 0.75,
+        "LATE_EXEC": 1.0,
+        "EARLY_EXEC": 0.6667
+      }
+    },
+    "selected_recent100": {
+      "total_windows": 64,
+      "executed_windows": 14,
+      "coverage": 0.2188,
+      "win_rate": 0.8571,
+      "win_rate_by_phase": {
+        "RESERVE": 0.75,
+        "LATE_EXEC": 1.0,
+        "EARLY_EXEC": 0.6667
+      }
+    },
+    "selected": "auto_tuned"
+  },
+  "coverage_target": 0.6,
+  "min_win_rate_target": 0.8,
+  "beats_fallback": true,
+  "ready_for_active": false,
+  "promotion_block_reason": "cv_brier_mean 0.252 >= 0.250; cv_brier_mean degraded 0.252 > 0.241; cv_auc_pr_std 0.140 > 0.080",
+  "confusion_matrix": [
+    [
+      1217,
+      1384
+    ],
+    [
+      518,
+      2891
+    ]
+  ],
+  "feature_importance": {
+    "gap_signed_pct": 0.10186097025871277,
+    "seconds_remaining": 0.03268415480852127,
+    "signal_alignment": 0.02162792906165123,
+    "signed_alignment": 0.022084185853600502,
+    "odds_vel": 0.02373047173023224,
+    "odds_vel_accel": 0.02963719144463539,
+    "cvd_divergence": 0.027620673179626465,
+    "macd_histogram": 0.031845733523368835,
+    "bb_pct_b": 0.02733749710023403,
+    "rsi": 0.029943443834781647,
+    "momentum_pct": 0.026540998369455338,
+    "is_late_window": 0.11024075746536255,
+    "is_bandar_zone": 0.06442252546548843,
+    "is_proximity_risk": 0.025523046031594276,
+    "price_roc_15s": 0.022609533742070198,
+    "price_roc_30s": 0.02325616218149662,
+    "cvd_change_last_30s": 0.025139063596725464,
+    "odds_edge_strength": 0.03100023977458477,
+    "elapsed_fraction": 0.039052560925483704,
+    "gap_alignment_interaction": 0.042142268270254135,
+    "realized_vol_30s": 0.03256387263536453,
+    "realized_vol_60s": 0.03711205720901489,
+    "gap_signed_pct_lag1": 0.05587804690003395,
+    "signal_alignment_lag1": 0.03183212876319885,
+    "odds_edge_strength_lag1": 0.03889317438006401,
+    "ob_imbalance": 0.045421238988637924
+  },
+  "best_params": {
+    "n_estimators": 320,
+    "max_depth": 7,
+    "learning_rate": 0.1,
+    "subsample": 0.85,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "logloss",
+    "objective": "binary:logistic",
+    "n_jobs": 1
+  },
+  "search_trials_completed": 0,
+  "training_range": {
+    "start": "2026-04-09T19:29:00.158Z",
+    "end": "2026-04-10T18:14:55.037Z"
+  },
+  "experimental_3class_status": "deferred_until_action_labels_exist"
+}

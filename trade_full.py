@@ -96,7 +96,7 @@ SIGNAL_LOCK_START_S    = int(os.getenv("SIGNAL_LOCK_START_S", "180"))
 EXECUTION_START_S      = int(os.getenv("EXECUTION_START_S", "210"))
 LATE_EXEC_START_S      = int(os.getenv("LATE_EXEC_START_S", "240"))
 GOLD_ZONE_START_S      = EXECUTION_START_S
-BET_FREQUENCY_EXPANSION_PHASE = os.getenv("BET_FREQUENCY_EXPANSION_PHASE", "A").strip().upper()
+BET_FREQUENCY_EXPANSION_PHASE = os.getenv("BET_FREQUENCY_EXPANSION_PHASE", "C").strip().upper()
 GOLD_ZONE_MIN_MOVE_PCT = 0.02   # BTC must be ≥ 0.02% from beat (~$17 at $85k)
 GOLD_ZONE_MIN_CONF     = 0.70   # minimum calibrated confidence to execute a bet
 GOLD_ZONE_MAX_ODDS     = 0.82   # leading side must still be ≤ this (not fully priced)
@@ -168,6 +168,15 @@ PERFORMANCE_HISTORY_FILENAME = os.getenv("PERFORMANCE_HISTORY_FILENAME", "perfor
 ML_PROMOTION_AP_MARGIN    = float(os.getenv("ML_PROMOTION_AP_MARGIN", "0.03"))
 ML_PROMOTION_MAX_BRIER    = float(os.getenv("ML_PROMOTION_MAX_BRIER", "0.25"))
 ML_PROMOTION_MAX_BRIER_DEGRADE = float(os.getenv("ML_PROMOTION_MAX_BRIER_DEGRADE", "0.01"))
+ML_THRESHOLD_MODE         = os.getenv("ML_THRESHOLD_MODE", "auto").strip().lower()
+ML_MIN_EXEC_WIN_RATE      = float(os.getenv("ML_MIN_EXEC_WIN_RATE", "0.80"))
+ML_TARGET_EXEC_COVERAGE   = float(os.getenv("ML_TARGET_EXEC_COVERAGE", "0.60"))
+ML_THRESHOLD_LOOKBACK_DAYS = int(os.getenv("ML_THRESHOLD_LOOKBACK_DAYS", "14"))
+ML_THRESHOLD_MIN_WINDOWS  = int(os.getenv("ML_THRESHOLD_MIN_WINDOWS", "40"))
+OBSERVE_CARRY_MIN_CONF    = float(os.getenv("OBSERVE_CARRY_MIN_CONF", "0.78"))
+SOFT_PENALTY_CONF_BUMP    = float(os.getenv("SOFT_PENALTY_CONF_BUMP", "0.02"))
+SOFT_PENALTY_KELLY_MULTIPLIER = float(os.getenv("SOFT_PENALTY_KELLY_MULTIPLIER", "0.50"))
+LATE_HARD_RISK_SECONDS    = int(os.getenv("LATE_HARD_RISK_SECONDS", "25"))
 ML_PROMOTION_WARN_AP_STD  = float(os.getenv("ML_PROMOTION_WARN_AP_STD", "0.05"))
 ML_PROMOTION_BLOCK_AP_STD = float(os.getenv("ML_PROMOTION_BLOCK_AP_STD", "0.08"))
 ML_PROMOTION_BLOCK_AP_DROP = float(os.getenv("ML_PROMOTION_BLOCK_AP_DROP", "0.05"))
@@ -434,6 +443,13 @@ class BotLogger:
             "decision_reason":     record.decision_reason,
             "runtime_skip_reason_code": record.runtime_skip_reason_code,
             "decision_skip_reason_code": record.decision_skip_reason_code,
+            "candidate_confidence_floor": record.candidate_confidence_floor,
+            "execution_required_confidence": record.execution_required_confidence,
+            "threshold_profile_version": record.threshold_profile_version,
+            "threshold_source":    record.threshold_source,
+            "carry_from_observe":  record.carry_from_observe,
+            "candidate_phase":     record.candidate_phase,
+            "action_phase":        record.action_phase,
             "reservation_locked":  record.reservation_locked,
             "reservation_carried_to_execution": record.reservation_carried_to_execution,
             "soft_penalties_applied": record.soft_penalties_applied,
@@ -484,6 +500,13 @@ class BotLogger:
             "decision_reason":     record.decision_reason,
             "runtime_skip_reason_code": record.runtime_skip_reason_code,
             "decision_skip_reason_code": record.decision_skip_reason_code,
+            "candidate_confidence_floor": record.candidate_confidence_floor,
+            "execution_required_confidence": record.execution_required_confidence,
+            "threshold_profile_version": record.threshold_profile_version,
+            "threshold_source":    record.threshold_source,
+            "carry_from_observe":  record.carry_from_observe,
+            "candidate_phase":     record.candidate_phase,
+            "action_phase":        record.action_phase,
             "reservation_locked":  record.reservation_locked,
             "reservation_carried_to_execution": record.reservation_carried_to_execution,
             "soft_penalties_applied": record.soft_penalties_applied,
@@ -533,6 +556,13 @@ class BotLogger:
             "decision_reason":     record.decision_reason,
             "runtime_skip_reason_code": record.runtime_skip_reason_code,
             "decision_skip_reason_code": record.decision_skip_reason_code,
+            "candidate_confidence_floor": record.candidate_confidence_floor,
+            "execution_required_confidence": record.execution_required_confidence,
+            "threshold_profile_version": record.threshold_profile_version,
+            "threshold_source":    record.threshold_source,
+            "carry_from_observe":  record.carry_from_observe,
+            "candidate_phase":     record.candidate_phase,
+            "action_phase":        record.action_phase,
             "reservation_locked":  record.reservation_locked,
             "reservation_carried_to_execution": record.reservation_carried_to_execution,
             "soft_penalties_applied": record.soft_penalties_applied,
@@ -1004,6 +1034,7 @@ class BotLogger:
             "executed_bet_rate": 0.0,
             "blocked_profitable_rate": {},
             "win_rate_by_execution_bucket": {},
+            "threshold_counterfactuals": {},
         }
         if total == 0:
             return metrics
@@ -1036,6 +1067,9 @@ class BotLogger:
             for bucket, total_count in bucket_totals.items()
             if total_count > 0
         }
+        tuning_windows = _load_threshold_tuning_windows(self._dir, lookback_days=ML_THRESHOLD_LOOKBACK_DAYS)
+        if tuning_windows:
+            metrics["threshold_counterfactuals"] = _threshold_counterfactuals(tuning_windows[-limit:])
         return metrics
 
     @staticmethod
@@ -1798,6 +1832,12 @@ class AISignal:
     promotion_state: str = ""
     runtime_skip_reason_code: str = ""
     soft_penalties_applied: list[str] = field(default_factory=list)
+    candidate_confidence_floor: float = 0.0
+    threshold_profile_version: str = ""
+    threshold_source: str = "default"
+    candidate_phase: str = ""
+    action_phase: str = ""
+    carry_from_observe: bool = False
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1900,6 +1940,8 @@ class TradeDecision:
     confidence: float  # 0.0–1.0 (from AI signal when available, else 0)
     reason: str        # human-readable explanation
     gate: str          # which gate fired, e.g. GATE_TOO_SURE or OK
+    required_confidence: float = 0.0
+    soft_penalties_applied: list[str] = field(default_factory=list)
     timestamp: float = field(default_factory=time.time)
 
 
@@ -1913,6 +1955,7 @@ class DecisionMaker:
         if ctx.seconds_remaining > LATE_RISK_WINDOW_S:
             return None
 
+        phase_bucket = _phase_bucket_from_timing(ctx.elapsed_s, ctx.seconds_remaining)
         gap_pct = abs(ctx.btc_price - ctx.win.beat_price) / ctx.win.beat_price * 100
         if gap_pct >= LATE_GAP_RISK_PCT:
             return None
@@ -1928,7 +1971,7 @@ class DecisionMaker:
                 )
             return None
 
-        if ctx.seconds_remaining >= 30:
+        if phase_bucket in ("RESERVE", "EARLY_EXEC") and ctx.seconds_remaining >= LATE_HARD_RISK_SECONDS:
             if gap_pct < 0.04 or ctx.signal_alignment <= 3:
                 return TradeDecision(
                     action="SKIP",
@@ -1939,7 +1982,7 @@ class DecisionMaker:
                 )
             return None
 
-        if ctx.signal_alignment < 5 or gap_pct < LATE_GAP_RISK_PCT:
+        if ctx.seconds_remaining < LATE_HARD_RISK_SECONDS or ctx.signal_alignment < 5 or gap_pct < LATE_GAP_RISK_PCT:
             return TradeDecision(
                 action="SKIP",
                 direction=ctx.snap.direction_bias or "NONE",
@@ -1958,6 +2001,7 @@ class DecisionMaker:
         if snap is None:
             return None
 
+        phase_bucket = _phase_bucket_from_timing(ctx.elapsed_s, ctx.seconds_remaining)
         vel = abs(snap.odds_vel_value)
         accel = abs(snap.odds_vel_accel)
         vel_threshold = BANDAR_ODDS_VEL_THRESHOLD
@@ -1965,7 +2009,7 @@ class DecisionMaker:
         if not _bet_frequency_phase_at_least("B"):
             hard_multiplier = 1.0
         else:
-            hard_multiplier = 1.5 if ctx.seconds_remaining >= 30 else 1.0
+            hard_multiplier = 1.5 if phase_bucket in ("RESERVE", "EARLY_EXEC") and ctx.seconds_remaining >= LATE_HARD_RISK_SECONDS else 1.0
 
         if vel > vel_threshold * hard_multiplier:
             return TradeDecision(
@@ -1994,13 +2038,16 @@ class DecisionMaker:
         snap = ctx.snap
         if snap is None:
             return penalties
+        phase_bucket = _phase_bucket_from_timing(ctx.elapsed_s, ctx.seconds_remaining)
+        if phase_bucket not in ("RESERVE", "EARLY_EXEC"):
+            return penalties
 
-        if 30 <= ctx.seconds_remaining <= LATE_RISK_WINDOW_S:
+        if LATE_HARD_RISK_SECONDS <= ctx.seconds_remaining <= LATE_RISK_WINDOW_S:
             gap_pct = abs(ctx.btc_price - ctx.win.beat_price) / ctx.win.beat_price * 100 if ctx.win and ctx.win.beat_price > 0 else 0.0
             if gap_pct < LATE_GAP_RISK_PCT and gap_pct >= 0.04 and ctx.signal_alignment >= 4:
                 penalties.append("SOFT_LATE_PROXIMITY_RISK")
 
-        if 30 <= ctx.seconds_remaining <= BANDAR_FINAL_SECONDS:
+        if LATE_HARD_RISK_SECONDS <= ctx.seconds_remaining <= BANDAR_FINAL_SECONDS:
             if (
                 abs(_safe_float(getattr(snap, "odds_vel_value", 0.0), 0.0)) > BANDAR_ODDS_VEL_THRESHOLD
                 or abs(_safe_float(getattr(snap, "odds_vel_accel", 0.0), 0.0)) > BANDAR_CVD_ACCEL_THRESHOLD
@@ -2209,12 +2256,13 @@ class DecisionMaker:
         # it's a transient move. Block low-confidence contrarian bets here.
         ai_dir = "UP" if signal.signal == "BUY_UP" else "DOWN"
         selected_odds = ctx.up_odds if ai_dir == "UP" else ctx.down_odds
-        soft_penalties = self.soft_penalties(ctx)
+        soft_penalties = list(signal.soft_penalties_applied or self.soft_penalties(ctx))
         if selected_odds <= 0.0 or selected_odds >= 1.0:
             return TradeDecision(
                 action="SKIP", direction=ai_dir, confidence=signal.confidence,
                 reason=f"{ai_dir} odds {selected_odds:.3f} invalid for execution",
                 gate=GATE_LOW_ENTRY_ODDS,
+                soft_penalties_applied=soft_penalties,
             )
 
         is_btc_above_beat = ctx.btc_price > ctx.win.beat_price
@@ -2235,9 +2283,12 @@ class DecisionMaker:
                         f"need conf≥{required:.0%}, got {signal.confidence:.0%}"
                     ),
                     gate=GATE_DIR_CONFLICT,
+                    required_confidence=required,
+                    soft_penalties_applied=soft_penalties,
                 )
 
         # Dynamic live-entry floor: alignment is advisory now, not a hard wall.
+        phase_bucket = _phase_bucket_from_timing(ctx.elapsed_s, ctx.seconds_remaining)
         selected_model_edge = 0.0
         if ctx.fair_prob:
             selected_model_edge = ctx.fair_prob.get(
@@ -2246,16 +2297,16 @@ class DecisionMaker:
             )
 
         if ctx.signal_alignment >= ctx.min_signal_alignment:
-            base_floor = 0.60
+            dynamic_floor = 0.60
             min_conf_edge = 0.03
         elif ctx.signal_alignment == ctx.min_signal_alignment - 1:
-            base_floor = 0.62
+            dynamic_floor = 0.62
             min_conf_edge = 0.05
         elif ctx.signal_alignment == ctx.min_signal_alignment - 2:
-            base_floor = 0.66
+            dynamic_floor = 0.66
             min_conf_edge = 0.07
         else:
-            base_floor = 0.74
+            dynamic_floor = 0.74
             min_conf_edge = 0.10
 
         if selected_model_edge >= 0.20:
@@ -2265,15 +2316,19 @@ class DecisionMaker:
         if ctx.dip_label in ("SUSTAINED_MOVE", "SUSTAINED_ABOVE"):
             min_conf_edge -= 0.01
 
+        profile_floor = max(
+            _safe_float(signal.candidate_confidence_floor, 0.0),
+            _threshold_floor_for_bucket(phase_bucket),
+        )
         min_conf_edge = max(0.02, min_conf_edge)
-        required_conf = max(base_floor, selected_odds + min_conf_edge)
+        required_conf = max(profile_floor, dynamic_floor, selected_odds + min_conf_edge)
         if "SOFT_LATE_PROXIMITY_RISK" in soft_penalties:
-            required_conf += 0.02
+            required_conf += SOFT_PENALTY_CONF_BUMP
         if "SOFT_BANDAR_PUSH" in soft_penalties:
-            required_conf += 0.02
+            required_conf += SOFT_PENALTY_CONF_BUMP
 
         if signal.confidence < required_conf:
-            required_conf = base_floor
+            required_conf = max(profile_floor, dynamic_floor)
             if ctx.seconds_remaining < 45:
                 required_conf = max(required_conf, LATE_DYNAMIC_MIN_CONF)
 
@@ -2284,12 +2339,12 @@ class DecisionMaker:
             if ctx.dip_label in ("SUSTAINED_MOVE", "SUSTAINED_ABOVE"):
                 required_conf -= 0.01
 
-            required_conf = max(0.60, required_conf)  # safety floor
+            required_conf = max(profile_floor, 0.60, required_conf)  # safety floor
             required_conf = max(required_conf, selected_odds + min_conf_edge)
             if "SOFT_LATE_PROXIMITY_RISK" in soft_penalties:
-                required_conf += 0.02
+                required_conf += SOFT_PENALTY_CONF_BUMP
             if "SOFT_BANDAR_PUSH" in soft_penalties:
-                required_conf += 0.02
+                required_conf += SOFT_PENALTY_CONF_BUMP
 
             if signal.confidence < required_conf:
                 return TradeDecision(
@@ -2300,6 +2355,8 @@ class DecisionMaker:
                         f"EV={selected_model_edge:+.1%}, late_window={ctx.seconds_remaining}s)"
                     ),
                     gate=GATE_LOW_CONF,
+                    required_confidence=required_conf,
+                    soft_penalties_applied=soft_penalties,
                 )
 
         # All gates passed
@@ -2308,6 +2365,8 @@ class DecisionMaker:
             action="BUY", direction=ai_dir, confidence=signal.confidence,
             reason=f"conf={signal.confidence:.0%} {signal.reason[:80]}",
             gate=GATE_OK,
+            required_confidence=required_conf,
+            soft_penalties_applied=soft_penalties,
         )
 
     def evaluate(self, ctx: DecisionContext) -> TradeDecision:
@@ -3819,6 +3878,312 @@ def _bet_frequency_phase_at_least(phase: str) -> bool:
     return current >= target
 
 
+DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION = "rtp_v1"
+RUNTIME_THRESHOLD_PHASES = ("OBSERVE", "RESERVE", "EARLY_EXEC", "LATE_EXEC")
+
+
+def _default_runtime_thresholds() -> dict[str, Any]:
+    return {
+        "observe": 0.70,
+        "reserve": 0.74,
+        "early_exec": 0.74,
+        "late_exec": 0.76,
+        "observe_seed": OBSERVE_CARRY_MIN_CONF,
+        "late_risk_bump": SOFT_PENALTY_CONF_BUMP,
+        "version": DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION,
+        "source": "default",
+    }
+
+
+def _normalize_runtime_thresholds(profile: dict[str, Any] | None = None) -> dict[str, Any]:
+    normalized = dict(_default_runtime_thresholds())
+    payload = dict(profile or {})
+    if isinstance(payload.get("runtime_thresholds"), dict):
+        payload = {**payload["runtime_thresholds"], **{k: v for k, v in payload.items() if k != "runtime_thresholds"}}
+    for key in ("observe", "reserve", "early_exec", "late_exec", "observe_seed", "late_risk_bump"):
+        if key in payload:
+            normalized[key] = _safe_float(payload.get(key), normalized[key])
+    version = str(payload.get("version") or payload.get("threshold_profile_version") or normalized["version"]).strip()
+    source = str(payload.get("source") or payload.get("threshold_source") or normalized["source"]).strip().lower()
+    if not version:
+        version = DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION
+    if not source:
+        source = "default"
+    normalized["version"] = version
+    normalized["source"] = source
+    return normalized
+
+
+def _threshold_floor_for_bucket(bucket: str, profile: dict[str, Any] | None = None) -> float:
+    normalized = _normalize_runtime_thresholds(profile)
+    bucket_key = str(bucket or "OBSERVE").strip().upper()
+    mapping = {
+        "OBSERVE": "observe",
+        "RESERVE": "reserve",
+        "EARLY_EXEC": "early_exec",
+        "LATE_EXEC": "late_exec",
+    }
+    return _safe_float(normalized.get(mapping.get(bucket_key, "observe")), normalized["observe"])
+
+
+def _manifest_runtime_threshold_payload(manifest: Any | None) -> dict[str, Any]:
+    if manifest is None:
+        return _default_runtime_thresholds()
+    payload: dict[str, Any] = {}
+    if isinstance(getattr(manifest, "runtime_thresholds", None), dict):
+        payload.update(getattr(manifest, "runtime_thresholds"))
+    metrics = getattr(manifest, "metrics", {}) if hasattr(manifest, "metrics") else {}
+    if isinstance(metrics, dict) and isinstance(metrics.get("runtime_thresholds"), dict):
+        payload.update(metrics["runtime_thresholds"])
+    payload.setdefault("threshold_source", getattr(manifest, "threshold_mode", "") or payload.get("threshold_source", "default"))
+    payload.setdefault("threshold_profile_version", payload.get("version", DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION))
+    return _normalize_runtime_thresholds(payload)
+
+
+def _iter_prediction_analytics_records(log_dir: str | Path, lookback_days: int = 14) -> list[dict[str, Any]]:
+    root = Path(log_dir)
+    cutoff = (_utc_now() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    files = sorted(
+        [
+            path for path in root.glob("prediction_analytics_*.jsonl")
+            if path.stem.rsplit("_", 1)[-1] >= cutoff
+        ],
+        key=lambda item: item.name,
+    )
+    records: list[dict[str, Any]] = []
+    for path in files:
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    try:
+                        records.append(json.loads(line))
+                    except Exception:
+                        continue
+        except Exception:
+            continue
+    return records
+
+
+def _load_threshold_tuning_windows(log_dir: str | Path, lookback_days: int = ML_THRESHOLD_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+    windows: dict[str, dict[str, Any]] = {}
+    for record in _iter_prediction_analytics_records(log_dir, lookback_days=lookback_days):
+        if str(record.get("event", "") or "") != "prediction_resolved":
+            continue
+        condition_id = str(record.get("condition_id", "") or "").strip()
+        if not condition_id:
+            continue
+        resolved_at = str(record.get("resolved_at") or record.get("ts") or "")
+        window = windows.setdefault(
+            condition_id,
+            {
+                "condition_id": condition_id,
+                "resolved_at": resolved_at,
+                "best_candidate": None,
+            },
+        )
+        if resolved_at:
+            window["resolved_at"] = resolved_at
+
+        signal = str(record.get("signal", "") or "")
+        phase = str(record.get("candidate_phase") or record.get("phase_bucket") or "").upper()
+        correct = record.get("prediction_correct")
+        if signal not in (LABEL_BUY_UP, LABEL_BUY_DOWN):
+            continue
+        if phase not in ("RESERVE", "EARLY_EXEC", "LATE_EXEC"):
+            continue
+        if not isinstance(correct, bool):
+            continue
+
+        candidate = {
+            "signal": signal,
+            "phase": phase,
+            "confidence": _safe_float(record.get("confidence"), 0.0),
+            "correct": correct,
+            "blocked_gate": str(record.get("blocked_gate", "") or ""),
+            "threshold_source": str(record.get("threshold_source", "") or ""),
+            "threshold_profile_version": str(record.get("threshold_profile_version", "") or ""),
+        }
+        best = window.get("best_candidate")
+        if best is None:
+            window["best_candidate"] = candidate
+            continue
+        best_conf = _safe_float(best.get("confidence"), 0.0)
+        cand_conf = _safe_float(candidate.get("confidence"), 0.0)
+        if cand_conf > best_conf or (math.isclose(cand_conf, best_conf) and phase == "LATE_EXEC" and best.get("phase") != "LATE_EXEC"):
+            window["best_candidate"] = candidate
+
+    rows = list(windows.values())
+    rows.sort(key=lambda item: str(item.get("resolved_at", "")))
+    return rows
+
+
+def _evaluate_threshold_profile(
+    windows: list[dict[str, Any]],
+    profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    normalized = _normalize_runtime_thresholds(profile)
+    total_windows = len(windows)
+    executed = 0
+    hits = 0
+    phase_hits: dict[str, int] = defaultdict(int)
+    phase_totals: dict[str, int] = defaultdict(int)
+    for window in windows:
+        candidate = window.get("best_candidate")
+        if not isinstance(candidate, dict):
+            continue
+        threshold = _threshold_floor_for_bucket(str(candidate.get("phase", "")), normalized)
+        if _safe_float(candidate.get("confidence"), 0.0) < threshold:
+            continue
+        executed += 1
+        phase = str(candidate.get("phase", "") or "")
+        if phase:
+            phase_totals[phase] += 1
+        if bool(candidate.get("correct")):
+            hits += 1
+            if phase:
+                phase_hits[phase] += 1
+    win_rate = (hits / executed) if executed else 0.0
+    coverage = (executed / total_windows) if total_windows else 0.0
+    return {
+        "total_windows": total_windows,
+        "executed_windows": executed,
+        "coverage": round(coverage, 4),
+        "win_rate": round(win_rate, 4),
+        "win_rate_by_phase": {
+            phase: round(phase_hits[phase] / total, 4)
+            for phase, total in phase_totals.items()
+            if total > 0
+        },
+    }
+
+
+def _threshold_counterfactuals(windows: list[dict[str, Any]], thresholds: tuple[float, ...] = (0.72, 0.74, 0.76, 0.78)) -> dict[str, dict[str, Any]]:
+    report: dict[str, dict[str, Any]] = {}
+    base = _default_runtime_thresholds()
+    for threshold in thresholds:
+        profile = {
+            **base,
+            "reserve": threshold,
+            "early_exec": threshold,
+            "late_exec": max(threshold, base["late_exec"]),
+            "source": "counterfactual",
+            "version": f"cf_{threshold:.2f}",
+        }
+        report[f"{threshold:.2f}"] = _evaluate_threshold_profile(windows, profile)
+    return report
+
+
+def tune_runtime_thresholds_from_shadow_data(
+    log_dir: str | Path,
+    *,
+    lookback_days: int = ML_THRESHOLD_LOOKBACK_DAYS,
+    min_win_rate: float = ML_MIN_EXEC_WIN_RATE,
+    min_windows: int = ML_THRESHOLD_MIN_WINDOWS,
+    coverage_target: float = ML_TARGET_EXEC_COVERAGE,
+    threshold_mode: str = ML_THRESHOLD_MODE,
+) -> dict[str, Any]:
+    mode = str(threshold_mode or "auto").strip().lower()
+    default_profile = _default_runtime_thresholds()
+    windows = _load_threshold_tuning_windows(log_dir, lookback_days=lookback_days)
+    summary: dict[str, Any] = {
+        "lookback_days": lookback_days,
+        "window_count": len(windows),
+        "min_windows": min_windows,
+        "min_win_rate": min_win_rate,
+        "coverage_target": coverage_target,
+        "counterfactual_recent24": _threshold_counterfactuals(windows[-24:]),
+        "counterfactual_recent100": _threshold_counterfactuals(windows[-100:]),
+    }
+    if mode != "auto":
+        default_profile["source"] = "default"
+        return {
+            "runtime_thresholds": default_profile,
+            "threshold_mode": mode,
+            "threshold_tuning_summary": {**summary, "selected": "default_non_auto"},
+            "threshold_source": "default",
+        }
+    if len(windows) < min_windows:
+        default_profile["source"] = "default"
+        return {
+            "runtime_thresholds": default_profile,
+            "threshold_mode": "auto",
+            "threshold_tuning_summary": {**summary, "selected": "default_insufficient_windows"},
+            "threshold_source": "default",
+        }
+
+    values = [round(0.70 + step * 0.01, 2) for step in range(13)]
+    best_profile: dict[str, Any] | None = None
+    best_eval: dict[str, Any] | None = None
+    evaluated_profiles = 0
+    for reserve in values:
+        for early_exec in values:
+            for late_exec in values:
+                profile = {
+                    **default_profile,
+                    "reserve": reserve,
+                    "early_exec": early_exec,
+                    "late_exec": late_exec,
+                    "source": "auto_tuned",
+                    "version": f"auto_{reserve:.2f}_{early_exec:.2f}_{late_exec:.2f}",
+                }
+                evaluation = _evaluate_threshold_profile(windows, profile)
+                evaluated_profiles += 1
+                if evaluation["executed_windows"] <= 0:
+                    continue
+                if evaluation["win_rate"] < min_win_rate:
+                    continue
+                if best_eval is None:
+                    best_profile = profile
+                    best_eval = evaluation
+                    continue
+                current_rank = (evaluation["coverage"], evaluation["win_rate"], late_exec, early_exec, reserve)
+                best_rank = (
+                    best_eval["coverage"],
+                    best_eval["win_rate"],
+                    _safe_float(best_profile["late_exec"]),
+                    _safe_float(best_profile["early_exec"]),
+                    _safe_float(best_profile["reserve"]),
+                )
+                if current_rank > best_rank:
+                    best_profile = profile
+                    best_eval = evaluation
+
+    summary["evaluated_profiles"] = evaluated_profiles
+    if best_profile is None or best_eval is None:
+        default_profile["source"] = "default"
+        return {
+            "runtime_thresholds": default_profile,
+            "threshold_mode": "auto",
+            "threshold_tuning_summary": {**summary, "selected": "default_guardrail_no_profile"},
+            "threshold_source": "default",
+        }
+
+    recent24 = _evaluate_threshold_profile(windows[-24:], best_profile)
+    recent100 = _evaluate_threshold_profile(windows[-100:], best_profile)
+    summary["selected_profile"] = dict(best_profile)
+    summary["selected_metrics"] = dict(best_eval)
+    summary["selected_recent24"] = recent24
+    summary["selected_recent100"] = recent100
+    if (
+        (recent24["executed_windows"] >= 8 and recent24["win_rate"] < min_win_rate)
+        or (recent100["executed_windows"] >= 20 and recent100["win_rate"] < min_win_rate)
+    ):
+        default_profile["source"] = "default"
+        return {
+            "runtime_thresholds": default_profile,
+            "threshold_mode": "auto",
+            "threshold_tuning_summary": {**summary, "selected": "default_auto_reverted"},
+            "threshold_source": "default",
+        }
+
+    return {
+        "runtime_thresholds": _normalize_runtime_thresholds(best_profile),
+        "threshold_mode": "auto",
+        "threshold_tuning_summary": {**summary, "selected": "auto_tuned"},
+        "threshold_source": "auto_tuned",
+    }
+
+
 def _prob_to_signal(prob_up: float, threshold: float = 0.5) -> str:
     if prob_up >= threshold:
         return LABEL_BUY_UP
@@ -4059,6 +4424,11 @@ class SignalPrediction:
     raw_confidence: float = 0.0
     runtime_skip_reason_code: str = ""
     soft_penalties_applied: list[str] = field(default_factory=list)
+    candidate_confidence_floor: float = 0.0
+    threshold_profile_version: str = ""
+    threshold_source: str = "default"
+    candidate_phase: str = ""
+    action_phase: str = ""
     shadow: dict[str, Any] | None = None
 
 
@@ -4075,6 +4445,11 @@ class ModelManifest:
     applied_state: str = ""
     activated_at: str = ""
     activation_reason: str = ""
+    runtime_thresholds: dict[str, Any] = field(default_factory=dict)
+    threshold_mode: str = "default"
+    threshold_tuning_summary: dict[str, Any] = field(default_factory=dict)
+    coverage_target: float = ML_TARGET_EXEC_COVERAGE
+    min_win_rate_target: float = ML_MIN_EXEC_WIN_RATE
 
     def to_record(self) -> dict[str, Any]:
         return asdict(self)
@@ -4183,6 +4558,11 @@ class ModelRegistry:
             applied_state=promotion_state,
             activated_at=_iso_z(_utc_now()),
             activation_reason=activation_reason,
+            runtime_thresholds=_normalize_runtime_thresholds(metrics.get("runtime_thresholds")),
+            threshold_mode=str(metrics.get("threshold_mode", ML_THRESHOLD_MODE) or ML_THRESHOLD_MODE),
+            threshold_tuning_summary=dict(metrics.get("threshold_tuning_summary", {}) or {}),
+            coverage_target=_safe_float(metrics.get("coverage_target"), ML_TARGET_EXEC_COVERAGE),
+            min_win_rate_target=_safe_float(metrics.get("min_win_rate_target"), ML_MIN_EXEC_WIN_RATE),
         )
         manifest_path.write_text(json.dumps(manifest.to_record(), indent=2), encoding="utf-8")
         if promotion_state == "active":
@@ -4242,21 +4622,24 @@ class ModelRegistry:
 
 @dataclass
 class RuntimePolicy:
-    observe_min_confidence: float = 0.80
-    observe_min_edge: float = 0.05
+    legacy_strict_confidence: float = 0.80
+    legacy_strict_edge: float = 0.05
+    legacy_strict_spread_floor: float = 0.02
+    observe_min_confidence: float = 0.70
+    observe_min_edge: float = 0.02
     observe_spread_floor: float = 0.02
-    reserve_min_confidence: float = 0.78
-    reserve_min_edge: float = 0.04
+    reserve_min_confidence: float = 0.74
+    reserve_min_edge: float = 0.02
     reserve_spread_floor: float = 0.015
-    early_exec_min_confidence: float = 0.76
-    early_exec_min_edge: float = 0.03
+    early_exec_min_confidence: float = 0.74
+    early_exec_min_edge: float = 0.02
     early_exec_spread_floor: float = 0.015
-    late_exec_min_confidence: float = 0.80
-    late_exec_min_edge: float = 0.05
+    late_exec_min_confidence: float = 0.76
+    late_exec_min_edge: float = 0.03
     late_exec_spread_floor: float = 0.02
     late_window_confidence: float = 0.85
     early_exec_safety_floor: float = 0.74
-    late_exec_safety_floor: float = 0.78
+    late_exec_safety_floor: float = 0.76
 
     @staticmethod
     def _phase_bucket(features: SignalFeatures) -> str:
@@ -4267,49 +4650,65 @@ class RuntimePolicy:
         seconds_remaining = _safe_int(getattr(features, "seconds_remaining", 0), 0)
         return _phase_bucket_from_timing(elapsed_s, seconds_remaining)
 
-    def _thresholds(self, features: SignalFeatures) -> tuple[str, float, float, float, float]:
+    def _thresholds(self, features: SignalFeatures, threshold_profile: dict[str, Any] | None = None) -> tuple[str, float, float, float, float, dict[str, Any]]:
         bucket = self._phase_bucket(features)
+        profile = _normalize_runtime_thresholds(threshold_profile)
         if not _bet_frequency_phase_at_least("C"):
             return (
                 bucket,
-                self.observe_min_confidence,
-                self.observe_min_edge,
-                self.observe_spread_floor,
-                self.observe_min_confidence,
+                self.legacy_strict_confidence,
+                self.legacy_strict_edge,
+                self.legacy_strict_spread_floor,
+                self.legacy_strict_confidence,
+                {"version": "legacy_phase", "source": "legacy"},
             )
         if bucket == "RESERVE":
             return (
                 bucket,
-                self.reserve_min_confidence,
+                _safe_float(profile.get("reserve"), self.reserve_min_confidence),
                 self.reserve_min_edge,
                 self.reserve_spread_floor,
-                self.reserve_min_confidence,
+                _safe_float(profile.get("reserve"), self.reserve_min_confidence),
+                profile,
             )
         if bucket == "EARLY_EXEC":
             return (
                 bucket,
-                self.early_exec_min_confidence,
+                _safe_float(profile.get("early_exec"), self.early_exec_min_confidence),
                 self.early_exec_min_edge,
                 self.early_exec_spread_floor,
                 self.early_exec_safety_floor,
+                profile,
             )
         if bucket == "LATE_EXEC":
             return (
                 bucket,
-                self.late_exec_min_confidence,
+                _safe_float(profile.get("late_exec"), self.late_exec_min_confidence),
                 self.late_exec_min_edge,
                 self.late_exec_spread_floor,
-                self.late_exec_safety_floor,
+                max(self.late_exec_safety_floor, _safe_float(profile.get("late_exec"), self.late_exec_min_confidence)),
+                profile,
             )
         return (
             bucket,
-            self.observe_min_confidence,
+            _safe_float(profile.get("observe"), self.observe_min_confidence),
             self.observe_min_edge,
             self.observe_spread_floor,
-            self.observe_min_confidence,
+            _safe_float(profile.get("observe"), self.observe_min_confidence),
+            profile,
         )
 
-    def decide(self, features: SignalFeatures, prob_up: float, prob_down: float, reason_prefix: str, source: str, model_version: str, promotion_state: str) -> SignalPrediction:
+    def decide(
+        self,
+        features: SignalFeatures,
+        prob_up: float,
+        prob_down: float,
+        reason_prefix: str,
+        source: str,
+        model_version: str,
+        promotion_state: str,
+        threshold_profile: dict[str, Any] | None = None,
+    ) -> SignalPrediction:
         prob_up = _clip_probability(prob_up)
         prob_down = _clip_probability(prob_down)
         side = LABEL_BUY_UP if prob_up >= prob_down else LABEL_BUY_DOWN
@@ -4317,11 +4716,10 @@ class RuntimePolicy:
         market_odds = features.up_odds if side == LABEL_BUY_UP else features.down_odds
         edge = (confidence / market_odds - 1.0) if 0.0 < market_odds < 1.0 else 0.0
         spread = abs(prob_up - prob_down)
-        phase_bucket, base_confidence, min_edge, spread_floor, safety_floor = self._thresholds(features)
-        required_conf = self.late_window_confidence if features.is_bandar_zone else base_confidence
-        if features.is_proximity_risk or phase_bucket == "LATE_EXEC":
-            required_conf = max(required_conf, self.late_window_confidence)
-        required_conf = max(required_conf, safety_floor)
+        phase_bucket, candidate_floor, min_edge, spread_floor, safety_floor, profile = self._thresholds(features, threshold_profile=threshold_profile)
+        required_conf = max(candidate_floor, safety_floor)
+        if phase_bucket in ("RESERVE", "EARLY_EXEC", "LATE_EXEC") and (features.is_bandar_zone or features.is_proximity_risk):
+            required_conf += _safe_float(profile.get("late_risk_bump"), SOFT_PENALTY_CONF_BUMP)
 
         if spread < spread_floor:
             return SignalPrediction(
@@ -4335,6 +4733,11 @@ class RuntimePolicy:
                 prob_down=prob_down,
                 promotion_state=promotion_state,
                 runtime_skip_reason_code="RUNTIME_SPREAD_FLOOR",
+                candidate_confidence_floor=required_conf,
+                threshold_profile_version=str(profile.get("version", "")),
+                threshold_source=str(profile.get("source", "default")),
+                candidate_phase=phase_bucket,
+                action_phase=phase_bucket,
             )
 
         if edge < min_edge:
@@ -4349,6 +4752,11 @@ class RuntimePolicy:
                 prob_down=prob_down,
                 promotion_state=promotion_state,
                 runtime_skip_reason_code="RUNTIME_EDGE_FLOOR",
+                candidate_confidence_floor=required_conf,
+                threshold_profile_version=str(profile.get("version", "")),
+                threshold_source=str(profile.get("source", "default")),
+                candidate_phase=phase_bucket,
+                action_phase=phase_bucket,
             )
 
         if confidence < required_conf:
@@ -4356,13 +4764,18 @@ class RuntimePolicy:
                 signal=LABEL_SKIP,
                 confidence=confidence,
                 raw_confidence=confidence,
-                reason=f"{reason_prefix}: confidence {confidence:.0%} below {required_conf:.0%}",
+                reason=f"{reason_prefix}: candidate confidence {confidence:.0%} below {required_conf:.0%}",
                 source=source,
                 model_version=model_version,
                 prob_up=prob_up,
                 prob_down=prob_down,
                 promotion_state=promotion_state,
-                runtime_skip_reason_code="RUNTIME_CONFIDENCE_FLOOR",
+                runtime_skip_reason_code="RUNTIME_CANDIDATE_FLOOR",
+                candidate_confidence_floor=required_conf,
+                threshold_profile_version=str(profile.get("version", "")),
+                threshold_source=str(profile.get("source", "default")),
+                candidate_phase=phase_bucket,
+                action_phase=phase_bucket,
             )
 
         return SignalPrediction(
@@ -4376,6 +4789,11 @@ class RuntimePolicy:
             prob_down=prob_down,
             promotion_state=promotion_state,
             runtime_skip_reason_code="",
+            candidate_confidence_floor=required_conf,
+            threshold_profile_version=str(profile.get("version", "")),
+            threshold_source=str(profile.get("source", "default")),
+            candidate_phase=phase_bucket,
+            action_phase=phase_bucket,
         )
 
 
@@ -4478,7 +4896,15 @@ class RuntimeSignalEngine:
 
     def predict(self, features: SignalFeatures) -> SignalPrediction:
         self.maybe_reload()
+        threshold_profile = _default_runtime_thresholds()
         fallback_prob_up = self._heuristic_probability(features)
+
+        with self._bundle_lock:
+            bundle = self._bundle
+
+        if bundle is not None:
+            threshold_profile = _manifest_runtime_threshold_payload(bundle[2])
+
         fallback_prediction = self.policy.decide(
             features,
             fallback_prob_up,
@@ -4487,10 +4913,8 @@ class RuntimeSignalEngine:
             source="fallback",
             model_version="fallback",
             promotion_state="fallback",
+            threshold_profile=threshold_profile,
         )
-
-        with self._bundle_lock:
-            bundle = self._bundle
 
         if bundle is None:
             return fallback_prediction
@@ -4509,6 +4933,7 @@ class RuntimeSignalEngine:
             source="ml",
             model_version=manifest.model_version,
             promotion_state=manifest.promotion_state,
+            threshold_profile=threshold_profile,
         )
 
         if manifest.promotion_state == "active":
@@ -5266,7 +5691,13 @@ def _window_split_indices(
     return []
 
 
-def _policy_metrics(frame: pd.DataFrame, probabilities: np.ndarray, policy: RuntimePolicy) -> dict[str, Any]:
+def _policy_metrics(
+    frame: pd.DataFrame,
+    probabilities: np.ndarray,
+    policy: RuntimePolicy,
+    *,
+    threshold_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     predictions: list[str] = []
     realized_returns: list[float] = []
     for row, prob_up in zip(frame.itertuples(index=False), probabilities):
@@ -5279,6 +5710,7 @@ def _policy_metrics(frame: pd.DataFrame, probabilities: np.ndarray, policy: Runt
             source="eval",
             model_version="eval",
             promotion_state="eval",
+            threshold_profile=threshold_profile,
         )
         predictions.append(decision.signal)
         if decision.signal == LABEL_SKIP:
@@ -5363,8 +5795,10 @@ def train_outcome_model(
     model = XGBClassifier(**params)
     model.fit(dataset[MODEL_FEATURE_COLUMNS], y_all)
 
+    threshold_bundle = tune_runtime_thresholds_from_shadow_data(log_dir)
+    runtime_thresholds = _normalize_runtime_thresholds(threshold_bundle.get("runtime_thresholds"))
     policy = RuntimePolicy()
-    policy_stats = _policy_metrics(scored_frame, calibrated_scored, policy)
+    policy_stats = _policy_metrics(scored_frame, calibrated_scored, policy, threshold_profile=runtime_thresholds)
     fallback_engine = RuntimeSignalEngine(ModelRegistry(models_dir), policy=policy)
     fallback_probs = np.asarray(
         [
@@ -5373,7 +5807,7 @@ def train_outcome_model(
         ],
         dtype=float,
     )
-    fallback_policy_stats = _policy_metrics(scored_frame, fallback_probs, policy)
+    fallback_policy_stats = _policy_metrics(scored_frame, fallback_probs, policy, threshold_profile=runtime_thresholds)
 
     feature_importance = {
         name: float(weight)
@@ -5441,6 +5875,11 @@ def train_outcome_model(
         "scale_pos_weight": float(params.get("scale_pos_weight", 1.0)),
         "policy_metrics": policy_stats,
         "fallback_policy_metrics": fallback_policy_stats,
+        "runtime_thresholds": runtime_thresholds,
+        "threshold_mode": threshold_bundle.get("threshold_mode", ML_THRESHOLD_MODE),
+        "threshold_tuning_summary": threshold_bundle.get("threshold_tuning_summary", {}),
+        "coverage_target": ML_TARGET_EXEC_COVERAGE,
+        "min_win_rate_target": ML_MIN_EXEC_WIN_RATE,
         "beats_fallback": policy_stats["realized_ev_per_trade"] > fallback_policy_stats["realized_ev_per_trade"],
         "ready_for_active": ready_for_active,
         "promotion_block_reason": "; ".join(promotion_blocks),
@@ -5586,6 +6025,13 @@ class WindowPredictionRecord:
     decision_reason: str = ""
     runtime_skip_reason_code: str = ""
     decision_skip_reason_code: str = ""
+    candidate_confidence_floor: float = 0.0
+    execution_required_confidence: float = 0.0
+    threshold_profile_version: str = ""
+    threshold_source: str = "default"
+    carry_from_observe: bool = False
+    candidate_phase: str = ""
+    action_phase: str = ""
     reservation_locked: bool = False
     reservation_carried_to_execution: bool = False
     soft_penalties_applied: list[str] = field(default_factory=list)
@@ -5702,6 +6148,8 @@ class SessionSignalState:
     candidate_signal: str = ""
     candidate_streak: int = 0
     candidate_first_seq: int = -1
+    candidate_confidence: float = 0.0
+    candidate_phase_bucket: str = ""
     locked_signal: str = ""
     locked_row_id: str = ""
     locked_gate: str = ""
@@ -5709,6 +6157,7 @@ class SessionSignalState:
     locked_phase_bucket: str = ""
     reservation_locked: bool = False
     reservation_carry_used: bool = False
+    carry_from_observe: bool = False
     telegram_sent: bool = False
     locked_at: datetime | None = None
 
@@ -5717,6 +6166,8 @@ class SessionSignalState:
         self.candidate_signal = ""
         self.candidate_streak = 0
         self.candidate_first_seq = -1
+        self.candidate_confidence = 0.0
+        self.candidate_phase_bucket = ""
         self.locked_signal = ""
         self.locked_row_id = ""
         self.locked_gate = ""
@@ -5724,6 +6175,7 @@ class SessionSignalState:
         self.locked_phase_bucket = ""
         self.reservation_locked = False
         self.reservation_carry_used = False
+        self.carry_from_observe = False
         self.telegram_sent = False
         self.locked_at = None
 
@@ -6128,6 +6580,7 @@ class TradingBot:
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
                 "polymarket_session": market_client.session_snapshot() if market_client is not None else {},
                 "participation_recent24": self.state.logger.compute_recent_participation_metrics(limit=24),
+                "participation_recent100": self.state.logger.compute_recent_participation_metrics(limit=100),
                 "updated_at": _iso_z(_utc_now()),
             }
         else:
@@ -6407,6 +6860,11 @@ class TradingBot:
             promotion_state=prediction.promotion_state,
             runtime_skip_reason_code=prediction.runtime_skip_reason_code,
             soft_penalties_applied=list(prediction.soft_penalties_applied or []),
+            candidate_confidence_floor=prediction.candidate_confidence_floor,
+            threshold_profile_version=prediction.threshold_profile_version,
+            threshold_source=prediction.threshold_source,
+            candidate_phase=prediction.candidate_phase,
+            action_phase=prediction.action_phase,
         )
         if prediction.shadow:
             self.state.log_event(
@@ -6484,6 +6942,7 @@ class TradingBot:
         gate: str | None = None,
         reservation_locked: bool | None = None,
         reservation_carried_to_execution: bool | None = None,
+        carry_from_observe: bool | None = None,
     ) -> WindowPredictionRecord | None:
         async with self.state._lock:
             record = self.state.prediction_records.get(row_id)
@@ -6501,6 +6960,8 @@ class TradingBot:
                 record.reservation_locked = reservation_locked
             if reservation_carried_to_execution is not None:
                 record.reservation_carried_to_execution = reservation_carried_to_execution
+            if carry_from_observe is not None:
+                record.carry_from_observe = carry_from_observe
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
         self.state.logger.log_prediction_state(record)
@@ -6548,6 +7009,12 @@ class TradingBot:
             promotion_state=signal.promotion_state,
             runtime_skip_reason_code=signal.runtime_skip_reason_code,
             soft_penalties_applied=list(signal.soft_penalties_applied or []),
+            candidate_confidence_floor=signal.candidate_confidence_floor,
+            threshold_profile_version=signal.threshold_profile_version,
+            threshold_source=signal.threshold_source,
+            candidate_phase=signal.candidate_phase,
+            action_phase=signal.action_phase,
+            carry_from_observe=session.carry_from_observe,
         )
         return carried, True
 
@@ -6570,25 +7037,44 @@ class TradingBot:
         if session.locked_signal:
             return False
 
-        if phase_bucket in ("CLOSED", "TOO_LATE", "OBSERVE"):
+        if phase_bucket in ("CLOSED", "TOO_LATE"):
             session.candidate_signal = ""
             session.candidate_streak = 0
             session.candidate_first_seq = -1
+            session.candidate_confidence = 0.0
+            session.candidate_phase_bucket = ""
             return False
 
         if signal.signal not in ("BUY_UP", "BUY_DOWN"):
-            if phase_bucket in ("EARLY_EXEC", "LATE_EXEC"):
+            if phase_bucket in ("OBSERVE", "RESERVE", "EARLY_EXEC", "LATE_EXEC"):
                 session.candidate_signal = ""
                 session.candidate_streak = 0
                 session.candidate_first_seq = -1
+                session.candidate_confidence = 0.0
+                session.candidate_phase_bucket = ""
             return False
 
+        if phase_bucket == "OBSERVE" and signal.confidence < OBSERVE_CARRY_MIN_CONF:
+            session.candidate_signal = ""
+            session.candidate_streak = 0
+            session.candidate_first_seq = -1
+            session.candidate_confidence = 0.0
+            session.candidate_phase_bucket = ""
+            return False
+
+        previous_candidate_phase = session.candidate_phase_bucket
+        previous_candidate_confidence = session.candidate_confidence
         if session.candidate_signal == signal.signal:
             session.candidate_streak += 1
         else:
             session.candidate_signal = signal.signal
             session.candidate_streak = 1
             session.candidate_first_seq = sample_seq
+        session.candidate_confidence = signal.confidence
+        session.candidate_phase_bucket = phase_bucket
+
+        if phase_bucket == "OBSERVE":
+            return False
 
         immediate_lock = execution_ready or (
             signal.confidence >= SIGNAL_NOTIFY_IMMEDIATE_CONF and signal_edge > 0.0
@@ -6596,17 +7082,26 @@ class TradingBot:
         if not immediate_lock and session.candidate_streak < SIGNAL_NOTIFY_MIN_STREAK:
             return False
 
+        carry_from_observe = (
+            previous_candidate_phase == "OBSERVE"
+            or (previous_candidate_phase == "OBSERVE" and phase_bucket == "RESERVE" and session.candidate_streak >= SIGNAL_NOTIFY_MIN_STREAK)
+        )
+        if carry_from_observe and signal.confidence < max(0.0, previous_candidate_confidence - 0.05):
+            return False
+
         session.locked_signal = signal.signal
         session.locked_row_id = row_id
         session.locked_confidence = signal.confidence
         session.locked_phase_bucket = phase_bucket
         session.reservation_locked = phase_bucket == "RESERVE"
+        session.carry_from_observe = carry_from_observe
         session.locked_at = datetime.now(_UTC)
         await self._mark_prediction_notification(
             row_id,
             locked=True,
             signal=signal.signal,
             reservation_locked=session.reservation_locked,
+            carry_from_observe=session.carry_from_observe,
         )
         return True
 
@@ -6661,6 +7156,7 @@ class TradingBot:
                 sent=True,
                 signal=session.locked_signal or signal.signal,
                 gate=gate,
+                carry_from_observe=session.carry_from_observe,
             )
         return True
 
@@ -6671,6 +7167,7 @@ class TradingBot:
         feature_row: SignalFeatures,
         signal: AISignal,
         snap: "IndicatorSnapshot",
+        decision: TradeDecision,
         decision_action: str,
         execution_allowed: bool,
         decision_reason: str = "",
@@ -6707,6 +7204,13 @@ class TradingBot:
             decision_reason=decision_reason,
             runtime_skip_reason_code=signal.runtime_skip_reason_code,
             decision_skip_reason_code=decision_skip_reason_code,
+            candidate_confidence_floor=signal.candidate_confidence_floor,
+            execution_required_confidence=decision.required_confidence,
+            threshold_profile_version=signal.threshold_profile_version,
+            threshold_source=signal.threshold_source,
+            carry_from_observe=signal.carry_from_observe,
+            candidate_phase=signal.candidate_phase or feature_row.phase_bucket,
+            action_phase=signal.action_phase or feature_row.phase_bucket,
             reservation_locked=reservation_locked,
             reservation_carried_to_execution=reservation_carried_to_execution,
             soft_penalties_applied=list(signal.soft_penalties_applied or []),
@@ -7453,6 +7957,7 @@ class TradingBot:
                 signal=signal,
                 phase_bucket=feature_row.phase_bucket,
             )
+            signal.action_phase = feature_row.phase_bucket
             self.state.last_signal = signal
             execution_window_open = feature_row.phase_bucket in ("EARLY_EXEC", "LATE_EXEC")
 
@@ -7493,6 +7998,7 @@ class TradingBot:
                 feature_row=feature_row,
                 signal=signal,
                 snap=snap,
+                decision=decision,
                 decision_action="observe" if signal.signal in ("BUY_UP", "BUY_DOWN") else "model_skip",
                 execution_allowed=execution_window_open and decision.action == "BUY",
                 decision_reason=decision.reason,
@@ -7604,6 +8110,14 @@ class TradingBot:
             max_bet=BET_SIZE_USDC,
             consecutive_losses=self.state.consecutive_losses,
         )
+        if signal.soft_penalties_applied:
+            penalized_bet = max(MIN_BET_USDC, round(bet_size * SOFT_PENALTY_KELLY_MULTIPLIER, 2))
+            if penalized_bet < bet_size:
+                self.state.log_event(
+                    f"[KELLY/PENALTY] soft={','.join(signal.soft_penalties_applied)} "
+                    f"${bet_size:.2f} -> ${penalized_bet:.2f}"
+                )
+                bet_size = penalized_bet
         zone_tag = "GOLD" if is_gold_zone else "NORM"
         self.state.log_event(
             f"[KELLY/{zone_tag}] bankroll=${bankroll:.2f} conf={signal.confidence:.2f} "
@@ -8288,6 +8802,13 @@ class TradingBot:
                 decision_reason=str(raw.get("decision_reason", "")),
                 runtime_skip_reason_code=str(raw.get("runtime_skip_reason_code", "")),
                 decision_skip_reason_code=str(raw.get("decision_skip_reason_code", "")),
+                candidate_confidence_floor=float(raw.get("candidate_confidence_floor", 0.0) or 0.0),
+                execution_required_confidence=float(raw.get("execution_required_confidence", 0.0) or 0.0),
+                threshold_profile_version=str(raw.get("threshold_profile_version", "")),
+                threshold_source=str(raw.get("threshold_source", "default")),
+                carry_from_observe=bool(raw.get("carry_from_observe", False)),
+                candidate_phase=str(raw.get("candidate_phase", raw.get("phase_bucket", ""))),
+                action_phase=str(raw.get("action_phase", raw.get("phase_bucket", ""))),
                 reservation_locked=bool(raw.get("reservation_locked", False)),
                 reservation_carried_to_execution=bool(raw.get("reservation_carried_to_execution", False)),
                 soft_penalties_applied=list(raw.get("soft_penalties_applied", []) or []),
@@ -8356,6 +8877,11 @@ class TradingBot:
             alignment=snap.signal_alignment,
             execution_allowed=decision_action in ("paper_trade", "live_trade"),
             phase_bucket=self._phase_bucket(int((datetime.now(_UTC) - win.start_time).total_seconds()), int((win.end_time - datetime.now(_UTC)).total_seconds())),
+            candidate_confidence_floor=getattr(signal, "candidate_confidence_floor", 0.0),
+            threshold_profile_version=getattr(signal, "threshold_profile_version", ""),
+            threshold_source=getattr(signal, "threshold_source", "default"),
+            candidate_phase=getattr(signal, "candidate_phase", ""),
+            action_phase=getattr(signal, "action_phase", ""),
             seconds_remaining=max(0, int((win.end_time - datetime.now(_UTC)).total_seconds())),
             notification_signal=signal.signal,
             sample_seq=int(time.time()),

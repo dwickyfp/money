@@ -352,8 +352,8 @@ def test_runtime_policy_uses_bucketed_thresholds_and_skip_codes():
 
         reserve_skip = policy.decide(
             reserve_feature,
-            0.77,
-            0.23,
+            0.73,
+            0.27,
             reason_prefix="ml",
             source="ml",
             model_version="test",
@@ -361,8 +361,8 @@ def test_runtime_policy_uses_bucketed_thresholds_and_skip_codes():
         )
         reserve_buy = policy.decide(
             reserve_feature,
-            0.79,
-            0.21,
+            0.75,
+            0.25,
             reason_prefix="ml",
             source="ml",
             model_version="test",
@@ -370,7 +370,8 @@ def test_runtime_policy_uses_bucketed_thresholds_and_skip_codes():
         )
 
         assert reserve_skip.signal == ml.LABEL_SKIP
-        assert reserve_skip.runtime_skip_reason_code == "RUNTIME_CONFIDENCE_FLOOR"
+        assert reserve_skip.runtime_skip_reason_code == "RUNTIME_CANDIDATE_FLOOR"
+        assert reserve_skip.candidate_confidence_floor == pytest.approx(0.74)
         assert reserve_buy.signal == ml.LABEL_BUY_UP
     finally:
         ml.BET_FREQUENCY_EXPANSION_PHASE = previous
@@ -391,8 +392,8 @@ def test_runtime_policy_keeps_late_exec_safety_floor():
 
         prediction = policy.decide(
             late_feature,
-            0.77,
-            0.23,
+            0.75,
+            0.25,
             reason_prefix="ml",
             source="ml",
             model_version="test",
@@ -400,9 +401,71 @@ def test_runtime_policy_keeps_late_exec_safety_floor():
         )
 
         assert prediction.signal == ml.LABEL_SKIP
-        assert prediction.runtime_skip_reason_code == "RUNTIME_CONFIDENCE_FLOOR"
+        assert prediction.runtime_skip_reason_code == "RUNTIME_CANDIDATE_FLOOR"
     finally:
         ml.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_phase_c_is_default_when_env_not_set():
+    assert ml.BET_FREQUENCY_EXPANSION_PHASE == "C"
+
+
+def test_threshold_tuner_prefers_highest_coverage_profile_above_guardrail(tmp_path):
+    log_dir = tmp_path / "logs"
+    ts = datetime(2026, 4, 11, 0, 0, tzinfo=UTC)
+    records = []
+    for idx in range(20):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * idx)),
+                "event": "prediction_resolved",
+                "row_id": f"row-low-{idx}",
+                "condition_id": f"cond-low-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "RESERVE",
+                "phase_bucket": "RESERVE",
+                "confidence": 0.72,
+                "prediction_correct": False,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * idx, seconds=1)),
+            }
+        )
+    for idx in range(15):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * (idx + 20))),
+                "event": "prediction_resolved",
+                "row_id": f"row-mid-{idx}",
+                "condition_id": f"cond-mid-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "RESERVE",
+                "phase_bucket": "RESERVE",
+                "confidence": 0.74,
+                "prediction_correct": True,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * (idx + 20), seconds=1)),
+            }
+        )
+    for idx in range(15):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * (idx + 35))),
+                "event": "prediction_resolved",
+                "row_id": f"row-high-{idx}",
+                "condition_id": f"cond-high-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "EARLY_EXEC",
+                "phase_bucket": "EARLY_EXEC",
+                "confidence": 0.76,
+                "prediction_correct": True,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * (idx + 35), seconds=1)),
+            }
+        )
+    _write_jsonl(log_dir / "prediction_analytics_2026-04-11.jsonl", records)
+
+    tuned = ml.tune_runtime_thresholds_from_shadow_data(log_dir, min_windows=40)
+
+    assert tuned["threshold_source"] == "auto_tuned"
+    assert tuned["runtime_thresholds"]["reserve"] == pytest.approx(0.74)
+    assert tuned["runtime_thresholds"]["early_exec"] == pytest.approx(0.76)
 
 
 def test_market_client_refresh_session_rotates_bundle_and_requests_ws_reconnect(monkeypatch):

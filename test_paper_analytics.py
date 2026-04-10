@@ -611,7 +611,7 @@ def test_soft_bandar_push_only_hard_blocks_under_30_seconds():
         snap = SimpleNamespace(direction_bias="UP", odds_vel_value=0.009, odds_vel_accel=0.0)
         ctx_soft = tf.DecisionContext(
             win=SimpleNamespace(beat_price=100.0),
-            elapsed_s=260,
+            elapsed_s=220,
             seconds_remaining=40,
             btc_price=100.2,
             up_odds=0.58,
@@ -645,7 +645,7 @@ def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
         snap = SimpleNamespace(direction_bias="UP")
         ctx_soft = tf.DecisionContext(
             win=SimpleNamespace(beat_price=100.0),
-            elapsed_s=255,
+            elapsed_s=220,
             seconds_remaining=40,
             btc_price=100.05,
             up_odds=0.58,
@@ -655,7 +655,7 @@ def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
         )
         ctx_hard = tf.DecisionContext(
             win=SimpleNamespace(beat_price=100.0),
-            elapsed_s=255,
+            elapsed_s=220,
             seconds_remaining=40,
             btc_price=100.02,
             up_odds=0.58,
@@ -686,9 +686,13 @@ def test_prediction_state_logs_structured_skip_reason_codes(tmp_path):
         predicted_direction="NONE",
         confidence=0.77,
         raw_confidence=0.79,
-        runtime_skip_reason_code="RUNTIME_CONFIDENCE_FLOOR",
+        runtime_skip_reason_code="RUNTIME_CANDIDATE_FLOOR",
         decision_skip_reason_code="GATE_LOW_CONF",
         execution_bucket="EARLY_EXEC",
+        candidate_confidence_floor=0.74,
+        execution_required_confidence=0.78,
+        threshold_profile_version="test_v1",
+        threshold_source="auto_tuned",
         last_updated_at=now,
     )
 
@@ -697,6 +701,7 @@ def test_prediction_state_logs_structured_skip_reason_codes(tmp_path):
     analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
     contents = analytics_path.read_text(encoding="utf-8")
 
-    assert "RUNTIME_CONFIDENCE_FLOOR" in contents
+    assert "RUNTIME_CANDIDATE_FLOOR" in contents
     assert "GATE_LOW_CONF" in contents
     assert "EARLY_EXEC" in contents
+    assert "auto_tuned" in contents
