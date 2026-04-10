@@ -1,0 +1,89 @@
+{
+  "rows_total": 4958,
+  "rows_train": 4958,
+  "rows_valid": 4166,
+  "distinct_windows_total": 101,
+  "class_balance": {
+    "BUY_UP": 2646,
+    "BUY_DOWN": 2312
+  },
+  "auc_pr": 0.7648575622782571,
+  "cv_auc_pr_mean": 0.7655059577129186,
+  "cv_auc_pr_std": 0.12085796300168071,
+  "cv_average_precision_mean": 0.7655059577129186,
+  "brier": 0.19099131893637003,
+  "cv_brier_mean": 0.233157102450328,
+  "positive_prevalence": 0.4968795007201152,
+  "accuracy": 0.6953912626020163,
+  "precision_up": 0.7124668435013263,
+  "recall_up": 0.648792270531401,
+  "precision_down": 0.6812801402893468,
+  "recall_down": 0.7414122137404581,
+  "scale_pos_weight": 1.0,
+  "policy_metrics": {
+    "trade_rate": 0.15386461833893422,
+    "realized_ev_per_trade": 0.5851127125135573
+  },
+  "fallback_policy_metrics": {
+    "trade_rate": 0.3408545367258761,
+    "realized_ev_per_trade": 0.4956900597447849
+  },
+  "beats_fallback": true,
+  "ready_for_active": false,
+  "promotion_block_reason": "cv_auc_pr_std 0.121 > 0.080",
+  "confusion_matrix": [
+    [
+      1554,
+      542
+    ],
+    [
+      727,
+      1343
+    ]
+  ],
+  "feature_importance": {
+    "gap_signed_pct": 0.08880177140235901,
+    "seconds_remaining": 0.030461760237812996,
+    "signal_alignment": 0.018474925309419632,
+    "signed_alignment": 0.01773601397871971,
+    "odds_vel": 0.024075474590063095,
+    "odds_vel_accel": 0.026359545066952705,
+    "cvd_divergence": 0.020884886384010315,
+    "macd_histogram": 0.02601083368062973,
+    "bb_pct_b": 0.02485419623553753,
+    "rsi": 0.025868011638522148,
+    "momentum_pct": 0.022487565875053406,
+    "is_late_window": 0.08845736086368561,
+    "is_bandar_zone": 0.04109739512205124,
+    "is_proximity_risk": 0.05092915892601013,
+    "price_roc_15s": 0.019416818395256996,
+    "price_roc_30s": 0.020455224439501762,
+    "cvd_change_last_30s": 0.02518845535814762,
+    "odds_edge_strength": 0.024295292794704437,
+    "elapsed_fraction": 0.059268079698085785,
+    "gap_alignment_interaction": 0.0737195685505867,
+    "realized_vol_30s": 0.03278966248035431,
+    "realized_vol_60s": 0.03254219517111778,
+    "gap_signed_pct_lag1": 0.08311306685209274,
+    "signal_alignment_lag1": 0.055214449763298035,
+    "odds_edge_strength_lag1": 0.03614240512251854,
+    "ob_imbalance": 0.031356021761894226
+  },
+  "best_params": {
+    "n_estimators": 320,
+    "max_depth": 7,
+    "learning_rate": 0.1,
+    "subsample": 0.85,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "logloss",
+    "objective": "binary:logistic",
+    "n_jobs": 1
+  },
+  "search_trials_completed": 0,
+  "training_range": {
+    "start": "2026-04-09T19:29:00.158Z",
+    "end": "2026-04-10T14:44:21.426Z"
+  },
+  "experimental_3class_status": "deferred_until_action_labels_exist"
+}

@@ -2140,3 +2140,1480 @@
 {"ts": "2026-04-10T13:25:17.565Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%"}
 {"ts": "2026-04-10T13:25:45.651Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
 {"ts": "2026-04-10T13:26:00.696Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:26:33.850Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:26:37.868Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:27:13.024Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:27:18.047Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:27:29.158Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -4.5% below 5%"}
+{"ts": "2026-04-10T13:27:38.217Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:27:43.287Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:27:49.311Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:27:54.332Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -17.4% below 5%"}
+{"ts": "2026-04-10T13:28:03.386Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:28:13.440Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:28:21.516Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:28:24.529Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:28:31.556Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:28:32.560Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:28:45.615Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -0.8% below 5%"}
+{"ts": "2026-04-10T13:28:47.627Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:28:56.716Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:28:57.731Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.82 src=ml U=82.4% D=17.6% | ml: BUY_UP prob=82% edge=+64.7%"}
+{"ts": "2026-04-10T13:28:57.731Z", "msg": "[SHADOW] BUY_UP conf=82% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:29:16.888Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T13:29:20.908Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T13:29:20.908Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_LATE_PROXIMITY_RISK"}
+{"ts": "2026-04-10T13:29:25.939Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +2.5% below 5%"}
+{"ts": "2026-04-10T13:29:48.073Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.8% below 5%"}
+{"ts": "2026-04-10T13:29:53.107Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T13:29:58.142Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -16.2% below 5%"}
+{"ts": "2026-04-10T13:30:03.027Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:30AM-9:35AM ET | beat=$72,315.79 | ends 13:35:00 UTC"}
+{"ts": "2026-04-10T13:30:03.221Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:30:03.693Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:30:08.258Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:30:33.505Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:30:43.574Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:30:47.495Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:25"}
+{"ts": "2026-04-10T13:30:47.497Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=13:25"}
+{"ts": "2026-04-10T13:30:53.646Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:30:57.673Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:31:02.705Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:31:07.746Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -3.0% below 5%"}
+{"ts": "2026-04-10T13:31:12.806Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:31:17.838Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:31:22.871Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:31:37.005Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:31:38.013Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:31:43.047Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:31:53.204Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:32:06.301Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:32:13.380Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:32:23.459Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:32:33.549Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:32:44.638Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:32:48.676Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:32:53.737Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -6.5% below 5%"}
+{"ts": "2026-04-10T13:33:55.247Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=15.9% D=84.1% | ml: edge -14.2% below 5%"}
+{"ts": "2026-04-10T13:33:58.300Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -22.7% below 5%"}
+{"ts": "2026-04-10T13:34:03.334Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:34:48.760Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T13:35:01.007Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:35AM-9:40AM ET | beat=$72,124.77 | ends 13:40:00 UTC"}
+{"ts": "2026-04-10T13:35:01.883Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:35:02.907Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:35:06.516Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:35:07.994Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:35:13.028Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:35:18.061Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:35:28.141Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:35:33.176Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:35:43.268Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:35:48.310Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:35:58.401Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:36:45.198Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T13:36:50.923Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:37:28.158Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:37:43.282Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:38:06.486Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:38:11.526Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:38:13.545Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:38:16.699Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T13:38:18.635Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:38:22.159Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:38:23.677Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:38:28.718Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:38:34.757Z", "msg": "[OB] refresh failed for 86020551\u2026: "}
+{"ts": "2026-04-10T13:38:38.821Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:38:44.870Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:39:06.990Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T13:39:11.070Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=17.8% D=82.2% | ml: edge -15.6% below 5%"}
+{"ts": "2026-04-10T13:39:12.464Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:39:16.115Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.0% below 5%"}
+{"ts": "2026-04-10T13:39:33.227Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:39:48.337Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:39:53.380Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.75 src=ml U=24.6% D=75.4% | ml: edge -23.8% below 5%"}
+{"ts": "2026-04-10T13:40:03.915Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:40AM-9:45AM ET | beat=$71,960.56 | ends 13:45:00 UTC"}
+{"ts": "2026-04-10T13:40:04.467Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:40:04.749Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:40:08.539Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:40:13.570Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%"}
+{"ts": "2026-04-10T13:40:23.653Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:40:28.687Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:40:33.755Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:40:38.809Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:40:43.826Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:40:58.912Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:41:04.023Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:41:18.134Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:41:23.173Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:41:48.363Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:41:59.489Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:42:24.786Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:42:32.860Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -3.8% below 5%"}
+{"ts": "2026-04-10T13:42:48.993Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:42:55.040Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:43:01.093Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:43:10.168Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T13:43:10.169Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:43:13.190Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:43:19.240Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:43:27.296Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -16.6% below 5%"}
+{"ts": "2026-04-10T13:43:28.305Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:43:39.382Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T13:43:39.382Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:43:47.438Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+7.4%"}
+{"ts": "2026-04-10T13:43:47.439Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:43:49.452Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:44:05.571Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:44:10.603Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T13:44:10.603Z", "msg": "[EXECUTE] 250s | BTC 0.12% \u2192 UP @ 0.500 | align=2 CVD=NONE | placing paper order\u2026"}
+{"ts": "2026-04-10T13:44:10.603Z", "msg": "[KELLY/GOLD] bankroll=$200.00 conf=0.84 implied=0.500 \u2192 bet=$1.00"}
+{"ts": "2026-04-10T13:44:10.605Z", "msg": "[PAPER/GOLD] BET UP $1.00 @ 0.500 align=2 CVD=NONE | order=SIM-1775828650"}
+{"ts": "2026-04-10T13:44:13.632Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T13:44:20.684Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T13:44:39.837Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T13:44:43.855Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T13:44:48.902Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T13:44:53.943Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:44:58.975Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T13:45:00.304Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:45AM-9:50AM ET | beat=$72,079.70 | ends 13:50:00 UTC"}
+{"ts": "2026-04-10T13:45:00.990Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:45:04.015Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:45:05.751Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:45:09.080Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:45:14.096Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:45:19.151Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%"}
+{"ts": "2026-04-10T13:45:26.205Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:45:29.229Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:45:34.265Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:45:47.616Z", "msg": "[RESULT] UP WON PnL=+1.00 actual=UP"}
+{"ts": "2026-04-10T13:45:47.650Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:40"}
+{"ts": "2026-04-10T13:45:47.651Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:40"}
+{"ts": "2026-04-10T13:45:47.651Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:40"}
+{"ts": "2026-04-10T13:45:47.652Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:40"}
+{"ts": "2026-04-10T13:45:47.652Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=13:40"}
+{"ts": "2026-04-10T13:45:47.653Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=13:40"}
+{"ts": "2026-04-10T13:45:55.418Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:46:02.462Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:46:13.523Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:46:18.572Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 80%"}
+{"ts": "2026-04-10T13:46:23.612Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:46:28.654Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:46:33.688Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T13:46:38.719Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:46:43.761Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T13:46:48.788Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:47:03.909Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:47:29.100Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:47:34.139Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +0.2% below 5%"}
+{"ts": "2026-04-10T13:48:13.561Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:48:31.677Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:48:35.704Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:48:39.738Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -13.2% below 5%"}
+{"ts": "2026-04-10T13:48:43.762Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.82 src=ml U=82.4% D=17.6% | ml: BUY_UP prob=82% edge=+64.7%"}
+{"ts": "2026-04-10T13:48:43.762Z", "msg": "[SHADOW] BUY_UP conf=82% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:48:48.807Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.0% D=16.0% | ml: edge -15.2% below 5%"}
+{"ts": "2026-04-10T13:48:53.847Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T13:49:03.926Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T13:49:14.019Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T13:49:19.057Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T13:49:24.089Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.8% below 5%"}
+{"ts": "2026-04-10T13:49:29.152Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:49:49.305Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:49:54.351Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.8% below 5%"}
+{"ts": "2026-04-10T13:50:05.453Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:50AM-9:55AM ET | beat=$72,307.93 | ends 13:55:00 UTC"}
+{"ts": "2026-04-10T13:50:06.170Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:50:07.456Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:50:33.680Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:50:38.709Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -17.7% below 5%"}
+{"ts": "2026-04-10T13:50:43.751Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -3.5% below 5%"}
+{"ts": "2026-04-10T13:50:47.662Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:45"}
+{"ts": "2026-04-10T13:51:08.023Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:51:21.120Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:52:23.682Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:52:34.754Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:53:25.156Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.67 src=ml U=33.3% D=66.7% | ml: confidence 67% below 80%"}
+{"ts": "2026-04-10T13:53:32.209Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -22.3% below 5%"}
+{"ts": "2026-04-10T13:53:41.290Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.91 src=ml U=8.8% D=91.2% | ml: edge -3.5% below 5%"}
+{"ts": "2026-04-10T13:53:46.331Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -22.7% below 5%"}
+{"ts": "2026-04-10T13:53:53.393Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.98 src=ml U=1.7% D=98.3% | ml: BUY_DOWN prob=98% edge=+96.7%"}
+{"ts": "2026-04-10T13:53:53.394Z", "msg": "[SHADOW] BUY_DOWN conf=98% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:53:55.401Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:54:09.531Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -23.1% below 5%"}
+{"ts": "2026-04-10T13:54:49.877Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T13:55:01.747Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:55AM-10:00AM ET | beat=$72,282.55 | ends 14:00:00 UTC"}
+{"ts": "2026-04-10T13:55:01.965Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:55:03.972Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T13:55:07.267Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T13:55:09.032Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:55:19.105Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:55:34.250Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:55:39.363Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:55:44.394Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T13:55:47.676Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=13:50"}
+{"ts": "2026-04-10T13:55:49.428Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:56:14.713Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T13:56:23.793Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T13:56:34.875Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -15.1% below 5%"}
+{"ts": "2026-04-10T13:56:43.934Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:56:50.012Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:57:27.399Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -9.5% below 5%"}
+{"ts": "2026-04-10T13:57:29.413Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:57:34.457Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:57:39.558Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:57:45.619Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T13:57:45.622Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T13:57:49.639Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:58:04.752Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -15.7% below 5%"}
+{"ts": "2026-04-10T13:58:18.860Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T13:58:24.921Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:58:31.959Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T13:58:39.005Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:58:57.137Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +4.1% below 5%"}
+{"ts": "2026-04-10T13:59:00.171Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -24.7% below 5%"}
+{"ts": "2026-04-10T13:59:05.204Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.1% below 5%"}
+{"ts": "2026-04-10T13:59:09.238Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T13:59:20.341Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T13:59:27.392Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -16.8% below 5%"}
+{"ts": "2026-04-10T13:59:29.399Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:59:34.446Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T13:59:39.491Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T13:59:49.596Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T14:00:02.271Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:00AM-10:05AM ET | beat=$72,342.34 | ends 14:05:00 UTC"}
+{"ts": "2026-04-10T14:00:02.747Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:00:02.944Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:00:09.800Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:00:16.855Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:00:18.860Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:00:23.901Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:00:39.006Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:00:47.695Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=13:55"}
+{"ts": "2026-04-10T14:01:19.394Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:01:28.456Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -15.7% below 5%"}
+{"ts": "2026-04-10T14:01:46.589Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:01:56.740Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:02:16.904Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=70.7% D=29.3% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:02:25.968Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:02:52.173Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -19.8% below 5%"}
+{"ts": "2026-04-10T14:02:59.202Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:03:09.313Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:03:14.362Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:03:19.472Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:03:24.506Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -13.2% below 5%"}
+{"ts": "2026-04-10T14:03:29.553Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:03:34.584Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:03:49.699Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -30.1% below 5%"}
+{"ts": "2026-04-10T14:03:54.754Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T14:04:05.839Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:04:15.966Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T14:04:20.005Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:04:29.143Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T14:04:34.178Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:04:39.222Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T14:04:44.260Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:04:49.292Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:04:54.343Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -15.4% below 5%"}
+{"ts": "2026-04-10T14:05:02.903Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:05AM-10:10AM ET | beat=$72,452.83 | ends 14:10:00 UTC"}
+{"ts": "2026-04-10T14:05:03.420Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:05:03.587Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:05:04.429Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:05:14.489Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:05:47.770Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:05:49.781Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T14:06:04.916Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:06:09.965Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +0.2% below 5%"}
+{"ts": "2026-04-10T14:06:40.215Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=50.7% D=49.3% | ml: probability spread 1.3% too small"}
+{"ts": "2026-04-10T14:06:44.240Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:06:49.299Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:06:55.355Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:07:08.448Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:07:10.512Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -7.7% below 5%"}
+{"ts": "2026-04-10T14:07:16.591Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:07:21.630Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -16.3% below 5%"}
+{"ts": "2026-04-10T14:07:36.808Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:07:40.830Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:07:44.869Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:07:51.918Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T14:07:51.918Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:07:56.964Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:08:06.054Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:08:17.126Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:08:21.157Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:08:24.165Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:08:31.227Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+14.8%"}
+{"ts": "2026-04-10T14:08:31.227Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:08:36.269Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:08:41.317Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:08:48.366Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T14:08:49.377Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:09:04.481Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:09:10.583Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:09:14.605Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 85%"}
+{"ts": "2026-04-10T14:09:19.653Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:09:39.825Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -3.2% below 5%"}
+{"ts": "2026-04-10T14:09:44.871Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -7.7% below 5%"}
+{"ts": "2026-04-10T14:09:51.928Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge +2.6% below 5%"}
+{"ts": "2026-04-10T14:09:55.007Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:10:03.535Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:10AM-10:15AM ET | beat=$72,454.83 | ends 14:15:00 UTC"}
+{"ts": "2026-04-10T14:10:04.077Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:10:04.200Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:10:20.206Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: edge -2.5% below 5%"}
+{"ts": "2026-04-10T14:10:44.445Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:10:47.718Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:05"}
+{"ts": "2026-04-10T14:10:47.718Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:05"}
+{"ts": "2026-04-10T14:10:49.460Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:10:54.472Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:11:09.560Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:11:24.700Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:11:29.742Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:11:39.814Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:11:44.912Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:11:49.941Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:12:00.511Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:12:04.557Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -3.0% below 5%"}
+{"ts": "2026-04-10T14:12:14.594Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:12:21.617Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:12:25.646Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:12:29.663Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:12:40.694Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:12:45.719Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.82 src=ml U=82.4% D=17.6% | ml: BUY_UP prob=82% edge=+64.7%"}
+{"ts": "2026-04-10T14:12:45.721Z", "msg": "[SHADOW] BUY_UP conf=82% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:12:50.738Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -16.8% below 5%"}
+{"ts": "2026-04-10T14:12:54.775Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:13:00.796Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:13:04.810Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T14:13:09.848Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -30.1% below 5%"}
+{"ts": "2026-04-10T14:13:24.933Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T14:13:35.019Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:13:40.037Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T14:13:45.075Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:13:55.110Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.8% below 5%"}
+{"ts": "2026-04-10T14:14:00.145Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.8% below 5%"}
+{"ts": "2026-04-10T14:14:05.161Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T14:14:10.205Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:14:15.229Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -15.8% below 5%"}
+{"ts": "2026-04-10T14:14:20.265Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:14:49.439Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -26.1% below 5%"}
+{"ts": "2026-04-10T14:14:54.493Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -15.7% below 5%"}
+{"ts": "2026-04-10T14:15:04.032Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:15AM-10:20AM ET | beat=$72,730.94 | ends 14:20:00 UTC"}
+{"ts": "2026-04-10T14:15:04.555Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:15:04.610Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:15:29.723Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:15:39.796Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:15:47.731Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:10"}
+{"ts": "2026-04-10T14:15:49.866Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:15:54.938Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:16:00.013Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:16:05.074Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:16:20.251Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:16:30.347Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -4.5% below 5%"}
+{"ts": "2026-04-10T14:16:35.387Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:16:40.423Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:16:45.493Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:16:49.524Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:16:54.558Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:16:59.634Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: edge -13.0% below 5%"}
+{"ts": "2026-04-10T14:17:04.701Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:17:09.753Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:17:19.838Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:17:24.878Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%"}
+{"ts": "2026-04-10T14:17:29.917Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:17:34.942Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%"}
+{"ts": "2026-04-10T14:18:11.243Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -4.2% below 5%"}
+{"ts": "2026-04-10T14:18:15.289Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:18:20.305Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:18:30.375Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:18:39.451Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:18:43.487Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:18:46.504Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:18:57.600Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+13.5%"}
+{"ts": "2026-04-10T14:18:57.601Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:19:01.611Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+12.1%"}
+{"ts": "2026-04-10T14:19:01.611Z", "msg": "[EXECUTE] 241s | BTC 0.09% \u2192 UP @ 0.845 | align=0 CVD=NONE | placing paper order\u2026"}
+{"ts": "2026-04-10T14:19:01.612Z", "msg": "[KELLY/GOLD] bankroll=$200.00 conf=0.95 implied=0.845 \u2192 bet=$1.00"}
+{"ts": "2026-04-10T14:19:01.612Z", "msg": "[PAPER/GOLD] BET UP $1.00 @ 0.840 align=0 CVD=NONE | order=SIM-1775830741"}
+{"ts": "2026-04-10T14:19:06.664Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:19:11.702Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:19:15.735Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+14.8%"}
+{"ts": "2026-04-10T14:19:15.736Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_LATE_PROXIMITY_RISK"}
+{"ts": "2026-04-10T14:19:19.764Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: confidence 84% below 85%"}
+{"ts": "2026-04-10T14:19:25.827Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T14:19:39.934Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge +3.0% below 5%"}
+{"ts": "2026-04-10T14:19:46.993Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T14:19:52.075Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:19:55.102Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T14:20:04.857Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:20AM-10:25AM ET | beat=$72,781.66 | ends 14:25:00 UTC"}
+{"ts": "2026-04-10T14:20:05.176Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:20:05.826Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:20:17.309Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.73 src=ml U=26.9% D=73.1% | ml: confidence 73% below 80%"}
+{"ts": "2026-04-10T14:20:36.445Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:20:40.504Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:20:47.747Z", "msg": "[RESULT] UP WON PnL=+0.19 actual=UP"}
+{"ts": "2026-04-10T14:20:47.767Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:15"}
+{"ts": "2026-04-10T14:20:47.767Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=14:15"}
+{"ts": "2026-04-10T14:20:47.767Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=14:15"}
+{"ts": "2026-04-10T14:21:04.702Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -12.2% below 5%"}
+{"ts": "2026-04-10T14:21:10.751Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:21:20.843Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -6.4% below 5%"}
+{"ts": "2026-04-10T14:21:24.885Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:21:31.918Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:21:50.067Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -35.7% below 5%"}
+{"ts": "2026-04-10T14:22:16.260Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:22:26.338Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -27.9% below 5%"}
+{"ts": "2026-04-10T14:22:37.499Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -23.2% below 5%"}
+{"ts": "2026-04-10T14:22:41.548Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.83 src=ml U=83.3% D=16.7% | ml: BUY_UP prob=83% edge=+66.7%"}
+{"ts": "2026-04-10T14:22:41.548Z", "msg": "[SHADOW] BUY_UP conf=83% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:22:46.615Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -11.8% below 5%"}
+{"ts": "2026-04-10T14:22:51.634Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -22.8% below 5%"}
+{"ts": "2026-04-10T14:23:04.759Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.83 src=ml U=83.3% D=16.7% | ml: BUY_UP prob=83% edge=+66.7%"}
+{"ts": "2026-04-10T14:23:04.760Z", "msg": "[SHADOW] BUY_UP conf=83% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:23:14.899Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:23:30.056Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:23:35.075Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:23:40.119Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:23:45.174Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T14:23:55.256Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:24:00.294Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -16.8% below 5%"}
+{"ts": "2026-04-10T14:24:10.391Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.92 src=ml U=92.3% D=7.7% | ml: edge -7.2% below 5%"}
+{"ts": "2026-04-10T14:24:15.443Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:24:20.490Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -17.2% below 5%"}
+{"ts": "2026-04-10T14:24:30.587Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:24:45.724Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -16.2% below 5%"}
+{"ts": "2026-04-10T14:24:50.773Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:25:00.185Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:25AM-10:30AM ET | beat=$73,086.94 | ends 14:30:00 UTC"}
+{"ts": "2026-04-10T14:25:00.868Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:25:05.687Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:25:10.070Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:25:15.137Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:25:25.205Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:25:41.378Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:25:45.405Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -2.5% below 5%"}
+{"ts": "2026-04-10T14:25:47.809Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:20"}
+{"ts": "2026-04-10T14:25:47.811Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:20"}
+{"ts": "2026-04-10T14:25:56.524Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:26:08.638Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:26:11.657Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:26:30.882Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:26:48.028Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:26:50.038Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -23.7% below 5%"}
+{"ts": "2026-04-10T14:27:00.122Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:28:59.271Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.85 src=ml U=14.5% D=85.5% | ml: BUY_DOWN prob=85% edge=+70.9%"}
+{"ts": "2026-04-10T14:28:59.272Z", "msg": "[SHADOW] BUY_DOWN conf=85% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:29:00.281Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T14:29:08.337Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:29:10.348Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.88 src=ml U=11.8% D=88.2% | ml: edge -10.9% below 5%"}
+{"ts": "2026-04-10T14:29:15.392Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T14:29:20.476Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:29:25.511Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.8% below 5%"}
+{"ts": "2026-04-10T14:29:30.590Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.88 src=ml U=12.4% D=87.6% | ml: edge -11.6% below 5%"}
+{"ts": "2026-04-10T14:29:35.630Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.8% below 5%"}
+{"ts": "2026-04-10T14:29:50.762Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T14:30:01.854Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:30AM-10:35AM ET | beat=$72,997.29 | ends 14:35:00 UTC"}
+{"ts": "2026-04-10T14:30:02.521Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:30:02.863Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:30:15.985Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:30:22.056Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:30:27.087Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge +3.3% below 5%"}
+{"ts": "2026-04-10T14:30:46.232Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T14:30:46.232Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:30:47.836Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:25"}
+{"ts": "2026-04-10T14:30:50.258Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -1.6% below 5%"}
+{"ts": "2026-04-10T14:31:03.382Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.83 src=ml U=83.3% D=16.7% | ml: BUY_UP prob=83% edge=+66.7%"}
+{"ts": "2026-04-10T14:31:03.383Z", "msg": "[SHADOW] BUY_UP conf=83% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:31:07.435Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -15.2% below 5%"}
+{"ts": "2026-04-10T14:31:10.448Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:31:19.489Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:31:21.496Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -6.6% below 5%"}
+{"ts": "2026-04-10T14:31:34.608Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:32:07.979Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:32:12.011Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:32:19.058Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:32:21.074Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -5.4% below 5%"}
+{"ts": "2026-04-10T14:32:28.157Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:32:45.402Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:32:50.443Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:33:00.541Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:33:05.634Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%"}
+{"ts": "2026-04-10T14:33:15.724Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:33:20.756Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -8.9% below 5%"}
+{"ts": "2026-04-10T14:33:32.864Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:33:40.929Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.82 src=ml U=82.4% D=17.6% | ml: BUY_UP prob=82% edge=+64.7%"}
+{"ts": "2026-04-10T14:33:40.929Z", "msg": "[SHADOW] BUY_UP conf=82% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:33:48.995Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -13.7% below 5%"}
+{"ts": "2026-04-10T14:34:00.088Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:34:01.111Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:34:12.226Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:34:17.260Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=83.7% D=16.3% | ml: confidence 84% below 85%"}
+{"ts": "2026-04-10T14:34:21.303Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+89.5%"}
+{"ts": "2026-04-10T14:34:21.304Z", "msg": "[SHADOW] BUY_UP conf=95% \u2014 blocked by GATE_BANDAR_PUSH"}
+{"ts": "2026-04-10T14:34:28.364Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T14:34:28.364Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_BANDAR_PUSH"}
+{"ts": "2026-04-10T14:34:30.377Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T14:34:36.433Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: confidence 82% below 85%"}
+{"ts": "2026-04-10T14:34:41.469Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T14:34:41.469Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_BANDAR_PUSH"}
+{"ts": "2026-04-10T14:34:46.513Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T14:34:50.590Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T14:34:55.644Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T14:35:02.548Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:35AM-10:40AM ET | beat=$73,103.79 | ends 14:40:00 UTC"}
+{"ts": "2026-04-10T14:35:02.691Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:35:03.405Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:35:05.714Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:35:10.748Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:35:15.787Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:35:20.835Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:35:25.889Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:35:30.938Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:35:35.993Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:35:41.049Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:35:46.083Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:35:47.872Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:30"}
+{"ts": "2026-04-10T14:35:47.874Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:30"}
+{"ts": "2026-04-10T14:35:47.875Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:30"}
+{"ts": "2026-04-10T14:35:47.876Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=14:30"}
+{"ts": "2026-04-10T14:35:47.877Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=14:30"}
+{"ts": "2026-04-10T14:35:47.878Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=14:30"}
+{"ts": "2026-04-10T14:36:20.392Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:36:25.420Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:36:30.472Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:36:35.520Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:37:17.936Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:37:30.048Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:37:39.211Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:37:47.274Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:37:58.364Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:38:05.420Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:38:10.490Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:38:15.517Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:38:26.611Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 80%"}
+{"ts": "2026-04-10T14:38:32.718Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:38:40.787Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:38:46.841Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=49.7% D=50.3% | ml: probability spread 0.7% too small"}
+{"ts": "2026-04-10T14:38:50.864Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 80%"}
+{"ts": "2026-04-10T14:38:55.909Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T14:39:02.977Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T14:39:06.016Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -4.5% below 5%"}
+{"ts": "2026-04-10T14:39:11.057Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T14:39:16.118Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 85%"}
+{"ts": "2026-04-10T14:39:31.236Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T14:39:36.275Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:39:41.350Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 85%"}
+{"ts": "2026-04-10T14:39:51.441Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 85%"}
+{"ts": "2026-04-10T14:40:04.108Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:40AM-10:45AM ET | beat=$73,089.79 | ends 14:45:00 UTC"}
+{"ts": "2026-04-10T14:40:04.556Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:40:04.740Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:40:05.562Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:40:10.607Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:40:20.677Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:40:25.726Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:40:30.795Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:40:40.868Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:40:45.907Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:40:55.961Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:41:11.044Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:41:16.079Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:41:21.112Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:41:26.130Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:41:31.147Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:41:41.193Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:41:46.222Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:41:56.285Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:42:01.336Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 80%"}
+{"ts": "2026-04-10T14:42:16.517Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:42:21.559Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 80%"}
+{"ts": "2026-04-10T14:42:26.597Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:42:31.633Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 80%"}
+{"ts": "2026-04-10T14:42:36.732Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:42:45.284Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T14:42:50.774Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 80%"}
+{"ts": "2026-04-10T14:42:50.778Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:44:01.298Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.8% below 5%"}
+{"ts": "2026-04-10T14:44:26.489Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-10T14:44:26.519Z", "msg": "[HISTORY] Warmed 8 settled outcomes for calibration/context"}
+{"ts": "2026-04-10T14:44:26.546Z", "msg": "[PAPER] Warmed 144 resolved paper analytics entries"}
+{"ts": "2026-04-10T14:44:26.546Z", "msg": "[PAPER] Restored 1603 pending paper prediction(s)"}
+{"ts": "2026-04-10T14:44:26.549Z", "msg": "[ML] Activated model 20260410T123120Z source=ml state=active"}
+{"ts": "2026-04-10T14:44:26.586Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-10T14:44:26.669Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:40AM-10:45AM ET | beat=$0.00 | ends 14:45:00 UTC"}
+{"ts": "2026-04-10T14:44:27.105Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-10T14:44:27.675Z", "msg": "[ML] Backfilled 790 pending label(s) from feature logs"}
+{"ts": "2026-04-10T14:44:29.013Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:44:29.602Z", "msg": "[ML] Bootstrap trained 20260410T144429Z-s20 state=shadow ap=0.765 cv_ap=0.766 ev=+0.59"}
+{"ts": "2026-04-10T14:44:32.014Z", "msg": "[MKT] Beat price set retroactively: $72,894.36"}
+{"ts": "2026-04-10T14:44:36.618Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:44:41.629Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.8% below 5%"}
+{"ts": "2026-04-10T14:44:51.670Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T14:44:56.685Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T14:45:00.861Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:45AM-10:50AM ET | beat=$72,897.48 | ends 14:50:00 UTC"}
+{"ts": "2026-04-10T14:45:01.701Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+43.4%"}
+{"ts": "2026-04-10T14:45:01.702Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:45:06.314Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:45:06.718Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:45:21.773Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:45:26.798Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:45:31.808Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:45:36.831Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:45:41.846Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T14:45:41.846Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:45:46.880Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:46:16.994Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+51.5%"}
+{"ts": "2026-04-10T14:46:16.995Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:46:22.014Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T14:46:27.030Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:46:32.045Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+18.6%"}
+{"ts": "2026-04-10T14:46:32.046Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:46:37.066Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:47:27.329Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:47:32.364Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:47:37.389Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T14:47:37.390Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:47:42.421Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:47:47.465Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:48:27.704Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T14:48:27.705Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:48:31.723Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:48:36.754Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.64 src=ml U=64.1% D=35.9% | ml: confidence 64% below 70%"}
+{"ts": "2026-04-10T14:48:46.865Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:48:51.898Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:48:56.932Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+36.6%"}
+{"ts": "2026-04-10T14:48:56.933Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:49:01.973Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T14:49:12.045Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T14:49:17.110Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:49:22.132Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T14:49:32.256Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T14:49:37.307Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T14:49:42.329Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -33.0% below 5%"}
+{"ts": "2026-04-10T14:49:42.836Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:49:47.386Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T14:49:52.408Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T14:50:05.395Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:50AM-10:55AM ET | beat=$72,764.45 | ends 14:55:00 UTC"}
+{"ts": "2026-04-10T14:50:05.512Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -28.1% below 5%"}
+{"ts": "2026-04-10T14:50:06.068Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:50:07.528Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.64 src=ml U=36.2% D=63.8% | ml: confidence 64% below 70%"}
+{"ts": "2026-04-10T14:50:12.564Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+99.6%"}
+{"ts": "2026-04-10T14:50:12.565Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:50:17.595Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T14:50:26.607Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.609Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.611Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.612Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.613Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.614Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:26.616Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=14:45"}
+{"ts": "2026-04-10T14:50:27.679Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:50:32.716Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T14:50:37.768Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:50:41.786Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:51:07.041Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -13.5% below 5%"}
+{"ts": "2026-04-10T14:51:14.091Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -30.6% below 5%"}
+{"ts": "2026-04-10T14:51:22.155Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:51:33.250Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T14:51:33.251Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:51:39.279Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -5.9% below 5%"}
+{"ts": "2026-04-10T14:51:42.308Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:51:55.425Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -19.8% below 5%"}
+{"ts": "2026-04-10T14:51:57.445Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:52:02.480Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T14:52:02.481Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:52:13.593Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:52:22.688Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T14:52:50.951Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:52:52.970Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:53:22.211Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -30.1% below 5%"}
+{"ts": "2026-04-10T14:53:27.252Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.6% below 5%"}
+{"ts": "2026-04-10T14:53:37.364Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:53:42.413Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -16.2% below 5%"}
+{"ts": "2026-04-10T14:53:47.452Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.9% below 5%"}
+{"ts": "2026-04-10T14:54:06.663Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:54:14.729Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T14:54:40.955Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -15.5% below 5%"}
+{"ts": "2026-04-10T14:54:54.071Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.8% below 5%"}
+{"ts": "2026-04-10T14:54:57.086Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -30.7% below 5%"}
+{"ts": "2026-04-10T14:55:02.085Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 10:55AM-11:00AM ET | beat=$72,868.14 | ends 15:00:00 UTC"}
+{"ts": "2026-04-10T14:55:02.151Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+147592.3%"}
+{"ts": "2026-04-10T14:55:02.151Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:55:02.739Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T14:55:07.187Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:55:12.226Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:55:17.275Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+18.6%"}
+{"ts": "2026-04-10T14:55:17.276Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:55:22.335Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:55:26.631Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:50"}
+{"ts": "2026-04-10T14:55:26.631Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:50"}
+{"ts": "2026-04-10T14:55:26.632Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:50"}
+{"ts": "2026-04-10T14:55:26.632Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=14:50"}
+{"ts": "2026-04-10T14:55:27.440Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:55:33.481Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:55:37.511Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T14:55:37.512Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:55:42.550Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T14:55:49.611Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:55:55.716Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:55:58.744Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T14:55:58.745Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:56:02.778Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:56:07.867Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:56:12.935Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:56:17.956Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+20.7%"}
+{"ts": "2026-04-10T14:56:17.956Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T14:56:22.996Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T14:57:27.547Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:57:32.593Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -6.0% below 5%"}
+{"ts": "2026-04-10T14:57:38.633Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:58:00.857Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:58:02.873Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -18.6% below 5%"}
+{"ts": "2026-04-10T14:58:07.927Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:58:18.013Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T14:58:29.099Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:58:34.145Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -14.7% below 5%"}
+{"ts": "2026-04-10T14:58:39.182Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:58:49.270Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -19.8% below 5%"}
+{"ts": "2026-04-10T14:58:57.352Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:59:02.386Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T14:59:11.458Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T14:59:11.459Z", "msg": "[EXECUTE] 251s | BTC 0.10% \u2192 UP @ 0.500 | align=2 CVD=NONE | placing paper order\u2026"}
+{"ts": "2026-04-10T14:59:11.459Z", "msg": "[KELLY/GOLD] bankroll=$200.00 conf=0.74 implied=0.500 \u2192 bet=$1.00"}
+{"ts": "2026-04-10T14:59:11.460Z", "msg": "[PAPER/GOLD] BET UP $1.00 @ 0.500 align=2 CVD=NONE | order=SIM-1775833151"}
+{"ts": "2026-04-10T14:59:13.475Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T14:59:17.518Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T14:59:37.634Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T14:59:47.733Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T14:59:52.753Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:00:04.931Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:00AM-11:05AM ET | beat=$72,945.88 | ends 15:05:00 UTC"}
+{"ts": "2026-04-10T15:00:05.598Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:00:06.870Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:00:06.871Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:00:07.879Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:00:26.653Z", "msg": "[RESULT] UP WON PnL=+1.00 actual=UP"}
+{"ts": "2026-04-10T15:00:26.691Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.691Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.692Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.692Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.693Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.693Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.694Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.694Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.694Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=14:55"}
+{"ts": "2026-04-10T15:00:26.695Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=14:55"}
+{"ts": "2026-04-10T15:00:33.141Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:00:33.142Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:00:38.167Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:00:42.219Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:00:47.256Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:00:52.292Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:00:57.336Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:00:57.337Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:01:02.388Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:01:07.448Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:01:12.486Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:01:17.531Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:01:22.559Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:01:22.561Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:01:27.594Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:01:42.727Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:01:42.728Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:01:47.788Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:01:52.823Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:01:57.861Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:02:07.975Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -13.5% below 5%"}
+{"ts": "2026-04-10T15:02:15.030Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:02:20.091Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:02:23.108Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:02:28.139Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.67 src=ml U=33.3% D=66.7% | ml: confidence 67% below 70%"}
+{"ts": "2026-04-10T15:02:38.248Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:02:43.283Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: edge -4.2% below 5%"}
+{"ts": "2026-04-10T15:02:57.423Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:02:57.424Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:03:03.446Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:03:09.508Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T15:03:09.509Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:03:15.565Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:03:15.566Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:03:17.572Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:03:28.694Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge +2.6% below 5%"}
+{"ts": "2026-04-10T15:03:37.753Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:03:44.806Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge +0.4% below 5%"}
+{"ts": "2026-04-10T15:03:54.893Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:04:00.938Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge +3.3% below 5%"}
+{"ts": "2026-04-10T15:04:13.065Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+8.6%"}
+{"ts": "2026-04-10T15:04:13.066Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_TOO_SURE"}
+{"ts": "2026-04-10T15:04:23.139Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T15:04:32.206Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:04:45.384Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T15:04:49.443Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -7.2% below 5%"}
+{"ts": "2026-04-10T15:05:05.485Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:05AM-11:10AM ET | beat=$72,936.00 | ends 15:10:00 UTC"}
+{"ts": "2026-04-10T15:05:05.676Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: edge -29.3% below 5%"}
+{"ts": "2026-04-10T15:05:07.713Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:05:10.959Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:05:12.759Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+34.3%"}
+{"ts": "2026-04-10T15:05:12.760Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:05:17.798Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:05:22.847Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:05:26.712Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.714Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.716Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.717Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.719Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.720Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.722Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.724Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.725Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.726Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.727Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.727Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.728Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:00"}
+{"ts": "2026-04-10T15:05:26.728Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_TOO_SURE window=15:00"}
+{"ts": "2026-04-10T15:05:27.916Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:05:32.974Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:05:32.975Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:05:38.010Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:05:43.044Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:05:48.094Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=29.4% D=70.6% | ml: BUY_DOWN prob=71% edge=+26.0%"}
+{"ts": "2026-04-10T15:05:48.095Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:05:53.143Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:05:58.201Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:06:03.234Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:06:08.285Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:06:18.366Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:06:23.418Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:06:27.433Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:06:32.473Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:06:37.528Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:06:37.529Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:06:42.565Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:06:57.685Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+73.6%"}
+{"ts": "2026-04-10T15:06:57.686Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:07:02.736Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:07:07.767Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: edge -8.8% below 5%"}
+{"ts": "2026-04-10T15:07:43.088Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:07:48.124Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:07:55.177Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:07:55.178Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:07:59.198Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge +2.9% below 5%"}
+{"ts": "2026-04-10T15:08:03.245Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:08:03.246Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:08:12.304Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.95 src=ml U=94.7% D=5.3% | ml: BUY_UP prob=95% edge=+11.5%"}
+{"ts": "2026-04-10T15:08:12.305Z", "msg": "[SHADOW] BUY_UP conf=95% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:08:16.342Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -0.9% below 5%"}
+{"ts": "2026-04-10T15:08:27.422Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:08:27.423Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:08:29.446Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:08:35.497Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.84 src=ml U=84.2% D=15.8% | ml: BUY_UP prob=84% edge=+68.4%"}
+{"ts": "2026-04-10T15:08:35.499Z", "msg": "[SHADOW] BUY_UP conf=84% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:08:44.591Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.84 src=ml U=84.2% D=15.8% | ml: edge -14.9% below 5%"}
+{"ts": "2026-04-10T15:08:47.608Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T15:08:52.696Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T15:08:57.724Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.83 src=ml U=83.3% D=16.7% | ml: edge -15.8% below 5%"}
+{"ts": "2026-04-10T15:09:02.766Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: edge -16.8% below 5%"}
+{"ts": "2026-04-10T15:09:07.799Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T15:09:12.863Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T15:09:17.899Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -38.3% below 5%"}
+{"ts": "2026-04-10T15:09:22.931Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T15:09:27.978Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T15:09:33.025Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:09:48.143Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:10:00.858Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:10AM-11:15AM ET | beat=$73,122.05 | ends 15:15:00 UTC"}
+{"ts": "2026-04-10T15:10:01.327Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+35.6%"}
+{"ts": "2026-04-10T15:10:01.327Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:03.343Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:06.369Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:10:08.400Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:10:13.438Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:10:13.439Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:18.483Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:23.520Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:26.750Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.752Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.754Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.755Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.761Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.762Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.764Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.766Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.767Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.768Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.769Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.769Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:26.770Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:05"}
+{"ts": "2026-04-10T15:10:28.554Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:10:32.599Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:10:37.692Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+57.1%"}
+{"ts": "2026-04-10T15:10:37.693Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:42.776Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:10:47.809Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+31.8%"}
+{"ts": "2026-04-10T15:10:47.810Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:10:52.857Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:11:02.944Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+24.9%"}
+{"ts": "2026-04-10T15:11:02.945Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:11:07.986Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:11:13.023Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:11:13.024Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:11:18.098Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:11:38.257Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:11:48.356Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:11:48.356Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:11:53.409Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:11:58.442Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:12:03.478Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +1.9% below 5%"}
+{"ts": "2026-04-10T15:12:17.784Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:12:17.785Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:12:22.828Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:12:27.867Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:12:32.911Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:12:38.024Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:12:48.101Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:12:48.102Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:12:53.151Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=49.5% D=50.5% | ml: probability spread 0.9% too small"}
+{"ts": "2026-04-10T15:12:58.224Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:13:04.283Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+5.5%"}
+{"ts": "2026-04-10T15:13:04.284Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:09.317Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:13.341Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:20.400Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:24.438Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:30.482Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:33.507Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:43.602Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:49.655Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:13:54.705Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -5.3% below 5%"}
+{"ts": "2026-04-10T15:14:03.780Z", "msg": "[SIGNAL/GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:14:03.781Z", "msg": "[EXECUTE] 243s | BTC 0.10% \u2192 DOWN @ 0.500 | align=3 CVD=BULLISH | placing paper order\u2026"}
+{"ts": "2026-04-10T15:14:03.781Z", "msg": "[KELLY/GOLD] bankroll=$200.00 conf=0.74 implied=0.850 \u2192 bet=$1.00"}
+{"ts": "2026-04-10T15:14:03.782Z", "msg": "[PAPER/GOLD] BET DOWN $1.00 @ 0.850 align=3 CVD=BULLISH | order=SIM-1775834043"}
+{"ts": "2026-04-10T15:14:09.831Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T15:14:19.904Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -12.1% below 5%"}
+{"ts": "2026-04-10T15:14:38.054Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.83 src=ml U=16.9% D=83.1% | ml: confidence 83% below 85%"}
+{"ts": "2026-04-10T15:14:48.155Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -23.9% below 5%"}
+{"ts": "2026-04-10T15:15:03.528Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:15AM-11:20AM ET | beat=$73,052.17 | ends 15:20:00 UTC"}
+{"ts": "2026-04-10T15:15:04.271Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:15:08.362Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:15:08.986Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:15:13.399Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:15:18.448Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:15:26.824Z", "msg": "[RESULT] DOWN WON PnL=+0.18 actual=DOWN"}
+{"ts": "2026-04-10T15:15:26.868Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.868Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.869Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.869Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.870Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.870Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.870Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.871Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.871Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.871Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.872Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.872Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.873Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.873Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.873Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.874Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.874Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.874Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.875Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.875Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.875Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.876Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.876Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.876Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.877Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:10"}
+{"ts": "2026-04-10T15:15:26.877Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=\u2014 window=15:10"}
+{"ts": "2026-04-10T15:15:26.877Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_ALREADY_ATTEMPTED window=15:10"}
+{"ts": "2026-04-10T15:15:28.599Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:15:33.638Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:15:48.758Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:15:53.840Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:16:07.955Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:16:12.982Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:16:18.009Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:16:26.101Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:16:34.163Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -9.5% below 5%"}
+{"ts": "2026-04-10T15:16:40.204Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:16:40.204Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:16:48.271Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:16:53.310Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:17:08.425Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:17:18.519Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:17:26.545Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:17:26.546Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:17:29.558Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:17:50.810Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:17:59.875Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:18:03.922Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -12.1% below 5%"}
+{"ts": "2026-04-10T15:18:11.997Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:18:11.997Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:13.024Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -14.1% below 5%"}
+{"ts": "2026-04-10T15:18:29.169Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:18:29.170Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:33.205Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:41.309Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:43.323Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:49.378Z", "msg": "[SHADOW] BUY_DOWN conf=75% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:18:54.433Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:19:00.475Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge +1.7% below 5%"}
+{"ts": "2026-04-10T15:19:04.505Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:19:08.531Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: confidence 71% below 85%"}
+{"ts": "2026-04-10T15:19:13.568Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:19:25.662Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -8.8% below 5%"}
+{"ts": "2026-04-10T15:19:31.708Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:19:34.733Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge +3.2% below 5%"}
+{"ts": "2026-04-10T15:19:38.755Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:19:48.842Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -1.4% below 5%"}
+{"ts": "2026-04-10T15:19:53.883Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 85%"}
+{"ts": "2026-04-10T15:19:58.957Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:20:03.493Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:20AM-11:25AM ET | beat=$73,056.43 | ends 15:25:00 UTC"}
+{"ts": "2026-04-10T15:20:03.988Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:20:08.023Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+46.2%"}
+{"ts": "2026-04-10T15:20:08.024Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:20:08.972Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:20:13.058Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:20:18.088Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+39.6%"}
+{"ts": "2026-04-10T15:20:18.088Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:20:23.127Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:20:26.912Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.913Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.914Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.915Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.917Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.917Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.918Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.919Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:26.920Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:15"}
+{"ts": "2026-04-10T15:20:28.195Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:20:33.218Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+9.5%"}
+{"ts": "2026-04-10T15:20:33.219Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:20:38.261Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:20:44.320Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:20:53.383Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:20:58.419Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:21:03.461Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:21:03.462Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:21:08.509Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:21:33.707Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:21:38.760Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:21:53.886Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.71 src=ml U=70.5% D=29.5% | ml: BUY_UP prob=71% edge=+25.9%"}
+{"ts": "2026-04-10T15:21:53.887Z", "msg": "[SHADOW] BUY_UP conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:21:58.934Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:22:34.232Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:22:39.279Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:22:53.471Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:23:00.528Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:23:05.565Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:23:05.566Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:23:08.589Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:23:36.898Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -10.0% below 5%"}
+{"ts": "2026-04-10T15:23:43.954Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:23:56.071Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:23:56.071Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:23:59.101Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:24:06.156Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:24:09.186Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:24:20.295Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:24:25.339Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -24.7% below 5%"}
+{"ts": "2026-04-10T15:24:33.430Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:24:38.475Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T15:24:43.560Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.95 src=ml U=94.7% D=5.3% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-10T15:24:48.574Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: edge -25.5% below 5%"}
+{"ts": "2026-04-10T15:24:53.628Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -30.1% below 5%"}
+{"ts": "2026-04-10T15:25:04.695Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:25AM-11:30AM ET | beat=$73,292.72 | ends 15:30:00 UTC"}
+{"ts": "2026-04-10T15:25:04.738Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:25:05.561Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:25:16.873Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:25:16.874Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:18.896Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:25.957Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:26.939Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.941Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.942Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.943Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.944Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.945Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.946Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.947Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:26.948Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:20"}
+{"ts": "2026-04-10T15:25:28.975Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:34.039Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:41.112Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:45.140Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:48.163Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:25:56.288Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:00.323Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -11.0% below 5%"}
+{"ts": "2026-04-10T15:26:04.351Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:26:04.353Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:08.380Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:15.439Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:26:20.485Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:26:20.485Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:23.498Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:30.550Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:26:34.595Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:26:41.674Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.0% below 5%"}
+{"ts": "2026-04-10T15:26:48.789Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:26:48.790Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:26:55.843Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -36.0% below 5%"}
+{"ts": "2026-04-10T15:26:58.865Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T15:27:14.031Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -36.3% below 5%"}
+{"ts": "2026-04-10T15:27:19.085Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: edge -29.3% below 5%"}
+{"ts": "2026-04-10T15:27:29.167Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -36.0% below 5%"}
+{"ts": "2026-04-10T15:27:34.214Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.4% D=73.6% | ml: edge -25.6% below 5%"}
+{"ts": "2026-04-10T15:28:44.961Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:28:44.963Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:28:52.011Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -26.1% below 5%"}
+{"ts": "2026-04-10T15:28:59.063Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:28:59.065Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:29:04.120Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -26.1% below 5%"}
+{"ts": "2026-04-10T15:29:38.534Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge -0.1% below 5%"}
+{"ts": "2026-04-10T15:29:43.580Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -26.1% below 5%"}
+{"ts": "2026-04-10T15:29:48.617Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge -0.1% below 5%"}
+{"ts": "2026-04-10T15:29:53.691Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.81 src=ml U=19.3% D=80.7% | ml: edge -19.2% below 5%"}
+{"ts": "2026-04-10T15:29:58.740Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge -0.1% below 5%"}
+{"ts": "2026-04-10T15:30:00.995Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:30AM-11:35AM ET | beat=$72,819.95 | ends 15:35:00 UTC"}
+{"ts": "2026-04-10T15:30:01.748Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:30:06.484Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:30:08.801Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:30:08.802Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:30:13.849Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:30:18.888Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:30:23.943Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:30:26.970Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.971Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.972Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.973Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.974Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.975Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.977Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.979Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.980Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.980Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.981Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.982Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.982Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.983Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.984Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:26.984Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:25"}
+{"ts": "2026-04-10T15:30:28.987Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -3.0% below 5%"}
+{"ts": "2026-04-10T15:30:34.063Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+111.0%"}
+{"ts": "2026-04-10T15:30:34.064Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:30:39.115Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:30:44.147Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:30:49.191Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:31:23.584Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:31:28.627Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:31:36.694Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:31:39.720Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:31:43.744Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:31:48.805Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+5.5%"}
+{"ts": "2026-04-10T15:31:48.806Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:31:53.843Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:32:04.915Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:32:13.009Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:32:21.054Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.70 src=ml U=29.5% D=70.5% | ml: BUY_DOWN prob=70% edge=+40.9%"}
+{"ts": "2026-04-10T15:32:21.054Z", "msg": "[SHADOW] BUY_DOWN conf=70% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:32:28.111Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:32:37.197Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:32:49.290Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:32:49.291Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:32:57.357Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:33:01.380Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -17.0% below 5%"}
+{"ts": "2026-04-10T15:33:03.419Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:33:03.421Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:33:08.446Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:33:15.498Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:33:24.563Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -3.8% below 5%"}
+{"ts": "2026-04-10T15:33:30.604Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge -8.2% below 5%"}
+{"ts": "2026-04-10T15:33:33.629Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:33:33.630Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:33:38.727Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:33:43.741Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:33:53.782Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:33:58.827Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:34:07.886Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:34:17.967Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:34:23.011Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.67 src=ml U=33.3% D=66.7% | ml: confidence 67% below 85%"}
+{"ts": "2026-04-10T15:34:31.078Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:34:41.154Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T15:34:49.238Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T15:35:02.021Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:35AM-11:40AM ET | beat=$72,745.41 | ends 15:40:00 UTC"}
+{"ts": "2026-04-10T15:35:02.345Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=60.8% D=39.2% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:35:02.676Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:35:27.005Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.007Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.009Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.010Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.010Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.011Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.012Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.013Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.013Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.014Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.014Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.015Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:27.016Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:30"}
+{"ts": "2026-04-10T15:35:28.578Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:35:38.663Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+31.8%"}
+{"ts": "2026-04-10T15:35:38.664Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:35:43.696Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:35:48.736Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:35:58.809Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:36:03.855Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:36:08.891Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:36:13.919Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:36:24.002Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+47.5%"}
+{"ts": "2026-04-10T15:36:24.003Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:36:29.045Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:36:34.112Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:37:39.704Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:37:43.736Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:37:53.813Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:37:58.849Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:38:08.927Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:38:13.981Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+22.7%"}
+{"ts": "2026-04-10T15:38:13.981Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:38:19.020Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:38:29.126Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:38:34.148Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:38:39.183Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:38:44.227Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:38:44.228Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:38:49.288Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:38:59.409Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:39:07.472Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -17.6% below 5%"}
+{"ts": "2026-04-10T15:39:11.494Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +0.2% below 5%"}
+{"ts": "2026-04-10T15:39:14.526Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=73.8% D=26.2% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T15:39:19.612Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:39:23.641Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: edge -2.5% below 5%"}
+{"ts": "2026-04-10T15:39:28.664Z", "msg": "[SIGNAL/GOLD] BUY_UP conf=0.93 src=ml U=93.2% D=6.8% | ml: BUY_UP prob=93% edge=+15.0%"}
+{"ts": "2026-04-10T15:39:28.665Z", "msg": "[SHADOW] BUY_UP conf=93% \u2014 blocked by GATE_LATE_PROXIMITY_RISK"}
+{"ts": "2026-04-10T15:39:35.721Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -17.4% below 5%"}
+{"ts": "2026-04-10T15:39:44.825Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:39:51.943Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge +0.2% below 5%"}
+{"ts": "2026-04-10T15:39:53.958Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:40:02.439Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:40AM-11:45AM ET | beat=$72,767.27 | ends 15:45:00 UTC"}
+{"ts": "2026-04-10T15:40:03.064Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:40:04.068Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+35.5%"}
+{"ts": "2026-04-10T15:40:04.068Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:40:07.902Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:40:09.162Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:40:14.204Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:40:24.349Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:40:24.349Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:40:27.043Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:35"}
+{"ts": "2026-04-10T15:40:27.043Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_EXECUTION_WINDOW window=15:35"}
+{"ts": "2026-04-10T15:40:27.044Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:35"}
+{"ts": "2026-04-10T15:40:27.044Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:35"}
+{"ts": "2026-04-10T15:40:27.045Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=15:35"}
+{"ts": "2026-04-10T15:40:29.452Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:40:34.548Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:40:39.567Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:40:44.582Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:40:44.582Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:40:50.616Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:40:56.654Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge -13.7% below 5%"}
+{"ts": "2026-04-10T15:41:04.715Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:41:04.716Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:41:11.782Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:41:28.924Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:41:44.046Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -2.8% below 5%"}
+{"ts": "2026-04-10T15:41:51.107Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:41:51.107Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:41:54.124Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:41:59.170Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge +2.6% below 5%"}
+{"ts": "2026-04-10T15:42:05.268Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:42:10.313Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:42:25.426Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=29.2% D=70.8% | ml: BUY_DOWN prob=71% edge=+41.6%"}
+{"ts": "2026-04-10T15:42:25.427Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:42:30.466Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:42:34.499Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:42:34.500Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:42:39.544Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:42:44.632Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -6.5% below 5%"}
+{"ts": "2026-04-10T15:42:51.691Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:42:51.692Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:42:57.733Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:42:58.745Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -15.1% below 5%"}
+{"ts": "2026-04-10T15:43:22.940Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:43:22.942Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:25.961Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:36.063Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:44.098Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:49.142Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:54.178Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:43:59.217Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:44:04.312Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -24.6% below 5%"}
+{"ts": "2026-04-10T15:44:13.384Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.88 src=ml U=12.1% D=87.9% | ml: edge -7.0% below 5%"}
+{"ts": "2026-04-10T15:44:14.402Z", "msg": "[SIGNAL/GOLD] BUY_DOWN conf=1.00 src=ml U=0.1% D=99.9% | ml: BUY_DOWN prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T15:44:14.403Z", "msg": "[SHADOW] BUY_DOWN conf=100% \u2014 blocked by GATE_BANDAR_PUSH"}
+{"ts": "2026-04-10T15:44:21.436Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -17.9% below 5%"}
+{"ts": "2026-04-10T15:44:31.534Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 85%"}
+{"ts": "2026-04-10T15:44:34.553Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:44:40.604Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 85%"}
+{"ts": "2026-04-10T15:44:49.678Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 85%"}
+{"ts": "2026-04-10T15:44:55.738Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.82 src=ml U=82.4% D=17.6% | ml: confidence 82% below 85%"}
+{"ts": "2026-04-10T15:45:01.489Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:45AM-11:50AM ET | beat=$72,774.75 | ends 15:50:00 UTC"}
+{"ts": "2026-04-10T15:45:01.780Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:45:06.930Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:45:13.871Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:45:27.066Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.068Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.069Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.070Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.071Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.072Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.073Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.074Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.075Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.076Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.077Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.078Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.079Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.079Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.080Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.081Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.081Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.082Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.082Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.083Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.084Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_EXECUTION_WINDOW window=15:40"}
+{"ts": "2026-04-10T15:45:27.084Z", "msg": "[PRED/PAPER] DOWN MISS | actual=UP gate=GATE_BANDAR_PUSH window=15:40"}
+{"ts": "2026-04-10T15:45:44.131Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:45:49.171Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:45:54.204Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:46:04.380Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:46:14.495Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: edge +3.8% below 5%"}
+{"ts": "2026-04-10T15:46:19.533Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:46:19.533Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:46:24.570Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:46:29.626Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:46:34.668Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:46:49.827Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:46:49.829Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:00.850Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:06.889Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:08.904Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:23.005Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:24.011Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:47:30.053Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:47:35.138Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:47:35.138Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:39.157Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:46.197Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:49.218Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:47:54.239Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:07.342Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:10.365Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:15.431Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:21.493Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:26.514Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:29.525Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:37.596Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:40.612Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:44.656Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:50.697Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:48:54.728Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:49:00.797Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:49:09.867Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T15:49:13.940Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.80 src=ml U=19.9% D=80.1% | ml: edge -19.1% below 5%"}
+{"ts": "2026-04-10T15:49:34.089Z", "msg": "[SIGNAL/GOLD] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:49:39.131Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-10T15:49:49.216Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=0.1% D=99.9% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T15:50:02.977Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:50AM-11:55AM ET | beat=$72,612.28 | ends 15:55:00 UTC"}
+{"ts": "2026-04-10T15:50:03.331Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:50:03.645Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:50:19.454Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.69 src=ml U=69.2% D=30.8% | ml: confidence 69% below 70%"}
+{"ts": "2026-04-10T15:50:24.471Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:50:27.106Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.107Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.107Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.108Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.108Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.108Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.109Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.109Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.109Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.110Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.110Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.110Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.111Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.111Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.111Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.112Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.112Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.114Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.114Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.115Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.115Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.115Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:27.116Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:45"}
+{"ts": "2026-04-10T15:50:44.663Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+18.6%"}
+{"ts": "2026-04-10T15:50:44.676Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:50:49.704Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:50:57.766Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:51:19.951Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+16.7%"}
+{"ts": "2026-04-10T15:51:19.951Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:51:24.996Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:51:34.110Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:51:39.143Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:51:44.191Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+19.1%"}
+{"ts": "2026-04-10T15:51:44.192Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:51:49.251Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:51:59.353Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:52:24.567Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:52:26.048Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T15:52:29.658Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:52:31.476Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:52:54.934Z", "msg": "[SIGNAL/PRE_GOLD] BUY_UP conf=0.74 src=ml U=73.8% D=26.2% | ml: BUY_UP prob=74% edge=+36.6%"}
+{"ts": "2026-04-10T15:52:54.943Z", "msg": "[SHADOW] BUY_UP conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:53:00.961Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:53:24.122Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:53:29.172Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:53:34.196Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.50 src=ml U=50.0% D=50.0% | ml: probability spread 0.0% too small"}
+{"ts": "2026-04-10T15:53:44.320Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: edge -10.1% below 5%"}
+{"ts": "2026-04-10T15:53:54.397Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:53:59.434Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:54:04.490Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 85%"}
+{"ts": "2026-04-10T15:54:09.537Z", "msg": "[SIGNAL/GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 85%"}
+{"ts": "2026-04-10T15:54:49.907Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: confidence 74% below 85%"}
+{"ts": "2026-04-10T15:54:55.738Z", "msg": "[MKTWS] error: no close frame received or sent, reconnecting\u2026"}
+{"ts": "2026-04-10T15:55:01.185Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:55:02.759Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 11:55AM-12:00PM ET | beat=$72,533.84 | ends 16:00:00 UTC"}
+{"ts": "2026-04-10T15:55:04.020Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:55:05.027Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+53.1%"}
+{"ts": "2026-04-10T15:55:05.027Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:55:10.085Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:55:11.113Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T15:55:19.164Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+20.7%"}
+{"ts": "2026-04-10T15:55:19.165Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:55:24.243Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:55:27.131Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:50"}
+{"ts": "2026-04-10T15:55:27.132Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:50"}
+{"ts": "2026-04-10T15:55:27.133Z", "msg": "[PRED/PAPER] DOWN HIT | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:50"}
+{"ts": "2026-04-10T15:55:27.133Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=GATE_EXECUTION_WINDOW window=15:50"}
+{"ts": "2026-04-10T15:55:29.284Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:55:29.284Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:55:36.354Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:55:39.378Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:55:39.378Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:55:49.465Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.57 src=ml U=56.5% D=43.5% | ml: confidence 57% below 70%"}
+{"ts": "2026-04-10T15:55:54.540Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:56:04.605Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:56:14.686Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:56:19.723Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:56:24.769Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:56:24.770Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:56:29.805Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:56:34.853Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:56:39.891Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:56:44.933Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.63 src=ml U=36.7% D=63.3% | ml: confidence 63% below 70%"}
+{"ts": "2026-04-10T15:56:49.975Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.71 src=ml U=28.8% D=71.2% | ml: BUY_DOWN prob=71% edge=+42.4%"}
+{"ts": "2026-04-10T15:56:49.977Z", "msg": "[SHADOW] BUY_DOWN conf=71% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:56:55.013Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:57:00.052Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.70 src=ml U=30.0% D=70.0% | ml: confidence 70% below 70%"}
+{"ts": "2026-04-10T15:57:05.109Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+34.3%"}
+{"ts": "2026-04-10T15:57:05.110Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:57:12.162Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.71 src=ml U=28.8% D=71.2% | ml: edge +2.4% below 5%"}
+{"ts": "2026-04-10T15:57:15.195Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.61 src=ml U=61.1% D=38.9% | ml: confidence 61% below 70%"}
+{"ts": "2026-04-10T15:57:25.275Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:57:33.354Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.74 src=ml U=26.2% D=73.8% | ml: edge -17.9% below 5%"}
+{"ts": "2026-04-10T15:57:34.365Z", "msg": "[SIGNAL/PRE_GOLD] SKIP conf=0.51 src=ml U=49.1% D=50.9% | ml: probability spread 1.8% too small"}
+{"ts": "2026-04-10T15:57:40.411Z", "msg": "[SIGNAL/PRE_GOLD] BUY_DOWN conf=0.74 src=ml U=26.2% D=73.8% | ml: BUY_DOWN prob=74% edge=+47.7%"}
+{"ts": "2026-04-10T15:57:40.411Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}
+{"ts": "2026-04-10T15:57:51.481Z", "msg": "[SHADOW] BUY_DOWN conf=74% \u2014 blocked by GATE_EXECUTION_WINDOW"}

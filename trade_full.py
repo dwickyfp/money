@@ -90,7 +90,7 @@ PAPER_BANKROLL_USDC = 200.0   # simulated bankroll in paper mode for Kelly sizin
 # fully prices it in (by 180s odds are typically already at 0.99+).
 GOLD_ZONE_START_S      = 240    # start looking at 210s elapsed (90s = 1.5 min remaining)
 GOLD_ZONE_MIN_MOVE_PCT = 0.02   # BTC must be ≥ 0.02% from beat (~$17 at $85k)
-GOLD_ZONE_MIN_CONF     = 0.80   # minimum calibrated confidence to execute a bet
+GOLD_ZONE_MIN_CONF     = 0.70   # minimum calibrated confidence to execute a bet
 GOLD_ZONE_MAX_ODDS     = 0.82   # leading side must still be ≤ this (not fully priced)
 LAST_MIN_SECONDS_GUARD = 12     # stop accepting new bets with < 8s left (order latency)
 MIN_SIGNAL_ALIGNMENT   = int(os.getenv("MIN_SIGNAL_ALIGNMENT", "4"))  # require at least 4/6 family-weighted alignment
