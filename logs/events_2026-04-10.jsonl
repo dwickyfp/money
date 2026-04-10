@@ -4645,3 +4645,61 @@
 {"ts": "2026-04-10T17:50:31.345Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=17:45"}
 {"ts": "2026-04-10T17:50:58.773Z", "msg": "[SIGNAL/OBSERVE] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
 {"ts": "2026-04-10T17:51:23.022Z", "msg": "[SIGNAL/OBSERVE] BUY_UP conf=0.90 src=ml U=89.8% D=10.2% | ml: BUY_UP prob=90% edge=+79.7%"}
+{"ts": "2026-04-10T17:51:40.138Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.88 src=ml U=87.8% D=12.2% | ml: edge -4.6% below 5%"}
+{"ts": "2026-04-10T17:52:01.304Z", "msg": "[SIGNAL/OBSERVE] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T17:52:56.857Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.87 src=ml U=86.6% D=13.4% | ml: edge -10.3% below 5%"}
+{"ts": "2026-04-10T17:53:07.972Z", "msg": "[SIGNAL/RESERVE] BUY_UP conf=0.93 src=ml U=92.5% D=7.5% | ml: BUY_UP prob=92% edge=+85.0%"}
+{"ts": "2026-04-10T17:53:14.027Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.97 src=ml U=96.9% D=3.1% | ml: edge -1.2% below 5%"}
+{"ts": "2026-04-10T17:53:39.186Z", "msg": "[SIGNAL/EARLY_EXEC] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T17:53:39.188Z", "msg": "[EXECUTE] 219s | BTC 0.16% \u2192 UP @ 0.500 | align=2 CVD=NONE | placing paper order\u2026"}
+{"ts": "2026-04-10T17:53:39.188Z", "msg": "[KELLY/GOLD] bankroll=$200.00 conf=1.00 implied=0.500 \u2192 bet=$1.00"}
+{"ts": "2026-04-10T17:53:39.188Z", "msg": "[PAPER/GOLD] BET UP $1.00 @ 0.500 align=2 CVD=NONE | order=SIM-1775843619"}
+{"ts": "2026-04-10T17:53:45.233Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T17:53:48.243Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T17:53:57.333Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T17:54:03.362Z", "msg": "[SIGNAL/LATE_EXEC] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%"}
+{"ts": "2026-04-10T17:54:03.363Z", "msg": "[SHADOW] BUY_UP conf=100% \u2014 blocked by GATE_ALREADY_ATTEMPTED"}
+{"ts": "2026-04-10T17:54:07.389Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T17:54:52.883Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%"}
+{"ts": "2026-04-10T17:55:04.917Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 1:55PM-2:00PM ET | beat=$73,100.44 | ends 18:00:00 UTC"}
+{"ts": "2026-04-10T17:55:05.002Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=61.5% D=38.5% | ml: edge -37.9% below 5%"}
+{"ts": "2026-04-10T17:55:05.707Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-10T17:55:18.149Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%"}
+{"ts": "2026-04-10T17:55:27.215Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.76 src=ml U=76.2% D=23.8% | ml: confidence 76% below 80%"}
+{"ts": "2026-04-10T17:55:28.223Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.6% D=40.4% | ml: confidence 60% below 80%"}
+{"ts": "2026-04-10T17:55:31.367Z", "msg": "[RESULT] UP WON PnL=+1.00 actual=UP"}
+{"ts": "2026-04-10T17:55:31.468Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.469Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.470Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.472Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.473Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.474Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.475Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.475Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.475Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.476Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.476Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.476Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.477Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.477Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.478Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.478Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.479Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.479Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.480Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.480Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.480Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.481Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.481Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.481Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.481Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=\u2014 window=17:50"}
+{"ts": "2026-04-10T17:55:31.482Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50"}
+{"ts": "2026-04-10T17:55:31.482Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50"}
+{"ts": "2026-04-10T17:55:31.482Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50"}
+{"ts": "2026-04-10T17:55:31.483Z", "msg": "[PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50"}
+{"ts": "2026-04-10T17:55:47.451Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%"}
+{"ts": "2026-04-10T17:55:52.485Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=45.2% D=54.8% | ml: confidence 55% below 80%"}
+{"ts": "2026-04-10T17:55:57.531Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%"}
+{"ts": "2026-04-10T17:56:02.577Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.76 src=ml U=76.5% D=23.5% | ml: confidence 76% below 80%"}
+{"ts": "2026-04-10T17:56:07.610Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: confidence 64% below 80%"}
+{"ts": "2026-04-10T17:56:12.647Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.73 src=ml U=72.9% D=27.1% | ml: confidence 73% below 80%"}

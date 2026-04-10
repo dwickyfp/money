@@ -4645,3 +4645,61 @@
 2026-04-10T17:50:31.345Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=17:45
 2026-04-10T17:50:58.773Z  [SIGNAL/OBSERVE] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
 2026-04-10T17:51:23.022Z  [SIGNAL/OBSERVE] BUY_UP conf=0.90 src=ml U=89.8% D=10.2% | ml: BUY_UP prob=90% edge=+79.7%
+2026-04-10T17:51:40.138Z  [SIGNAL/OBSERVE] SKIP conf=0.88 src=ml U=87.8% D=12.2% | ml: edge -4.6% below 5%
+2026-04-10T17:52:01.304Z  [SIGNAL/OBSERVE] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T17:52:56.857Z  [SIGNAL/OBSERVE] SKIP conf=0.87 src=ml U=86.6% D=13.4% | ml: edge -10.3% below 5%
+2026-04-10T17:53:07.972Z  [SIGNAL/RESERVE] BUY_UP conf=0.93 src=ml U=92.5% D=7.5% | ml: BUY_UP prob=92% edge=+85.0%
+2026-04-10T17:53:14.027Z  [SIGNAL/RESERVE] SKIP conf=0.97 src=ml U=96.9% D=3.1% | ml: edge -1.2% below 5%
+2026-04-10T17:53:39.186Z  [SIGNAL/EARLY_EXEC] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T17:53:39.188Z  [EXECUTE] 219s | BTC 0.16% → UP @ 0.500 | align=2 CVD=NONE | placing paper order…
+2026-04-10T17:53:39.188Z  [KELLY/GOLD] bankroll=$200.00 conf=1.00 implied=0.500 → bet=$1.00
+2026-04-10T17:53:39.188Z  [PAPER/GOLD] BET UP $1.00 @ 0.500 align=2 CVD=NONE | order=SIM-1775843619
+2026-04-10T17:53:45.233Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_ALREADY_ATTEMPTED
+2026-04-10T17:53:48.243Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_ALREADY_ATTEMPTED
+2026-04-10T17:53:57.333Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_ALREADY_ATTEMPTED
+2026-04-10T17:54:03.362Z  [SIGNAL/LATE_EXEC] BUY_UP conf=1.00 src=ml U=99.9% D=0.1% | ml: BUY_UP prob=100% edge=+99.8%
+2026-04-10T17:54:03.363Z  [SHADOW] BUY_UP conf=100% — blocked by GATE_ALREADY_ATTEMPTED
+2026-04-10T17:54:07.389Z  [SIGNAL/LATE_EXEC] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-10T17:54:52.883Z  [SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-10T17:55:04.917Z  [MKT] Window: Bitcoin Up or Down - April 10, 1:55PM-2:00PM ET | beat=$73,100.44 | ends 18:00:00 UTC
+2026-04-10T17:55:05.002Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=61.5% D=38.5% | ml: edge -37.9% below 5%
+2026-04-10T17:55:05.707Z  [MKTWS] Market WebSocket connected
+2026-04-10T17:55:18.149Z  [SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%
+2026-04-10T17:55:27.215Z  [SIGNAL/OBSERVE] SKIP conf=0.76 src=ml U=76.2% D=23.8% | ml: confidence 76% below 80%
+2026-04-10T17:55:28.223Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.6% D=40.4% | ml: confidence 60% below 80%
+2026-04-10T17:55:31.367Z  [RESULT] UP WON PnL=+1.00 actual=UP
+2026-04-10T17:55:31.468Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.469Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.470Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.472Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.473Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.474Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.475Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.475Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.475Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.476Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.476Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.476Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.477Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.477Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.478Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.478Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.479Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.479Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.480Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.480Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.480Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.481Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.481Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.481Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.481Z  [PRED/PAPER] UP HIT | actual=UP gate=— window=17:50
+2026-04-10T17:55:31.482Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50
+2026-04-10T17:55:31.482Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50
+2026-04-10T17:55:31.482Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50
+2026-04-10T17:55:31.483Z  [PRED/PAPER] UP HIT | actual=UP gate=GATE_ALREADY_ATTEMPTED window=17:50
+2026-04-10T17:55:47.451Z  [SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%
+2026-04-10T17:55:52.485Z  [SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=45.2% D=54.8% | ml: confidence 55% below 80%
+2026-04-10T17:55:57.531Z  [SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: confidence 66% below 80%
+2026-04-10T17:56:02.577Z  [SIGNAL/OBSERVE] SKIP conf=0.76 src=ml U=76.5% D=23.5% | ml: confidence 76% below 80%
+2026-04-10T17:56:07.610Z  [SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: confidence 64% below 80%
+2026-04-10T17:56:12.647Z  [SIGNAL/OBSERVE] SKIP conf=0.73 src=ml U=72.9% D=27.1% | ml: confidence 73% below 80%
