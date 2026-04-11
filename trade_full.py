@@ -43,6 +43,7 @@ USER_WS    = "wss://ws-subscriptions-clob.polymarket.com/ws/user"
 BTC_HISTORY_SIZE = 300   # rolling ticks kept in memory
 
 # ── Trading parameters ───────────────────────────────────────────────────────
+POLYMARKET_TAKER_FEE_RATE = 0.02   # 2% fee deducted from payout on winning taker orders
 BET_SIZE_USDC             = float(os.getenv("BET_SIZE_USDC", "2.00"))
 DAILY_BUDGET_USDC         = float(os.getenv("DAILY_BUDGET_USDC", "0"))          # 0 = disabled
 DAILY_PROFIT_TARGET_USDC  = float(os.getenv("DAILY_PROFIT_TARGET_USDC", "0"))   # 0 = disabled
@@ -4016,16 +4017,20 @@ class TelegramNotifier:
         if not self._enabled:
             return
         record_line = ""
+        balance_line = ""
         if state is not None:
             record_line = (
                 f"Record: Win {state.win_count} / Lose {state.loss_count}  "
                 f"Winrate: {state.win_rate:.1f}%\n"
             )
+            if state.balance_usdc > 0:
+                balance_line = f"Balance: <code>${state.balance_usdc:.2f} USDC</code>\n"
         text = (
             f"🆕 <b>New Window</b> | {win.window_label} UTC\n"
             f"Beat: <code>${win.beat_price:,.2f}</code>\n"
             f"Ends: {win.end_time.strftime('%H:%M:%S')} UTC\n"
             f"{record_line}"
+            f"{balance_line}"
             f"Mode: {self._mode}"
         )
         self._fire(text)
@@ -9714,7 +9719,14 @@ class TradingBot:
         expected_claim: ClaimRecord | None = None
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
-            pos.pnl    = (amount * (1.0 / pos.entry_price - 1)) if won is True else (-amount if won is False else 0.0)
+            if won is True:
+                fee_rate = POLYMARKET_TAKER_FEE_RATE if not pos.simulated else 0.0
+                payout   = amount / pos.entry_price
+                pos.pnl  = payout * (1.0 - fee_rate) - amount
+            elif won is False:
+                pos.pnl  = -amount
+            else:
+                pos.pnl  = 0.0
             if won is True:
                 self.state.win_count           += 1
                 self.state.total_pnl           += pos.pnl or 0
@@ -11473,8 +11485,10 @@ def render_bet_history(state: BotState) -> Panel:
         body = Text("No settled bets yet", style="dim")
         return Panel(body, title="[bold cyan]BET HISTORY[/bold cyan]", border_style="blue")
 
+    _WIB = timezone(timedelta(hours=7))
     table = Table(show_header=True, header_style="cyan", box=None, padding=(0, 1))
     table.add_column("Time", width=6)
+    table.add_column("WIB", width=6)
     table.add_column("Dir", width=5)
     table.add_column("Amount", width=8, justify="right")
     table.add_column("P/L", width=8, justify="right")
@@ -11488,9 +11502,11 @@ def render_bet_history(state: BotState) -> Panel:
         status = entry.status.lower()
         status_label = "WIN" if status == "won" else "LOSE" if status == "lost" else status.upper()
         status_color = "green" if status == "won" else "red" if status == "lost" else "white"
+        wib_time = entry.closed_at.astimezone(_WIB).strftime("%H:%M")
 
         table.add_row(
             entry.closed_at.strftime("%H:%M"),
+            wib_time,
             f"[{dir_color}]{direction}[/{dir_color}]",
             f"${entry.amount_usdc:.2f}",
             f"[{pnl_color}]{pnl_s}[/{pnl_color}]",
