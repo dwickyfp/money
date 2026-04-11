@@ -3650,7 +3650,7 @@ class MarketClient:
             def __init__(self, private_key, relayer_api_key, relayer_api_key_address,
                          signature_type=1, chain_id=137):
                 super().__init__(private_key, signature_type=signature_type,
-                                 builder_creds=None, chain_id=chain_id)
+                                 relayer_api_key=relayer_api_key, chain_id=chain_id)
                 self._relayer_api_key = relayer_api_key
                 self._relayer_api_key_address = relayer_api_key_address
 
