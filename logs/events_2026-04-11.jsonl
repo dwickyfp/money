@@ -8890,3 +8890,52 @@
 {"ts": "2026-04-11T19:45:18.046Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=19:40"}
 {"ts": "2026-04-11T19:45:18.049Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=19:40"}
 {"ts": "2026-04-11T19:45:18.049Z", "msg": "[PRED/LIVE] UP HIT | actual=UP gate=GATE_NO_MOVE window=19:40"}
+{"ts": "2026-04-11T20:23:27.292Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-11T20:23:27.293Z", "msg": "[BUDGET] Replayed 108 daily cashflow event(s) spent=$161.12 returned=$220.69 left=$66.57"}
+{"ts": "2026-04-11T20:23:27.595Z", "msg": "[HISTORY] Warmed 50 settled outcomes for calibration/context"}
+{"ts": "2026-04-11T20:23:27.596Z", "msg": "[HISTORY] Warmed 20 settled bets for UI history"}
+{"ts": "2026-04-11T20:23:27.942Z", "msg": "[PAPER] Warmed 2873 resolved paper analytics entries"}
+{"ts": "2026-04-11T20:23:27.942Z", "msg": "[PAPER] Restored 15262 pending paper prediction(s)"}
+{"ts": "2026-04-11T20:23:27.945Z", "msg": "[CLAIM] Warmed 48 claim record(s)"}
+{"ts": "2026-04-11T20:23:27.950Z", "msg": "[ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1"}
+{"ts": "2026-04-11T20:23:29.689Z", "msg": "[CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1"}
+{"ts": "2026-04-11T20:23:29.689Z", "msg": "[CONTINUITY] recent24 buy=100% exec=50% fail=8% reserve=29% | recent100 buy=100% exec=33% fail=13%"}
+{"ts": "2026-04-11T20:23:29.722Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-11T20:23:29.890Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 11, 4:20PM-4:25PM ET | beat=$0.00 | ends 20:25:00 UTC"}
+{"ts": "2026-04-11T20:23:29.938Z", "msg": "[HL] Hyperliquid WebSocket connected"}
+{"ts": "2026-04-11T20:23:30.123Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-11T20:23:30.507Z", "msg": "[CLAIM] queued $4.84 (0x9e0c24\u2026)"}
+{"ts": "2026-04-11T20:23:31.690Z", "msg": "[CLAIM] submitted $4.84 (0x9e0c24\u2026)"}
+{"ts": "2026-04-11T20:23:33.380Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-11T20:23:35.597Z", "msg": "[MKT] Beat price set retroactively: $73,465.56"}
+{"ts": "2026-04-11T20:23:35.669Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 74%"}
+{"ts": "2026-04-11T20:23:35.893Z", "msg": "[ML] Backfilled 550 pending label(s) from feature logs"}
+{"ts": "2026-04-11T20:23:42.583Z", "msg": "[ML] Bootstrap trained 20260411T202341Z-s20 state=shadow ap=0.746 cv_ap=0.764 ev=+0.61"}
+{"ts": "2026-04-11T20:23:43.034Z", "msg": "[CLAIM] confirmed $4.84 (0x9e0c24\u2026)"}
+{"ts": "2026-04-11T20:23:43.903Z", "msg": "[CLAIM] queued $0.00 (0xe439a0\u2026)"}
+{"ts": "2026-04-11T20:23:44.823Z", "msg": "[CLAIM] submitted $0.00 (0xe439a0\u2026)"}
+{"ts": "2026-04-11T20:24:25.377Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-11T20:24:25.378Z", "msg": "[BUDGET] Replayed 108 daily cashflow event(s) spent=$161.12 returned=$220.69 left=$66.57"}
+{"ts": "2026-04-11T20:24:25.702Z", "msg": "[HISTORY] Warmed 50 settled outcomes for calibration/context"}
+{"ts": "2026-04-11T20:24:25.703Z", "msg": "[HISTORY] Warmed 20 settled bets for UI history"}
+{"ts": "2026-04-11T20:24:26.041Z", "msg": "[PAPER] Warmed 2873 resolved paper analytics entries"}
+{"ts": "2026-04-11T20:24:26.041Z", "msg": "[PAPER] Restored 15263 pending paper prediction(s)"}
+{"ts": "2026-04-11T20:24:26.044Z", "msg": "[CLAIM] Warmed 50 claim record(s)"}
+{"ts": "2026-04-11T20:24:26.049Z", "msg": "[ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1"}
+{"ts": "2026-04-11T20:24:27.635Z", "msg": "[CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1"}
+{"ts": "2026-04-11T20:24:27.635Z", "msg": "[CONTINUITY] recent24 buy=100% exec=50% fail=8% reserve=29% | recent100 buy=100% exec=33% fail=13%"}
+{"ts": "2026-04-11T20:24:27.663Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-11T20:24:27.858Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 11, 4:20PM-4:25PM ET | beat=$0.00 | ends 20:25:00 UTC"}
+{"ts": "2026-04-11T20:24:27.918Z", "msg": "[HL] Hyperliquid WebSocket connected"}
+{"ts": "2026-04-11T20:24:28.114Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-11T20:24:28.512Z", "msg": "[CLAIM] scan startup candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-11T20:24:30.131Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-11T20:24:32.593Z", "msg": "[ML] Backfilled 1 pending label(s) from feature logs"}
+{"ts": "2026-04-11T20:24:34.002Z", "msg": "[MKT] Beat price set retroactively: $73,450.99"}
+{"ts": "2026-04-11T20:24:37.718Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 78%"}
+{"ts": "2026-04-11T20:24:39.232Z", "msg": "[ML] Bootstrap trained 20260411T202438Z-s20 state=shadow ap=0.750 cv_ap=0.766 ev=+0.69"}
+{"ts": "2026-04-11T20:24:45.267Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.83 src=ml U=16.5% D=83.5% | ml: edge -15.7% below 5%"}
+{"ts": "2026-04-11T20:24:48.275Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.93 src=ml U=6.9% D=93.1% | ml: edge -6.0% below 5%"}
+{"ts": "2026-04-11T20:25:01.607Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 11, 4:25PM-4:30PM ET | beat=$73,450.99 | ends 20:30:00 UTC"}
+{"ts": "2026-04-11T20:25:02.356Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.67 src=ml U=32.6% D=67.4% | ml: candidate confidence 67% below 70%"}
+{"ts": "2026-04-11T20:25:07.042Z", "msg": "[MKTWS] Market WebSocket connected"}

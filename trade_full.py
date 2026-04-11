@@ -209,6 +209,12 @@ ML_DRIFT_AP_DROP          = float(os.getenv("ML_DRIFT_AP_DROP", "0.07"))
 UI_REFRESH_S = 1.0
 TRADE_HISTORY_REFRESH_S = 2.0
 SETTLEMENT_MAX_DIFF_S = int(os.getenv("SETTLEMENT_MAX_DIFF_S", "15"))
+SETTLEMENT_GRACE_PERIOD_S = int(os.getenv("SETTLEMENT_GRACE_PERIOD_S", "300"))  # 5 min grace before accepting Binance-only settlement
+SETTLEMENT_POLL_MIN_PRIORITY = int(os.getenv("SETTLEMENT_POLL_MIN_PRIORITY", "300"))  # wait for at least this priority (300 = pyth/gamma; 400 = chainlink ws)
+AUDIT_ML_LABELS = os.getenv("AUDIT_ML_LABELS", "false").lower() == "true"
+ORACLE_DIVERGENCE_ALERT_USD = float(os.getenv("ORACLE_DIVERGENCE_ALERT_USD", "15.0"))
+SKIP_ON_HIGH_DIVERGENCE = os.getenv("SKIP_ON_HIGH_DIVERGENCE", "false").lower() == "true"
+MAX_BET_FRACTION = float(os.getenv("MAX_BET_FRACTION", "0.05"))  # 5% of bankroll per trade cap
 
 # ── Startup validation ────────────────────────────────────────────────────────
 _BASE_REQUIRED = [
@@ -1656,7 +1662,12 @@ def compute_kelly_size(
     elif consecutive_losses == 3:
         bet *= 0.50
 
-    return max(min_bet, min(max_bet, round(bet, 2)))
+    # Percentage-of-bankroll cap: prevents the hard dollar ceiling from making
+    # Kelly non-functional as the bankroll grows or shrinks. The hard max_bet
+    # still acts as an absolute floor guard (whichever is lower wins).
+    pct_cap = bankroll * MAX_BET_FRACTION
+    effective_max = min(max_bet, pct_cap)
+    return max(min_bet, min(effective_max, round(bet, 2)))
 
 
 # ── Individual filter checks ──────────────────────────────────────────────────
@@ -4285,6 +4296,75 @@ class HyperliquidFeed:
                     self.state.hl_btc_price_time = time.time()
                 except Exception:
                     pass
+
+
+class ChainlinkProxyFeed:
+    """Polls Pyth Network's Hermes REST API for the BTC/USD price.
+
+    Pyth publishes prices aggregated from multiple high-frequency sources and
+    is used by many DeFi protocols as a Chainlink-equivalent oracle. Polling
+    it periodically provides a cross-reference that is closer to the oracle
+    price Polymarket uses (Chainlink) than Binance USDC spot.
+
+    This feed is best-effort: failures are silently swallowed and the cached
+    price expires after PYTH_CACHE_TTL_S seconds. Never blocks trading.
+    """
+
+    # BTC/USD price feed ID on Pyth Network (mainnet)
+    PYTH_BTC_FEED_ID = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"
+    PYTH_URL = (
+        "https://hermes.pyth.network/v2/updates/price/latest"
+        f"?ids[]={PYTH_BTC_FEED_ID}&encoding=hex&parsed=true"
+    )
+    PYTH_CACHE_TTL_S = 10.0  # seconds before cached price is considered stale
+    PYTH_POLL_INTERVAL_S = 8.0
+
+    def __init__(self, state: "BotState") -> None:
+        self.state = state
+        self._client: httpx.AsyncClient | None = None
+
+    async def run(self) -> None:
+        self._client = httpx.AsyncClient(timeout=5.0)
+        try:
+            while self.state.running:
+                await self._poll_once()
+                await asyncio.sleep(self.PYTH_POLL_INTERVAL_S)
+        except asyncio.CancelledError:
+            raise
+        finally:
+            if self._client is not None:
+                await self._client.aclose()
+
+    async def _poll_once(self) -> None:
+        try:
+            assert self._client is not None
+            response = await self._client.get(self.PYTH_URL)
+            if not response.is_success:
+                return
+            data = response.json()
+            parsed = data.get("parsed", [])
+            if not parsed:
+                return
+            price_data = parsed[0].get("price", {})
+            raw_price = price_data.get("price")
+            expo = price_data.get("expo", 0)
+            if raw_price is None:
+                return
+            btc_price = float(raw_price) * (10 ** expo)
+            if btc_price > 0:
+                self.state.pyth_btc_price      = btc_price
+                self.state.pyth_btc_price_time = time.time()
+        except Exception:
+            pass
+
+    def get_price(self) -> float | None:
+        """Return cached Pyth BTC price if fresh, else None."""
+        if self.state.pyth_btc_price is None:
+            return None
+        age = time.time() - self.state.pyth_btc_price_time
+        if age > self.PYTH_CACHE_TTL_S:
+            return None
+        return self.state.pyth_btc_price
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -6979,6 +7059,8 @@ class BotState:
     hl_btc_price:      float | None = None
     hl_btc_price_time: float        = 0.0
     hl_ws_ok:          bool         = False
+    pyth_btc_price:      float | None = None
+    pyth_btc_price_time: float        = 0.0
     price_history: deque = field(default_factory=lambda: deque(maxlen=300))
     # Timestamped tick buffer: (unix_ts, price) — used to look up the BTC price
     # at the exact window open time so beat_price matches Polymarket's Chainlink snapshot.
@@ -7187,9 +7269,10 @@ async def safe_loop(coro_fn, name: str, state: BotState, delay: float = 5.0):
 
 class TradingBot:
     def __init__(self) -> None:
-        self.state    = BotState()
-        self.feed     = BTCFeed(self.state)
-        self.hl_feed  = HyperliquidFeed(self.state)
+        self.state      = BotState()
+        self.feed       = BTCFeed(self.state)
+        self.hl_feed    = HyperliquidFeed(self.state)
+        self.pyth_feed  = ChainlinkProxyFeed(self.state)
         self.market   = MarketClient()
         self._ml_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="ml-bg")
         self._ml_bootstrap_done = False
@@ -7272,6 +7355,7 @@ class TradingBot:
             await asyncio.gather(
                 safe_loop(self.feed.run,                  "btc_feed",  self.state),
                 safe_loop(self.hl_feed.run,               "hl_feed",   self.state),
+                safe_loop(self.pyth_feed.run,             "pyth_feed", self.state),
                 safe_loop(self._price_sampler,            "sampler",   self.state),
                 safe_loop(self._market_loop,              "market",    self.state),
                 safe_loop(self._odds_ws_loop,             "odds_ws",   self.state),
@@ -8582,6 +8666,83 @@ class TradingBot:
             )
         return None
 
+    async def _poll_settlement_after_expiry(
+        self,
+        *,
+        condition_id: str,
+        window_end_at: datetime,
+    ) -> bool:
+        """Poll GAMMA API for Chainlink-equivalent settlement after window expiry.
+
+        Returns True if a high-priority settlement (>= SETTLEMENT_POLL_MIN_PRIORITY)
+        was obtained and cached. Non-blocking — returns immediately if already cached
+        at sufficient priority. Does nothing if the market has not yet expired or if
+        more than SETTLEMENT_GRACE_PERIOD_S seconds have elapsed without a result.
+        """
+        if not condition_id:
+            return False
+
+        # Already have a sufficiently authoritative settlement cached?
+        cached = self.state.settlement_registry_cache.get(condition_id)
+        if cached is None:
+            cached = load_settlement_registry(self.state.logger._dir).get(condition_id)
+            if cached is not None:
+                self.state.settlement_registry_cache[condition_id] = cached
+        if cached is not None:
+            cached_priority = int(cached.get("settlement_source_priority", 0))
+            if cached_priority >= SETTLEMENT_POLL_MIN_PRIORITY:
+                return True
+
+        now_ts = time.time()
+        expiry_ts = window_end_at.timestamp()
+        if now_ts < expiry_ts:
+            return False  # market hasn't expired yet
+
+        elapsed_s = now_ts - expiry_ts
+        if elapsed_s > SETTLEMENT_GRACE_PERIOD_S:
+            return False  # too late to bother polling
+
+        try:
+            record = await self.market.fetch_market_settlement(condition_id)
+        except Exception:
+            record = None
+
+        if record is not None:
+            self.state.logger.log_settlement(record.to_record())
+            self.state.settlement_registry_cache[condition_id] = record.to_record()
+            self.state.log_event(
+                f"[SETTLE_POLL] Chainlink settlement polled for {condition_id[:8]}: "
+                f"${record.settlement_price:,.2f} source={record.settlement_source} "
+                f"({elapsed_s:.0f}s post-expiry)"
+            )
+            return True
+
+        self.state.log_event(
+            f"[SETTLE_POLL] No Chainlink settlement yet for {condition_id[:8]} "
+            f"({elapsed_s:.0f}s post-expiry) — will retry"
+        )
+        return False
+
+    async def _poll_settlements_for_open_positions(self) -> None:
+        """For all open positions with expired windows and no high-priority settlement,
+        poll GAMMA API to obtain Chainlink-equivalent settlement before resolving."""
+        now_ts = time.time()
+        async with self.state._lock:
+            expired_open = [
+                p for p in self.state.positions
+                if p.status == "open"
+                and p.window_end_at is not None
+                and p.window_end_at.timestamp() < now_ts
+            ]
+        for pos in expired_open:
+            cached = self.state.settlement_registry_cache.get(pos.condition_id)
+            cached_priority = int(cached.get("settlement_source_priority", 0)) if cached else 0
+            if cached_priority < SETTLEMENT_POLL_MIN_PRIORITY and pos.window_end_at is not None:
+                await self._poll_settlement_after_expiry(
+                    condition_id=pos.condition_id,
+                    window_end_at=pos.window_end_at,
+                )
+
     def _resolve_pending_ml_labels(
         self,
         *,
@@ -8603,6 +8764,23 @@ class TradingBot:
 
         label = "BUY_UP" if resolved_btc_price > beat_price else "BUY_DOWN"
         resolution_ts = (resolved_at or datetime.now(_UTC)).astimezone(_UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+        # AUDIT_ML_LABELS: log side-by-side Binance vs Chainlink outcome comparison.
+        # Surfaces how often oracle divergence corrupts ML training labels.
+        if AUDIT_ML_LABELS and settlement_info is not None:
+            chainlink_price = settlement_info.chainlink_settlement_price or 0.0
+            if chainlink_price > 0.0:
+                binance_outcome = label
+                chainlink_outcome = "BUY_UP" if chainlink_price > beat_price else "BUY_DOWN"
+                diverged = binance_outcome != chainlink_outcome
+                self.state.log_event(
+                    f"[LABEL_AUDIT] cid={condition_id[:8]} beat={beat_price:,.2f} "
+                    f"binance_settle={resolved_btc_price:,.2f} chainlink_settle={chainlink_price:,.2f} "
+                    f"binance_outcome={binance_outcome} chainlink_outcome={chainlink_outcome} "
+                    f"{'*** DIVERGED ***' if diverged else 'match'} "
+                    f"source={settlement_info.settlement_source}(p={settlement_info.settlement_source_priority})"
+                )
+
         for row_id in row_ids:
             label_row = ResolvedLabelRecord(
                 row_id=row_id,
@@ -8863,6 +9041,10 @@ class TradingBot:
                             win.beat_price = closest[1]
                     if win.beat_price == 0.0 and self.state.btc_price:
                         win.beat_price = self.state.btc_price
+                        self.state.log_event(
+                            f"[MKT] ⚠ Beat price extraction failed — using Binance spot "
+                            f"${win.beat_price:,.2f} as fallback. Oracle divergence risk elevated."
+                        )
                 self.state.window = win
                 self.state.window_found_at = time.time()
                 self.state.last_signal = None   # clear stale signal from previous window
@@ -9325,6 +9507,25 @@ class TradingBot:
                 )
                 bet_size = penalized_bet
         zone_tag = "GOLD" if is_gold_zone else "NORM"
+
+        # ── Oracle divergence check ───────────────────────────────────────────
+        # Compare Binance USDC spot (used for trading) against the Pyth
+        # Chainlink-proxy price. A large spread near the beat price means the
+        # Polymarket oracle could resolve differently from what Binance shows.
+        pyth_price = self.state.pyth_btc_price
+        binance_price = self.state.btc_price
+        if pyth_price is not None and binance_price is not None and binance_price > 0:
+            divergence = abs(binance_price - pyth_price)
+            if divergence >= ORACLE_DIVERGENCE_ALERT_USD:
+                self.state.log_event(
+                    f"[ORACLE_DIV] ⚠ Binance=${binance_price:,.2f} Pyth=${pyth_price:,.2f} "
+                    f"spread=${divergence:,.2f} (threshold=${ORACLE_DIVERGENCE_ALERT_USD:.0f}) "
+                    f"dir={direction} beat=${win.beat_price:,.2f}"
+                )
+                if SKIP_ON_HIGH_DIVERGENCE:
+                    self.state.log_event("[ORACLE_DIV] Trade skipped due to high oracle divergence")
+                    return
+
         attempt_started_at_ts = time.time()
         attempt_started_at = datetime.now(_UTC)
         execution_state = self._begin_window_execution_attempt(
@@ -9646,6 +9847,7 @@ class TradingBot:
     async def _results_loop(self) -> None:
         while self.state.running:
             await asyncio.sleep(60)
+            await self._poll_settlements_for_open_positions()
             await self._check_positions()
             await self._resolve_prediction_analytics()
             await self._resolve_blocked_windows()
@@ -9657,7 +9859,23 @@ class TradingBot:
         for pos in open_positions:
             beat   = pos.window_beat if pos.window_beat > 0 else 0
             amount = pos.amount_usdc if pos.amount_usdc > 0 else BET_SIZE_USDC
-            settlement_btc = self._get_settlement_btc(pos)
+            settlement_info = self._get_window_settlement_info(
+                condition_id=pos.condition_id,
+                window_end_at=pos.window_end_at,
+            )
+            settlement_btc = settlement_info.settlement_price if settlement_info is not None else None
+
+            # ── Settlement priority grace period ──────────────────────────────
+            # If we only have a low-priority Binance-based settlement and the
+            # window expired recently, wait for the Chainlink/GAMMA poll to
+            # complete before locking in a win/loss. This prevents oracle
+            # divergence from corrupting win/loss classification and ML labels.
+            if settlement_info is not None:
+                s_priority = settlement_info.settlement_source_priority
+                if s_priority < SETTLEMENT_POLL_MIN_PRIORITY and pos.window_end_at is not None:
+                    window_age_s = time.time() - pos.window_end_at.timestamp()
+                    if window_age_s < SETTLEMENT_GRACE_PERIOD_S:
+                        continue  # wait for higher-priority Chainlink settlement
 
             # ── Simulated positions ───────────────────────────────────────────
             # Resolve when the window they were placed in has ended.
@@ -11207,8 +11425,18 @@ def render_filters(state: BotState) -> Panel:
 
 def render_signal(state: BotState) -> Panel:
     sig = state.last_signal
+    ml_status = state.model_activation_status
+    is_fallback = ml_status.active_signal_source != "ml"
+
     if sig is None:
-        body = Text("No signal yet", style="dim")
+        if is_fallback:
+            body = Text.from_markup(
+                "[bold yellow]⚠ ML ENGINE: FALLBACK HEURISTIC ACTIVE[/bold yellow]\n"
+                "[dim]No trained model loaded — labels may be biased by oracle divergence[/dim]\n"
+                "[dim]No signal yet[/dim]"
+            )
+        else:
+            body = Text("No signal yet", style="dim")
         return Panel(body, title="[bold cyan]LAST SIGNAL[/bold cyan]", border_style="blue")
 
     if sig.signal == "BUY_UP":
@@ -11221,7 +11449,8 @@ def render_signal(state: BotState) -> Panel:
     source = getattr(sig, "source", "unknown")
     conf = getattr(sig, "confidence", 0.0)
     probs = f"U={getattr(sig, 'prob_up', 0.5):.0%} D={getattr(sig, 'prob_down', 0.5):.0%}"
-    body = Text.from_markup(f"{sig_text}\n[white]{conf:.0%}[/white] [dim]{source} {probs}[/dim]")
+    fallback_line = "\n[bold yellow]⚠ FALLBACK HEURISTIC[/bold yellow] [dim](no active ML model)[/dim]" if is_fallback else ""
+    body = Text.from_markup(f"{sig_text}\n[white]{conf:.0%}[/white] [dim]{source} {probs}[/dim]{fallback_line}")
     return Panel(body, title="[bold cyan]LAST SIGNAL[/bold cyan]", border_style="blue")
 
 
@@ -11460,6 +11689,12 @@ def render_blocked(state: BotState) -> Panel:
         )
 
     reason = (state.engine_reason or "waiting for runtime context")[:58]
+    ml_status = state.model_activation_status
+    is_fallback = ml_status.active_signal_source != "ml"
+    ml_line = (
+        "\n[bold yellow]⚠ ML: FALLBACK HEURISTIC ACTIVE[/bold yellow] [dim](oracle divergence risk)[/dim]"
+        if is_fallback else ""
+    )
     body = Text.from_markup(
         f"[{phase_color}]{phase}[/{phase_color}] gate=[cyan]{gate}[/cyan]  [dim]{age}s ago[/dim]\n"
         f"path {path_s}\n"
@@ -11475,6 +11710,7 @@ def render_blocked(state: BotState) -> Panel:
         f"chop:x=[white]{int(chop.get('crossings', 0))}[/white]  "
         f"above=[white]{chop.get('above_ratio', 0.0):.0%}[/white]  "
         f"dip=[white]{dip_label}[/white]  [dim]{reason}[/dim]"
+        f"{ml_line}"
     )
     return Panel(body, title="[bold cyan]ENGINE[/bold cyan]", border_style="blue")
 

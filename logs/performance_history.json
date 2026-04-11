@@ -53,9 +53,9 @@
       "active_model_version": "20260411T120821Z-s20",
       "active_signal_source": "ml",
       "applied_state": "active",
-      "balance_usdc": 5.386255,
+      "balance_usdc": 5.677964,
       "bets_this_hour": 0,
-      "claim_last_scan_at": 1775936547.272305,
+      "claim_last_scan_at": 1775939067.662596,
       "claim_last_scan_candidates": 1,
       "claim_last_scan_error": "",
       "claim_last_scan_identities": [
@@ -63,21 +63,21 @@
         "funder:0x6B41\u2026578a"
       ],
       "claim_last_scan_status": "address:ok,funder:ok",
-      "claim_last_scan_trigger": "scheduled",
+      "claim_last_scan_trigger": "startup",
       "claimable_total": 42.5431,
-      "claimed_today_count": 21,
+      "claimed_today_count": 22,
       "daily_budget_left_usdc": 66.567152,
       "daily_budget_returned_usdc": 220.692152,
       "daily_budget_spent_usdc": 161.125,
       "daily_halted": false,
-      "daily_loss": 2.5,
-      "daily_profit": 22.45,
-      "daily_profit_halted": true,
+      "daily_loss": 0.0,
+      "daily_profit": 0.0,
+      "daily_profit_halted": false,
       "expected_claim_pending_count": 10,
       "expected_claimable_total": 50.0,
       "failed_today_count": 1,
       "last_claim_error": "PolymarketGaslessWeb3Client.__init__() got an unexpected keyword argument 'builder_creds'",
-      "last_claim_success_at": "2026-04-11T19:42:28.155Z",
+      "last_claim_success_at": "2026-04-11T20:23:43.033Z",
       "mode": "live",
       "open_positions": 0,
       "participation_recent100": {
@@ -107,8 +107,8 @@
             "win_rate": 0.7714,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.9,
-              "LATE_EXEC": 0.7708,
-              "RESERVE": 0.6667
+              "LATE_EXEC": 0.7755,
+              "RESERVE": 0.6364
             }
           },
           "0.74": {
@@ -118,8 +118,8 @@
             "win_rate": 0.7714,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.9,
-              "LATE_EXEC": 0.7708,
-              "RESERVE": 0.6667
+              "LATE_EXEC": 0.7755,
+              "RESERVE": 0.6364
             }
           },
           "0.76": {
@@ -129,8 +129,8 @@
             "win_rate": 0.7714,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.9,
-              "LATE_EXEC": 0.7708,
-              "RESERVE": 0.6667
+              "LATE_EXEC": 0.7755,
+              "RESERVE": 0.6364
             }
           },
           "0.78": {
@@ -140,8 +140,8 @@
             "win_rate": 0.7846,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.9,
-              "LATE_EXEC": 0.7872,
-              "RESERVE": 0.625
+              "LATE_EXEC": 0.7917,
+              "RESERVE": 0.5714
             }
           }
         },
@@ -156,7 +156,8 @@
         "blocked_profitable_rate": {
           "GATE_BANDAR_PUSH": 1.0,
           "GATE_LATE_PROXIMITY_RISK": 0.8571,
-          "GATE_TOO_LATE": 0.75,
+          "GATE_NO_MOVE": 1.0,
+          "GATE_TOO_LATE": 0.7143,
           "GATE_TOO_SURE": 0.6667
         },
         "buy_prediction_rate": 1.0,
@@ -169,46 +170,46 @@
         "retryable_failure_rate": 0.0833,
         "threshold_counterfactuals": {
           "0.72": {
-            "coverage": 0.75,
-            "executed_windows": 18,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.7778,
+            "win_rate": 0.7895,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.8333,
-              "LATE_EXEC": 0.8,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 0.5
             }
           },
           "0.74": {
-            "coverage": 0.75,
-            "executed_windows": 18,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.7778,
+            "win_rate": 0.7895,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.8333,
-              "LATE_EXEC": 0.8,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 0.5
             }
           },
           "0.76": {
-            "coverage": 0.75,
-            "executed_windows": 18,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.7778,
+            "win_rate": 0.7895,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.8333,
-              "LATE_EXEC": 0.8,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 0.5
             }
           },
           "0.78": {
-            "coverage": 0.75,
-            "executed_windows": 18,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.7778,
+            "win_rate": 0.7895,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.8333,
-              "LATE_EXEC": 0.8,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 0.5
             }
           }
@@ -220,28 +221,28 @@
         },
         "window_count": 24
       },
-      "pending_claim_count": 8,
+      "pending_claim_count": 9,
       "polymarket_session": {
         "can_refresh_credentials": true,
         "consecutive_auth_failures": 0,
-        "creds_refreshed_at": "2026-04-11T17:39:50.707Z",
+        "creds_refreshed_at": "2026-04-11T20:24:25.342Z",
         "generation": 0,
         "has_l2_credentials": true,
         "last_auth_error": "",
-        "last_auth_failure_at": "2026-04-11T18:44:06.526Z",
-        "last_auth_success_at": "2026-04-11T19:42:32.814Z",
-        "last_heartbeat_ok_at": "2026-04-11T19:42:32.814Z",
-        "last_positions_checked_at": "2026-04-11T19:42:27.757Z",
+        "last_auth_failure_at": "",
+        "last_auth_success_at": "2026-04-11T20:24:27.863Z",
+        "last_heartbeat_ok_at": "2026-04-11T20:24:27.863Z",
+        "last_positions_checked_at": "2026-04-11T20:24:28.166Z",
         "last_positions_error": "",
         "last_positions_status": "ok",
         "last_positions_user": "0x6B41\u2026578a",
         "market_ws_connected": true,
-        "market_ws_last_message_at": "2026-04-11T19:42:36.305Z",
+        "market_ws_last_message_at": "2026-04-11T20:24:38.329Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
       "threshold_profile_version": "rtp_v1",
-      "updated_at": "2026-04-11T19:42:38.021Z"
+      "updated_at": "2026-04-11T20:24:39.231Z"
     }
   }
 }
