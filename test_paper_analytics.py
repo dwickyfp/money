@@ -3,6 +3,7 @@ from collections import deque
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
+import pytest
 from rich.console import Console
 
 import trade_full as tf
@@ -826,6 +827,60 @@ def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
         assert blocked is not None
         assert blocked[0] == tf.GATE_ALREADY_ATTEMPTED
         assert "INSUFFICIENT_BALANCE" in blocked[1]
+
+    asyncio.run(run_case())
+
+
+def test_check_positions_does_not_cancel_filled_live_order_when_exchange_status_is_canceled(tmp_path):
+    class StubMarket:
+        async def get_order(self, order_id):
+            return {"status": "CANCELED"}
+
+        async def get_recent_trades(self):
+            return [
+                tf.ClosedTrade(
+                    condition_id="0xfilled-canceled",
+                    direction="UP",
+                    size=5.0,
+                    price=0.5,
+                    status="MATCHED",
+                    match_time=datetime.now(timezone.utc).isoformat(),
+                )
+            ]
+
+        def session_snapshot(self):
+            return {"refresh_in_progress": False, "consecutive_auth_failures": 0}
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        now = datetime.now(timezone.utc)
+        pos = tf.Position(
+            condition_id="0xfilled-canceled",
+            direction="UP",
+            token_id="up-token",
+            size=5.0,
+            entry_price=0.5,
+            placed_at=now - timedelta(minutes=4),
+            order_id="LIVE-CANCELED",
+            simulated=False,
+            amount_usdc=2.5,
+            window_beat=100.0,
+            window_end_at=now - timedelta(seconds=5),
+            elapsed_at_bet=240,
+            gap_pct_at_bet=0.15,
+            ai_confidence=0.82,
+            ai_raw_confidence=0.86,
+            signal_alignment=5,
+            prediction_row_id="row-live-canceled",
+        )
+        bot.state.positions.append(pos)
+        bot.state.price_history_ts = deque([(pos.window_end_at.timestamp(), 100.3)], maxlen=10)
+
+        await bot._check_positions()
+
+        assert pos.status == "won"
+        assert pos.pnl == pytest.approx(2.5)
 
     asyncio.run(run_case())
 

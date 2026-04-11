@@ -3039,6 +3039,17 @@ class MarketClient:
         if not lowered:
             return "PLACEMENT_FAILED", True, False
 
+        if "fok_order_not_filled_error" in lowered or "no immediate liquidity" in lowered:
+            return "NO_IMMEDIATE_LIQUIDITY", True, False
+        if "market_not_ready" in lowered:
+            return "MARKET_NOT_READY", True, False
+        if "invalid_order_min_size" in lowered:
+            return "MIN_ORDER_SIZE", False, True
+        if "invalid_order_not_enough_balance" in lowered:
+            return "INSUFFICIENT_BALANCE", False, True
+        if "execution_error" in lowered or "delaying_order_error" in lowered or "invalid_order_error" in lowered:
+            return "EXECUTION_ERROR", True, False
+
         if "private key" in lowered or "cannot sign orders" in lowered:
             return "AUTH_MISSING_KEY", False, True
         if (
@@ -3090,7 +3101,7 @@ class MarketClient:
         amount_usdc: float,
         current_odds: float,
     ) -> TradeResult:
-        """Place a GTC limit order at current market price. If LIVE_TRADING=false, simulate."""
+        """Place an order. In live mode use an immediate marketable BUY order."""
         if not LIVE_TRADING:
             sim_id = f"SIM-{int(time.time())}"
             price = round(max(0.01, min(0.99, current_odds)), 2)
@@ -3116,41 +3127,59 @@ class MarketClient:
 
         client, _, _ = await self._get_client_snapshot()
         try:
-            from py_clob_client.clob_types import OrderArgs, OrderType
+            from py_clob_client.clob_types import MarketOrderArgs, OrderType
 
-            # Use a GTC limit order at the current market price.
-            # FAK market orders fail with "no orders found to match with" when the
-            # book has no immediate liquidity (common in the final minutes of a window).
-            # GTC limit orders rest in the book and fill when matched; the position
-            # monitor handles cancellation if conditions deteriorate before fill.
-            price = round(max(0.01, min(0.99, current_odds)), 2)
-            requested_size = amount_usdc / price if price > 0 else 0.0
-            size = math.floor(requested_size * 100) / 100
+            order_type = OrderType.FOK
+            price_hint = round(max(0.01, min(0.99, current_odds)), 2)
             min_order_size = await self.get_min_order_size(token_id)
+            actual_amount_usdc = round(amount_usdc, 4)
+            if min_order_size > 0 and price_hint > 0:
+                min_notional = round(min_order_size * price_hint, 4)
+                if actual_amount_usdc + 1e-9 < min_notional:
+                    actual_amount_usdc = min_notional
 
-            if min_order_size > 0 and size < min_order_size:
-                # Live CLOB orders are share-size constrained; floor to the
-                # exchange minimum instead of treating the attempt as a failure.
-                size = min_order_size
-
-            actual_amount_usdc = round(size * price, 4)
-
-            order_args = OrderArgs(
+            order_args = MarketOrderArgs(
                 token_id=token_id,
-                price=price,
-                size=size,
+                amount=actual_amount_usdc,
                 side="BUY",  # direction is encoded in token_id (up_token vs down_token)
+                price=0.0,   # let the client derive a worst-price cap from the live book
+                order_type=order_type,
             )
-            signed = await self._run(client.create_order, order_args)
-            resp = await self._run(client.post_order, signed, OrderType.GTC)
+            signed = await self._run(client.create_market_order, order_args)
+            resp = await self._run(client.post_order, signed, order_type)
+            status = str(resp.get("status", "")) if isinstance(resp, dict) else ""
+            status_upper = status.upper()
+            signed_price = 0.0
+            if isinstance(signed, dict):
+                signed_price = _safe_float(signed.get("price"), 0.0)
+            else:
+                signed_price = _safe_float(getattr(signed, "price", 0.0), 0.0)
+            effective_price = round(max(0.01, min(0.99, signed_price or price_hint)), 2)
+            filled_size = math.floor((actual_amount_usdc / effective_price) * 100) / 100 if effective_price > 0 else 0.0
 
             if resp and resp.get("success"):
+                if status_upper == "LIVE":
+                    return TradeResult(
+                        success=False,
+                        error="market order unexpectedly became a resting LIVE order",
+                        failure_code="UNEXPECTED_RESTING_ORDER",
+                        retryable=False,
+                        attempt_consumed=True,
+                    )
+                if status_upper == "UNMATCHED":
+                    return TradeResult(
+                        success=False,
+                        error="market order was accepted but did not match immediately",
+                        failure_code="NO_IMMEDIATE_LIQUIDITY",
+                        retryable=True,
+                        attempt_consumed=False,
+                    )
                 self._mark_auth_success("place_bet")
                 return TradeResult(
                     success=True,
                     order_id=resp.get("orderID"),
-                    size=size,
-                    price=price,
+                    size=filled_size,
+                    price=effective_price,
                     amount_usdc=actual_amount_usdc,
                 )
             error_msg = str(resp.get("errorMsg", "unknown")) if isinstance(resp, dict) else "unknown"
@@ -9131,14 +9160,6 @@ class TradingBot:
             order = await self.market.get_order(pos.order_id)
             order_status = (order.get("status", "") if order else "").upper()
 
-            # MATCHED = order was filled on the CLOB
-            if order_status in ("CANCELED", "CANCELED_MARKET_RESOLVED"):
-                await self._mark_position_canceled(
-                    pos,
-                    f"exchange returned {order_status} after window end",
-                )
-                continue
-
             matched = order_status in ("MATCHED", "ORDER_STATUS_MATCHED")
             if not matched:
                 trades = await self.market.get_recent_trades()
@@ -9150,6 +9171,11 @@ class TradingBot:
                     None,
                 )
                 if trade is None:
+                    if order_status in ("CANCELED", "CANCELED_MARKET_RESOLVED"):
+                        await self._mark_position_canceled(
+                            pos,
+                            f"exchange returned {order_status} after window end with no fill evidence",
+                        )
                     continue
                 matched = True
 

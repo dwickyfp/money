@@ -609,12 +609,14 @@ def test_market_client_place_bet_floors_to_live_min_order_size(monkeypatch):
     class FakeClient:
         def __init__(self):
             self.order_args = None
+            self.order_type = None
 
-        def create_order(self, order_args):
+        def create_market_order(self, order_args):
             self.order_args = order_args
-            return {"signed": True}
+            return {"signed": True, "price": 0.5}
 
         def post_order(self, signed, order_type):
+            self.order_type = order_type
             return {"success": True, "orderID": "live-123"}
 
     class FakeHttp:
@@ -633,22 +635,24 @@ def test_market_client_place_bet_floors_to_live_min_order_size(monkeypatch):
     async def _run():
         market = ml.MarketClient()
         result = await market.place_bet("UP", "token-up", 2.0, 0.50)
-        placed_size = market._client.order_args.size
+        placed_amount = market._client.order_args.amount
+        order_type = market._client.order_type
         await market.close()
-        return result, placed_size
+        return result, placed_amount, order_type
 
-    result, placed_size = asyncio.run(_run())
+    result, placed_amount, order_type = asyncio.run(_run())
 
     assert result.success is True
-    assert placed_size == pytest.approx(5.0)
+    assert placed_amount == pytest.approx(2.5)
+    assert order_type == ml.OrderType.FOK if hasattr(ml, "OrderType") else "FOK"
     assert result.size == pytest.approx(5.0)
     assert result.amount_usdc == pytest.approx(2.5)
 
 
 def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch):
     class FakeClient:
-        def create_order(self, order_args):
-            return {"signed": True}
+        def create_market_order(self, order_args):
+            return {"signed": True, "price": 0.5}
 
         def post_order(self, signed, order_type):
             return {"success": False, "errorMsg": "timeout talking to matching engine"}
@@ -676,5 +680,40 @@ def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch)
 
     assert result.success is False
     assert result.failure_code == "TRANSIENT_NETWORK"
+    assert result.retryable is True
+    assert result.attempt_consumed is False
+
+
+def test_market_client_place_bet_marks_fok_not_filled_retryable(monkeypatch):
+    class FakeClient:
+        def create_market_order(self, order_args):
+            return {"signed": True, "price": 0.5}
+
+        def post_order(self, signed, order_type):
+            return {"success": False, "errorMsg": "FOK_ORDER_NOT_FILLED_ERROR"}
+
+    class FakeHttp:
+        async def aclose(self):
+            return None
+
+    async def fake_min_order_size(self, token_id):
+        return 1.0
+
+    monkeypatch.setattr(ml, "LIVE_TRADING", True)
+    monkeypatch.setattr(ml, "POLY_ETH_PRIVATE_KEY", "0xabc")
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+    monkeypatch.setattr(ml.MarketClient, "get_min_order_size", fake_min_order_size)
+
+    async def _run():
+        market = ml.MarketClient()
+        result = await market.place_bet("UP", "token-up", 2.5, 0.50)
+        await market.close()
+        return result
+
+    result = asyncio.run(_run())
+
+    assert result.success is False
+    assert result.failure_code == "NO_IMMEDIATE_LIQUIDITY"
     assert result.retryable is True
     assert result.attempt_consumed is False
