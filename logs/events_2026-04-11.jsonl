@@ -744,3 +744,4 @@
 {"ts": "2026-04-11T01:45:07.872Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.62 src=ml U=62.2% D=37.8% | ml: edge -4.3% below 5%"}
 {"ts": "2026-04-11T01:45:20.933Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=68.5% D=31.5% | ml: edge -4.9% below 5%"}
 {"ts": "2026-04-11T01:45:27.972Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.58 src=ml U=58.0% D=42.0% | ml: candidate confidence 58% below 70%"}
+{"ts": "2026-04-11T01:46:09.147Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=52.1% D=47.9% | ml: edge +4.2% below 5%"}
