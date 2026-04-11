@@ -34,11 +34,19 @@ class DummyNotifier:
 
 class DummyMarket:
     def __init__(self, positions=None, claim_result=None) -> None:
-        self._positions = list(positions or [])
+        self._positions = positions if callable(positions) else list(positions or [])
         self._claim_result = claim_result or tf.ClaimAttemptResult(success=False, status="failed")
         self.claim_calls = []
+        self.position_calls = []
+        self._last_positions_status = "ok"
+        self._last_positions_error = ""
 
-    async def get_current_positions(self, **_kwargs):
+    async def get_current_positions(self, **kwargs):
+        self.position_calls.append(kwargs)
+        self._last_positions_status = "ok"
+        self._last_positions_error = ""
+        if callable(self._positions):
+            return list(self._positions(kwargs))
         return list(self._positions)
 
     async def claim_position(self, claim):
@@ -49,6 +57,8 @@ class DummyMarket:
         return {
             "refresh_in_progress": False,
             "consecutive_auth_failures": 0,
+            "last_positions_status": self._last_positions_status,
+            "last_positions_error": self._last_positions_error,
         }
 
 
@@ -409,6 +419,196 @@ def test_daily_budget_cashflow_replays_today_trade_log(tmp_path, monkeypatch):
     assert bot.state.daily_halted is False
 
 
+def test_load_recent_trade_history_joins_settled_trade_records(tmp_path):
+    logger = tf.BotLogger(tmp_path / "logs")
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    base = datetime.now(timezone.utc).replace(microsecond=0)
+    path = tmp_path / "logs" / f"trades_{day}.jsonl"
+    records = [
+        {
+            "ts": (base - timedelta(minutes=5)).isoformat(),
+            "event": "open",
+            "condition_id": "0xhist-win",
+            "direction": "UP",
+            "order_id": "SIM-HIST-WIN",
+            "placed_at": (base - timedelta(minutes=5)).isoformat(),
+            "amount_usdc": 2.0,
+            "entry_price": 0.8,
+            "simulated": True,
+        },
+        {
+            "ts": (base - timedelta(minutes=4)).isoformat(),
+            "event": "close",
+            "condition_id": "0xhist-win",
+            "direction": "UP",
+            "order_id": "SIM-HIST-WIN",
+            "placed_at": (base - timedelta(minutes=5)).isoformat(),
+            "status": "won",
+            "amount_usdc": 2.0,
+            "entry_price": 0.8,
+            "pnl": 0.5,
+            "simulated": True,
+        },
+        {
+            "ts": (base - timedelta(minutes=3)).isoformat(),
+            "event": "open",
+            "condition_id": "0xhist-loss",
+            "direction": "DOWN",
+            "order_id": "SIM-HIST-LOSS",
+            "placed_at": (base - timedelta(minutes=3)).isoformat(),
+            "amount_usdc": 3.0,
+            "entry_price": 0.6,
+            "simulated": False,
+        },
+        {
+            "ts": (base - timedelta(minutes=2)).isoformat(),
+            "event": "close",
+            "condition_id": "0xhist-loss",
+            "direction": "DOWN",
+            "order_id": "SIM-HIST-LOSS",
+            "placed_at": (base - timedelta(minutes=3)).isoformat(),
+            "status": "lost",
+            "amount_usdc": 3.0,
+            "entry_price": 0.6,
+            "pnl": -3.0,
+            "simulated": False,
+        },
+        {
+            "ts": (base - timedelta(minutes=1)).isoformat(),
+            "event": "close",
+            "condition_id": "0xhist-cancel",
+            "direction": "UP",
+            "order_id": "SIM-HIST-CANCEL",
+            "status": "canceled",
+            "amount_usdc": 1.0,
+            "pnl": 0.0,
+        },
+    ]
+    path.write_text("\n".join(json.dumps(record) for record in records) + "\n", encoding="utf-8")
+
+    history = logger.load_recent_trade_history(limit=10)
+
+    assert len(history) == 2
+    assert history[0].condition_id == "0xhist-loss"
+    assert history[0].direction == "DOWN"
+    assert history[0].amount_usdc == pytest.approx(3.0)
+    assert history[0].pnl == pytest.approx(-3.0)
+    assert history[0].status == "lost"
+    assert history[0].simulated is False
+    assert history[1].condition_id == "0xhist-win"
+    assert history[1].direction == "UP"
+    assert history[1].amount_usdc == pytest.approx(2.0)
+    assert history[1].pnl == pytest.approx(0.5)
+    assert history[1].status == "won"
+    assert history[1].simulated is True
+
+
+def test_render_bet_history_shows_win_loss_amount_and_pnl(tmp_path):
+    state = tf.BotState(logger=tf.BotLogger(tmp_path / "logs"))
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    for idx in range(21, 32):
+        won = idx % 2 == 0
+        state.trade_history.appendleft(tf.TradeHistoryEntry(
+            direction="UP" if won else "DOWN",
+            amount_usdc=float(idx),
+            pnl=0.5 if won else -3.0,
+            status="won" if won else "lost",
+            placed_at=now - timedelta(minutes=idx),
+            closed_at=now + timedelta(minutes=idx),
+            simulated=won,
+            order_id=f"SIM-{idx}",
+            condition_id=f"0x{idx}",
+        ))
+
+    panel = tf.render_bet_history(state)
+    console = Console(record=True, width=100)
+    console.print(panel)
+    text = console.export_text()
+
+    assert "BET HISTORY" in text
+    assert "UP" in text
+    assert "DOWN" in text
+    assert "$31.00" in text
+    assert "$22.00" in text
+    assert "$21.00" not in text
+    assert "+$0.50" in text
+    assert "-$3.00" in text
+    assert "WIN" in text
+    assert "LOSE" in text
+
+
+def test_update_ui_updates_bet_history_and_price_panels(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "UI_REFRESH_S", 0.01)
+        monkeypatch.setattr(tf, "TRADE_HISTORY_REFRESH_S", 0.01)
+        state = tf.BotState(logger=tf.BotLogger(tmp_path / "logs"))
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        state.trade_history.append(tf.TradeHistoryEntry(
+            direction="UP",
+            amount_usdc=2.0,
+            pnl=0.5,
+            status="won",
+            placed_at=now - timedelta(minutes=5),
+            closed_at=now,
+            simulated=True,
+            order_id="SIM-WIN",
+            condition_id="0xwin",
+        ))
+        state.price_tick_log.append((now, 100.0, 0.2, 0.1, 0.1, 0.55, 0.45))
+        layout = tf.build_layout()
+
+        task = asyncio.create_task(tf.update_ui(layout, state))
+        await asyncio.sleep(0.02)
+
+        day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        placed_at = now.isoformat()
+        close_at = (now + timedelta(minutes=1)).isoformat()
+        path = tmp_path / "logs" / f"trades_{day}.jsonl"
+        records = [
+            {
+                "ts": placed_at,
+                "event": "open",
+                "condition_id": "0xui-new",
+                "direction": "DOWN",
+                "order_id": "SIM-UI-NEW",
+                "placed_at": placed_at,
+                "amount_usdc": 4.0,
+                "entry_price": 0.5,
+                "simulated": True,
+            },
+            {
+                "ts": close_at,
+                "event": "close",
+                "condition_id": "0xui-new",
+                "direction": "DOWN",
+                "order_id": "SIM-UI-NEW",
+                "placed_at": placed_at,
+                "status": "lost",
+                "amount_usdc": 4.0,
+                "entry_price": 0.5,
+                "pnl": -4.0,
+                "simulated": True,
+            },
+        ]
+        path.write_text("\n".join(json.dumps(record) for record in records) + "\n", encoding="utf-8")
+        await asyncio.sleep(0.04)
+        state.running = False
+        await task
+
+        assert "BET HISTORY" in str(layout["bet_history"].renderable.title)
+        assert "PRICES" in str(layout["price_log"].renderable.title)
+        assert state.trade_history[0].condition_id == "0xui-new"
+
+        console = Console(record=True, width=100)
+        console.print(layout["bet_history"].renderable)
+        text = console.export_text()
+        assert "$4.00" in text
+        assert "-$4.00" in text
+        assert "LOSE" in text
+
+    asyncio.run(run_case())
+
+
 def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
     async def run_case():
         bot = make_bot(tmp_path)
@@ -463,6 +663,8 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path, monkeypatc
     bot.state.paper_stats.paper_trade_losses_today = 0
     bot.state.claimable_total = 5.5
     bot.state.pending_claim_count = 1
+    bot.state.expected_claimable_total = 2.5
+    bot.state.expected_claim_pending_count = 1
     bot.state.claimed_today_count = 2
     bot.state.failed_today_count = 0
 
@@ -481,6 +683,7 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path, monkeypatc
     assert "spent=$" in text
     assert "returned=$" in text
     assert "left=$" in text
+    assert "pending=$2.50" in text
     assert "Claim log" not in text
 
 
@@ -492,6 +695,8 @@ def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path
     bot.state.daily_budget_returned_usdc = 2.5
     bot.state.claimable_total = 5.5
     bot.state.pending_claim_count = 1
+    bot.state.expected_claimable_total = 2.5
+    bot.state.expected_claim_pending_count = 1
     bot.state.claimed_today_count = 2
     bot.state.failed_today_count = 1
     bot.state.claim_log.append("12:00:00 queued $5.50 (0xabc…)")
@@ -507,6 +712,7 @@ def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path
     assert "spent=$" in text
     assert "returned=$" in text
     assert "left=$" in text
+    assert "pending=$2.50" in text
 
 
 def test_claim_scan_queues_redeemable_positions_in_discovery_mode(tmp_path, monkeypatch):
@@ -528,6 +734,7 @@ def test_claim_scan_queues_redeemable_positions_in_discovery_mode(tmp_path, monk
             ]
         )
         monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "POLY_FUNDER", "")
         monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", False)
         monkeypatch.setattr(tf, "AUTO_CLAIM_LIVE_ONLY", True)
         monkeypatch.setattr(tf, "AUTO_CLAIM_THRESHOLD", 4.0)
@@ -568,6 +775,7 @@ def test_claim_scan_executes_confirmed_claim_when_enabled(tmp_path, monkeypatch)
             ),
         )
         monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "POLY_FUNDER", "")
         monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", True)
         monkeypatch.setattr(tf, "AUTO_CLAIM_LIVE_ONLY", True)
         monkeypatch.setattr(tf, "LIVE_TRADING", True)
@@ -580,6 +788,149 @@ def test_claim_scan_executes_confirmed_claim_when_enabled(tmp_path, monkeypatch)
         assert claim.tx_hash == "0xtx"
         assert bot.market.claim_calls == ["0xdef"]
         assert bot.state.claimed_today_count == 1
+        assert bot.state.claimable_total == pytest.approx(0.0)
+        assert bot.state.expected_claimable_total == pytest.approx(0.0)
+
+    asyncio.run(run_case())
+
+
+def test_live_win_creates_local_expected_pending_claim(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xlivewin",
+            direction="UP",
+            order_id="LIVE-WIN-1",
+            now=now,
+        )
+        pos.simulated = False
+        pos.entry_price = 0.8
+        pos.amount_usdc = 2.0
+        pos.size = 2.5
+
+        await bot._settle_position(pos, "UP", pos.amount_usdc)
+
+        claim = bot.state.claim_records["0xlivewin"]
+        assert claim.status == "expected_pending"
+        assert claim.claim_source == "local_trade_settlement"
+        assert claim.claimable_amount == pytest.approx(2.5)
+        assert bot.state.claimable_total == pytest.approx(0.0)
+        assert bot.state.expected_claimable_total == pytest.approx(2.5)
+        assert bot.state.expected_claim_pending_count == 1
+
+        panel = tf.render_results(bot.state)
+        console = Console(record=True, width=120)
+        console.print(panel)
+        text = console.export_text()
+        assert "amt=$0.00" in text
+        assert "pending=$2.50" in text
+
+    asyncio.run(run_case())
+
+
+def test_server_claim_candidate_moves_expected_pending_to_claimable(tmp_path, monkeypatch):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot._persist_expected_claim_state(tf.ClaimRecord(
+            claim_id="0xserver",
+            condition_id="0xserver",
+            claimable_amount=2.5,
+            claim_source="local_trade_settlement",
+            status="expected_pending",
+            last_seen_at=datetime.now(timezone.utc).isoformat(),
+        ))
+        bot.market = DummyMarket(
+            positions=[
+                {
+                    "conditionId": "0xserver",
+                    "asset": "asset-up",
+                    "outcome": "Yes",
+                    "outcomeIndex": 0,
+                    "currentValue": 2.5,
+                    "redeemable": True,
+                    "mergeable": False,
+                    "negativeRisk": False,
+                    "title": "BTC above?",
+                }
+            ]
+        )
+        monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "POLY_FUNDER", "")
+        monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", False)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_THRESHOLD", 1.0)
+
+        await bot._scan_and_process_claims(trigger="test")
+
+        claim = bot.state.claim_records["0xserver"]
+        assert claim.status == "queued"
+        assert claim.claim_source == "positions_api_redeemable"
+        assert claim.claimable_amount == pytest.approx(2.5)
+        assert bot.state.claimable_total == pytest.approx(2.5)
+        assert bot.state.expected_claimable_total == pytest.approx(0.0)
+        assert bot.state.pending_claim_count == 1
+
+    asyncio.run(run_case())
+
+
+def test_claim_scan_queries_address_and_funder_and_dedupes_candidates(tmp_path, monkeypatch):
+    async def run_case():
+        def positions_for_user(kwargs):
+            value = 1.0 if kwargs.get("user") == "0xaddr" else 3.0
+            return [
+                {
+                    "conditionId": "0xdup",
+                    "asset": "asset-up",
+                    "outcome": "Yes",
+                    "outcomeIndex": 0,
+                    "currentValue": value,
+                    "redeemable": True,
+                    "mergeable": False,
+                    "negativeRisk": False,
+                    "title": "BTC above?",
+                }
+            ]
+
+        bot = make_bot(tmp_path)
+        bot.market = DummyMarket(positions=positions_for_user)
+        monkeypatch.setattr(tf, "POLY_ADDRESS", "0xaddr")
+        monkeypatch.setattr(tf, "POLY_FUNDER", "0xfund")
+        monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", False)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_THRESHOLD", 1.0)
+
+        await bot._scan_and_process_claims(trigger="test")
+
+        users = [call["user"] for call in bot.market.position_calls]
+        assert users == ["0xaddr", "0xfund"]
+        assert bot.state.claim_last_scan_candidates == 1
+        assert bot.state.claim_last_scan_identities == ["address:0xaddr", "funder:0xfund"]
+        claim = bot.state.claim_records["0xdup"]
+        assert claim.claimable_amount == pytest.approx(3.0)
+        assert bot.state.claimable_total == pytest.approx(3.0)
+
+    asyncio.run(run_case())
+
+
+def test_claim_scan_records_positions_api_error(tmp_path, monkeypatch):
+    class ErrorMarket(DummyMarket):
+        async def get_current_positions(self, **kwargs):
+            self.position_calls.append(kwargs)
+            self._last_positions_status = "http_502"
+            self._last_positions_error = "bad gateway"
+            return []
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = ErrorMarket()
+        monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "POLY_FUNDER", "")
+        monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", False)
+
+        await bot._scan_and_process_claims(trigger="test")
+
+        assert bot.state.claim_last_scan_candidates == 0
+        assert bot.state.claim_last_scan_status == "address:http_502"
+        assert "bad gateway" in bot.state.claim_last_scan_error
 
     asyncio.run(run_case())
 

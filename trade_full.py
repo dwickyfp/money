@@ -201,6 +201,7 @@ ML_DRIFT_AP_DROP          = float(os.getenv("ML_DRIFT_AP_DROP", "0.07"))
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 UI_REFRESH_S = 1.0
+TRADE_HISTORY_REFRESH_S = 2.0
 SETTLEMENT_MAX_DIFF_S = int(os.getenv("SETTLEMENT_MAX_DIFF_S", "15"))
 
 # ── Startup validation ────────────────────────────────────────────────────────
@@ -868,6 +869,69 @@ class BotLogger:
 
         return outcomes[-limit:]
 
+    def load_recent_trade_history(self, limit: int = 20, lookback_days: int = 7) -> list[TradeHistoryEntry]:
+        """Load recent settled bets for the terminal history panel."""
+        cutoff = (datetime.now(_UTC) - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        trade_files = sorted(
+            f for f in self._dir.glob("trades_*.jsonl")
+            if f.stem.rsplit("_", 1)[-1] >= cutoff
+        )
+
+        opens: dict[str, dict] = {}
+        closes: dict[str, dict] = {}
+        for path in trade_files:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            record = json.loads(line)
+                        except Exception:
+                            continue
+                        cid = str(record.get("condition_id", ""))
+                        if not cid.startswith("0x"):
+                            continue
+                        key = self._trade_key(record)
+                        if not key:
+                            continue
+                        event = str(record.get("event", ""))
+                        if event == "open":
+                            opens[key] = record
+                        elif event == "close" and record.get("status") in ("won", "lost"):
+                            closes[key] = record
+            except Exception:
+                continue
+
+        def _parse_dt(raw: object) -> datetime | None:
+            if not isinstance(raw, str) or not raw:
+                return None
+            try:
+                return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except Exception:
+                return None
+
+        entries: list[TradeHistoryEntry] = []
+        for key, close_rec in closes.items():
+            open_rec = opens.get(key, {})
+            placed_at = _parse_dt(open_rec.get("placed_at")) or _parse_dt(close_rec.get("placed_at"))
+            closed_at = _parse_dt(close_rec.get("ts")) or datetime.now(_UTC)
+            status = str(close_rec.get("status", "")).lower()
+            simulated = bool(close_rec.get("simulated", open_rec.get("simulated", False)))
+            entries.append(TradeHistoryEntry(
+                direction=str(close_rec.get("direction") or open_rec.get("direction") or "NONE"),
+                amount_usdc=float(close_rec.get("amount_usdc", open_rec.get("amount_usdc", 0.0)) or 0.0),
+                pnl=float(close_rec.get("pnl", 0.0) or 0.0),
+                status=status,
+                placed_at=placed_at,
+                closed_at=closed_at,
+                simulated=simulated,
+                order_id=str(close_rec.get("order_id", open_rec.get("order_id", "")) or ""),
+                condition_id=str(close_rec.get("condition_id", open_rec.get("condition_id", "")) or ""),
+                entry_price=float(close_rec.get("entry_price", open_rec.get("entry_price", 0.0)) or 0.0),
+            ))
+
+        entries.sort(key=lambda entry: entry.closed_at, reverse=True)
+        return entries[:limit]
+
     def load_claim_records(
         self,
         lookback_days: int = 90,
@@ -917,18 +981,37 @@ class BotLogger:
             except Exception:
                 continue
 
+        server_condition_ids = {
+            str(record.get("condition_id", "") or "")
+            for record in latest_by_id.values()
+            if str(record.get("status", "")) != "expected_pending"
+        }
         counts = {
             "claimable_total": round(
                 sum(
                     float(record.get("claimable_amount", 0.0) or 0.0)
                     for record in latest_by_id.values()
-                    if str(record.get("status", "")) in ("discovered", "queued", "submitted")
+                    if str(record.get("status", "")) in ("discovered", "queued", "submitted", "skipped", "failed")
+                ),
+                6,
+            ),
+            "expected_claimable_total": round(
+                sum(
+                    float(record.get("claimable_amount", 0.0) or 0.0)
+                    for record in latest_by_id.values()
+                    if str(record.get("status", "")) == "expected_pending"
+                    and str(record.get("condition_id", "") or "") not in server_condition_ids
                 ),
                 6,
             ),
             "pending_claim_count": sum(
                 1 for record in latest_by_id.values()
                 if str(record.get("status", "")) in ("queued", "submitted")
+            ),
+            "expected_claim_pending_count": sum(
+                1 for record in latest_by_id.values()
+                if str(record.get("status", "")) == "expected_pending"
+                and str(record.get("condition_id", "") or "") not in server_condition_ids
             ),
             "claimed_today_count": len(claimed_today),
             "failed_today_count": len(failed_today),
@@ -2683,6 +2766,10 @@ class MarketClient:
         self._market_ws_reconnect_requested = False
         self._market_ws_connected = False
         self._last_market_ws_msg_at = 0.0
+        self._last_positions_status = ""
+        self._last_positions_error = ""
+        self._last_positions_user = ""
+        self._last_positions_checked_at = 0.0
 
     # ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -2810,6 +2897,10 @@ class MarketClient:
             "market_ws_connected": self._market_ws_connected,
             "market_ws_last_message_at": _fmt(self._last_market_ws_msg_at),
             "market_ws_reconnect_requested": self._market_ws_reconnect_requested,
+            "last_positions_status": self._last_positions_status,
+            "last_positions_error": self._last_positions_error,
+            "last_positions_user": self._last_positions_user,
+            "last_positions_checked_at": _fmt(self._last_positions_checked_at),
         }
 
     async def _retire_http_client(self, client: httpx.AsyncClient | None) -> None:
@@ -3450,7 +3541,12 @@ class MarketClient:
     ) -> list[dict[str, Any]]:
         """Fetch current user positions from the public Polymarket Data API."""
         user = str(user or POLY_ADDRESS or "").strip()
+        self._last_positions_user = _mask_address(user)
+        self._last_positions_checked_at = time.time()
+        self._last_positions_status = "skipped"
+        self._last_positions_error = ""
         if not user:
+            self._last_positions_error = "missing user"
             return []
 
         positions: list[dict[str, Any]] = []
@@ -3470,19 +3566,35 @@ class MarketClient:
 
             try:
                 _, http_client, _ = await self._get_client_snapshot()
-                response = await http_client.get(f"{DATA_API}/positions", params=params, timeout=5.0)
+                response = await http_client.get(
+                    f"{DATA_API}/positions",
+                    params=params,
+                    headers={
+                        "Accept": "application/json",
+                        "User-Agent": "tradebot-claims/1.0",
+                    },
+                    timeout=5.0,
+                )
                 if not response.is_success:
+                    self._last_positions_status = f"http_{response.status_code}"
+                    self._last_positions_error = str(response.text or "")[:240]
                     return positions
                 payload = response.json()
                 if not isinstance(payload, list):
+                    self._last_positions_status = "bad_payload"
+                    self._last_positions_error = f"expected list, got {type(payload).__name__}"
                     return positions
                 positions.extend(item for item in payload if isinstance(item, dict))
+                self._last_positions_status = "ok"
+                self._last_positions_error = ""
                 if len(payload) < page_size:
                     return positions
                 offset += page_size
                 if offset >= 5000:
                     return positions
-            except Exception:
+            except Exception as exc:
+                self._last_positions_status = "exception"
+                self._last_positions_error = str(exc)[:240]
                 return positions
 
     @staticmethod
@@ -4253,6 +4365,13 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _mask_address(value: str) -> str:
+    text = str(value or "").strip()
+    if len(text) <= 12:
+        return text
+    return f"{text[:6]}…{text[-4:]}"
+
+
 def _safe_int(value: Any, default: int = 0) -> int:
     try:
         if value is None:
@@ -4800,6 +4919,7 @@ class ClaimRecord:
     mergeable: bool = False
     negative_risk: bool = False
     proxy_wallet: str = ""
+    scan_identity: str = ""
     schema_version: str = FEATURE_SCHEMA_VERSION
 
     def to_record(self) -> dict[str, Any]:
@@ -6448,6 +6568,20 @@ class Position:
 
 
 @dataclass
+class TradeHistoryEntry:
+    direction: str
+    amount_usdc: float
+    pnl: float
+    status: str
+    placed_at: datetime | None
+    closed_at: datetime
+    simulated: bool = False
+    order_id: str = ""
+    condition_id: str = ""
+    entry_price: float = 0.0
+
+
+@dataclass
 class BlockedWindow:
     """Tracks a window where we chose SKIP, to retroactively evaluate quality."""
     window_label: str = ""
@@ -6784,11 +6918,18 @@ class BotState:
     claim_records: dict[str, ClaimRecord] = field(default_factory=dict)
     claimable_total: float = 0.0
     pending_claim_count: int = 0
+    expected_claimable_total: float = 0.0
+    expected_claim_pending_count: int = 0
     claimed_today_count: int = 0
     failed_today_count: int = 0
     last_claim_success_at: str = ""
     last_claim_error: str = ""
     claim_last_scan_at: float = 0.0
+    claim_last_scan_trigger: str = ""
+    claim_last_scan_status: str = ""
+    claim_last_scan_error: str = ""
+    claim_last_scan_candidates: int = 0
+    claim_last_scan_identities: list[str] = field(default_factory=list)
 
     # ── Daily limits (reset at midnight UTC)
     daily_loss: float = 0.0           # realized losses today
@@ -6809,6 +6950,8 @@ class BotState:
     # ── Window outcome history (for AI historical context) ──────────────────
     # Each entry: {elapsed_at_bet, gap_pct, direction, won, odds, confidence}
     recent_window_outcomes: deque = field(default_factory=lambda: deque(maxlen=50))
+    trade_history: deque = field(default_factory=lambda: deque(maxlen=20))
+    trade_history_last_refresh_at: float = 0.0
 
     # ── Clean paper analytics ────────────────────────────────────────────────
     paper_prediction_records: dict[str, WindowPredictionRecord] = field(default_factory=dict)
@@ -6967,6 +7110,11 @@ class TradingBot:
             self.state.log_event(
                 f"[HISTORY] Warmed {warmed} settled outcomes for calibration/context"
             )
+        warmed_trade_history = self._warm_trade_history()
+        if warmed_trade_history:
+            self.state.log_event(
+                f"[HISTORY] Warmed {warmed_trade_history} settled bets for UI history"
+            )
         restored_predictions, warmed_paper = self._warm_paper_analytics()
         if warmed_paper:
             self.state.log_event(
@@ -6979,6 +7127,11 @@ class TradingBot:
         warmed_claims = self._warm_claim_records()
         if warmed_claims:
             self.state.log_event(f"[CLAIM] Warmed {warmed_claims} claim record(s)")
+        warmed_expected_claims = self._warm_expected_claims_from_trades()
+        if warmed_expected_claims:
+            self.state.log_event(
+                f"[CLAIM] Warmed {warmed_expected_claims} locally expected pending payout(s)"
+            )
         if not LIVE_TRADING:
             await self._sync_recovered_paper_positions()
         self._sync_model_activation_status(reason="startup", allow_auto_promote=True, log_change=True)
@@ -7235,10 +7388,18 @@ class TradingBot:
                 "threshold_profile_version": self.state.model_activation_status.threshold_profile_version,
                 "claimable_total": round(float(self.state.claimable_total or 0.0), 6),
                 "pending_claim_count": int(self.state.pending_claim_count or 0),
+                "expected_claimable_total": round(float(self.state.expected_claimable_total or 0.0), 6),
+                "expected_claim_pending_count": int(self.state.expected_claim_pending_count or 0),
                 "claimed_today_count": int(self.state.claimed_today_count or 0),
                 "failed_today_count": int(self.state.failed_today_count or 0),
                 "last_claim_success_at": self.state.last_claim_success_at,
                 "last_claim_error": self.state.last_claim_error,
+                "claim_last_scan_at": self.state.claim_last_scan_at,
+                "claim_last_scan_trigger": self.state.claim_last_scan_trigger,
+                "claim_last_scan_status": self.state.claim_last_scan_status,
+                "claim_last_scan_error": self.state.claim_last_scan_error,
+                "claim_last_scan_candidates": int(self.state.claim_last_scan_candidates or 0),
+                "claim_last_scan_identities": list(self.state.claim_last_scan_identities),
                 "polymarket_session": market_client.session_snapshot() if market_client is not None else {},
                 "participation_recent24": self.state.logger.compute_recent_participation_metrics(limit=24),
                 "participation_recent100": self.state.logger.compute_recent_participation_metrics(limit=100),
@@ -7819,6 +7980,19 @@ class TradingBot:
                 down_odds=down_odds,
                 decision=decision,
             )
+        else:
+            shadow_notify = getattr(self.notifier, "notify_shadow_signal", None)
+            if callable(shadow_notify):
+                shadow_notify(
+                    signal,
+                    win,
+                    snap,
+                    btc_price=btc_price,
+                    up_odds=up_odds,
+                    down_odds=down_odds,
+                    decision=decision,
+                    execution_block=execution_block,
+                )
 
         row_id = session.locked_row_id
         if row_id:
@@ -9370,6 +9544,7 @@ class TradingBot:
             window_end_at=pos.window_end_at,
         )
         won = self._did_trade_win(pos.direction, actual_winner)
+        expected_claim: ClaimRecord | None = None
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
             pos.pnl    = (amount * (1.0 / pos.entry_price - 1)) if won is True else (-amount if won is False else 0.0)
@@ -9405,6 +9580,19 @@ class TradingBot:
                     "raw_confidence": pos.ai_raw_confidence,
                     "alignment":      pos.signal_alignment,
                 })
+                self.state.trade_history.appendleft(TradeHistoryEntry(
+                    direction=pos.direction,
+                    amount_usdc=pos.amount_usdc if pos.amount_usdc > 0 else amount,
+                    pnl=pos.pnl or 0.0,
+                    status=pos.status,
+                    placed_at=pos.placed_at,
+                    closed_at=datetime.now(_UTC),
+                    simulated=pos.simulated,
+                    order_id=pos.order_id,
+                    condition_id=pos.condition_id,
+                ))
+                if won is True and not pos.simulated:
+                    expected_claim = self._expected_claim_record_from_position(pos)
             prediction_record = None
             if pos.prediction_row_id:
                 prediction_record = self.state.prediction_records.get(pos.prediction_row_id)
@@ -9427,6 +9615,8 @@ class TradingBot:
             self.state.resolved_count += 1
 
         self._sync_daily_budget_halt(log_change=True)
+        if expected_claim is not None:
+            self._persist_expected_claim_state(expected_claim)
         self.state.log_event(
             f"[RESULT] {pos.direction} {pos.status.upper()} PnL={pos.pnl:+.2f} actual={actual_winner}"
         )
@@ -9737,6 +9927,14 @@ class TradingBot:
             self.state.recent_window_outcomes.append(outcome)
         return len(loaded)
 
+    def _warm_trade_history(self) -> int:
+        loaded = self.state.logger.load_recent_trade_history(
+            limit=self.state.trade_history.maxlen or 20
+        )
+        self.state.trade_history.clear()
+        self.state.trade_history.extend(loaded)
+        return len(loaded)
+
     def _warm_paper_analytics(self) -> tuple[int, int]:
         pending, counts = self.state.logger.load_prediction_analytics(
             today=datetime.now(_UTC).strftime("%Y-%m-%d")
@@ -9857,6 +10055,7 @@ class TradingBot:
             mergeable=bool(raw.get("mergeable", False)),
             negative_risk=bool(raw.get("negative_risk", False)),
             proxy_wallet=str(raw.get("proxy_wallet", "") or ""),
+            scan_identity=str(raw.get("scan_identity", "") or ""),
             schema_version=str(raw.get("schema_version", FEATURE_SCHEMA_VERSION) or FEATURE_SCHEMA_VERSION),
         )
 
@@ -9864,14 +10063,27 @@ class TradingBot:
         today = datetime.now(_UTC).strftime("%Y-%m-%d")
         pending_count = 0
         claimable_total = 0.0
+        expected_pending_count = 0
+        expected_claimable_total = 0.0
         claimed_today = 0
         failed_today = 0
         last_success = self.state.last_claim_success_at
         last_error = self.state.last_claim_error
+        server_condition_ids = {
+            record.condition_id
+            for record in self.state.claim_records.values()
+            if record.status != "expected_pending" and record.condition_id
+        }
 
         for record in self.state.claim_records.values():
-            if record.status in ("discovered", "queued", "submitted", "failed"):
+            if record.status in ("discovered", "queued", "submitted", "skipped", "failed"):
                 claimable_total += float(record.claimable_amount or 0.0)
+            if (
+                record.status == "expected_pending"
+                and record.condition_id not in server_condition_ids
+            ):
+                expected_claimable_total += float(record.claimable_amount or 0.0)
+                expected_pending_count += 1
             if record.status in ("queued", "submitted"):
                 pending_count += 1
             if record.status == "confirmed" and record.last_attempt_at[:10] == today:
@@ -9884,6 +10096,8 @@ class TradingBot:
 
         self.state.claimable_total = round(claimable_total, 6)
         self.state.pending_claim_count = pending_count
+        self.state.expected_claimable_total = round(expected_claimable_total, 6)
+        self.state.expected_claim_pending_count = expected_pending_count
         self.state.claimed_today_count = claimed_today
         self.state.failed_today_count = failed_today
         self.state.last_claim_success_at = last_success
@@ -9897,13 +10111,62 @@ class TradingBot:
             claim_id: self._claim_record_from_raw(raw)
             for claim_id, raw in records.items()
         }
-        self.state.claimable_total = float(counts.get("claimable_total", 0.0) or 0.0)
-        self.state.pending_claim_count = int(counts.get("pending_claim_count", 0) or 0)
-        self.state.claimed_today_count = int(counts.get("claimed_today_count", 0) or 0)
-        self.state.failed_today_count = int(counts.get("failed_today_count", 0) or 0)
         self.state.last_claim_success_at = str(counts.get("last_claim_success_at", "") or "")
         self.state.last_claim_error = str(counts.get("last_claim_error", "") or "")
+        self._sync_claim_runtime_counts()
         return len(self.state.claim_records)
+
+    def _warm_expected_claims_from_trades(self) -> int:
+        loaded = self.state.logger.load_recent_trade_history(limit=500, lookback_days=2)
+        grouped: dict[str, dict[str, Any]] = {}
+        for entry in loaded:
+            if entry.status != "won" or entry.simulated:
+                continue
+            condition_id = str(entry.condition_id or "").strip()
+            if not condition_id:
+                continue
+            claim_id = self._claim_id_from_positions(condition_id, False)
+            expected_amount = self._daily_budget_return_amount(
+                status="won",
+                amount=entry.amount_usdc,
+                entry_price=entry.entry_price,
+                pnl=entry.pnl,
+            )
+            if expected_amount <= 0.0:
+                continue
+            bucket = grouped.setdefault(
+                claim_id,
+                {
+                    "condition_id": condition_id,
+                    "amount": 0.0,
+                    "last_seen_at": "",
+                    "outcomes": set(),
+                },
+            )
+            bucket["amount"] = round(float(bucket["amount"]) + expected_amount, 6)
+            bucket["last_seen_at"] = max(
+                str(bucket["last_seen_at"] or ""),
+                _iso_z(entry.closed_at) if entry.closed_at else "",
+            )
+            bucket["outcomes"].add(str(entry.direction or "").upper())
+
+        warmed = 0
+        for claim_id, item in grouped.items():
+            outcomes = sorted(item["outcomes"])
+            record = ClaimRecord(
+                claim_id=claim_id,
+                condition_id=str(item["condition_id"]),
+                outcome=" / ".join(outcomes),
+                claimable_amount=float(item["amount"] or 0.0),
+                claim_source="local_trade_settlement",
+                status="expected_pending",
+                last_seen_at=str(item["last_seen_at"] or _iso_z(_utc_now())),
+                redeemable=False,
+                scan_identity="local",
+            )
+            if self._persist_expected_claim_state(record):
+                warmed += 1
+        return warmed
 
     async def _sync_recovered_paper_positions(self) -> None:
         async with self.state._lock:
@@ -10025,8 +10288,59 @@ class TradingBot:
         cid = str(condition_id or "").strip()
         return f"{cid}:neg_risk" if negative_risk else cid
 
+    @staticmethod
+    def _claim_scan_label(label: str, user: str) -> str:
+        return f"{str(label or 'user')}:{_mask_address(user)}"
+
+    @staticmethod
+    def _claim_scan_identities() -> list[tuple[str, str]]:
+        identities: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for label, user in (("address", POLY_ADDRESS), ("funder", POLY_FUNDER)):
+            value = str(user or "").strip()
+            key = value.lower()
+            if not value or key in seen:
+                continue
+            seen.add(key)
+            identities.append((label, value))
+        return identities
+
+    def _has_server_claim_for_condition(self, condition_id: str) -> bool:
+        cid = str(condition_id or "").strip()
+        if not cid:
+            return False
+        return any(
+            record.condition_id == cid and record.status != "expected_pending"
+            for record in self.state.claim_records.values()
+        )
+
+    def _expected_claim_record_from_position(self, pos: "Position") -> ClaimRecord | None:
+        condition_id = str(pos.condition_id or "").strip()
+        if not condition_id:
+            return None
+        expected_amount = self._daily_budget_return_amount(
+            status="won",
+            amount=pos.amount_usdc,
+            entry_price=pos.entry_price,
+            pnl=pos.pnl,
+        )
+        if expected_amount <= 0.0:
+            return None
+        return ClaimRecord(
+            claim_id=self._claim_id_from_positions(condition_id, False),
+            condition_id=condition_id,
+            asset=str(pos.token_id or ""),
+            outcome=str(pos.direction or ""),
+            claimable_amount=expected_amount,
+            claim_source="local_trade_settlement",
+            status="expected_pending",
+            last_seen_at=_iso_z(_utc_now()),
+            redeemable=False,
+            scan_identity="local",
+        )
+
     def _build_claim_candidates(self, positions: list[dict[str, Any]]) -> dict[str, ClaimRecord]:
-        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        grouped: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
         for position in positions:
             if not isinstance(position, dict):
                 continue
@@ -10037,12 +10351,21 @@ class TradingBot:
                 condition_id,
                 bool(position.get("negativeRisk", False)),
             )
-            grouped[claim_id].append(position)
+            identity = str(
+                position.get("_claim_scan_identity")
+                or position.get("proxyWallet")
+                or "_default"
+            )
+            grouped[claim_id][identity].append(position)
 
         now_iso = _iso_z(_utc_now())
         settlement_cache = self.state.settlement_registry_cache
         candidates: dict[str, ClaimRecord] = {}
-        for claim_id, records in grouped.items():
+        for claim_id, identity_groups in grouped.items():
+            records = max(
+                identity_groups.values(),
+                key=lambda items: sum(self._claimable_amount_from_position(item) for item in items),
+            )
             first = records[0]
             condition_id = str(first.get("conditionId", "") or "").strip()
             settlement = settlement_cache.get(condition_id, {})
@@ -10070,6 +10393,7 @@ class TradingBot:
                 mergeable=any(bool(item.get("mergeable", False)) for item in records),
                 negative_risk=any(bool(item.get("negativeRisk", False)) for item in records),
                 proxy_wallet=str(first.get("proxyWallet", "") or ""),
+                scan_identity=str(first.get("_claim_scan_identity", "") or ""),
             )
         return candidates
 
@@ -10085,6 +10409,8 @@ class TradingBot:
                 current.request_id != candidate.request_id,
                 current.error_code != candidate.error_code,
                 current.error_message != candidate.error_message,
+                current.claim_source != candidate.claim_source,
+                current.scan_identity != candidate.scan_identity,
                 current.last_seen_at != candidate.last_seen_at and candidate.status in ("confirmed", "failed"),
             )
         )
@@ -10117,9 +10443,28 @@ class TradingBot:
             msg = f"failed {amount_s} ({short}) {detail}"
             self._append_claim_log(msg)
             self.state.log_event(f"[CLAIM] {msg}")
+        elif record.status == "expected_pending":
+            msg = f"expected {amount_s} pending ({short})"
+            self._append_claim_log(msg)
+            self.state.log_event(f"[CLAIM] {msg}")
 
         self._sync_claim_runtime_counts()
         self._refresh_performance_history()
+
+    def _persist_expected_claim_state(self, record: ClaimRecord) -> bool:
+        if record.status != "expected_pending":
+            self._persist_claim_state(record)
+            return True
+        if self._has_server_claim_for_condition(record.condition_id):
+            self._sync_claim_runtime_counts()
+            return False
+        current = self.state.claim_records.get(record.claim_id)
+        if current is not None and current.status != "expected_pending":
+            self._sync_claim_runtime_counts()
+            return False
+        changed = self._claim_state_changed(current, record)
+        self._persist_claim_state(record)
+        return changed or current is None
 
     def _claim_execution_block_reason(self) -> str:
         if AUTO_CLAIM_LIVE_ONLY and not LIVE_TRADING:
@@ -10139,27 +10484,70 @@ class TradingBot:
         return ""
 
     async def _scan_and_process_claims(self, *, trigger: str) -> None:
-        user = str(POLY_ADDRESS or "").strip()
-        if not user:
+        identities = self._claim_scan_identities()
+        self.state.claim_last_scan_at = time.time()
+        self.state.claim_last_scan_trigger = trigger
+        self.state.claim_last_scan_identities = [
+            self._claim_scan_label(label, user) for label, user in identities
+        ]
+        self.state.claim_last_scan_status = "starting"
+        self.state.claim_last_scan_error = ""
+        self.state.claim_last_scan_candidates = 0
+        if not identities:
+            self.state.claim_last_scan_status = "skipped"
+            self.state.claim_last_scan_error = "POLY_ADDRESS/POLY_FUNDER missing"
+            self._sync_claim_runtime_counts()
             return
 
-        positions = await self.market.get_current_positions(
-            user=user,
-            redeemable=True,
-            size_threshold=0.0,
-            limit=500,
-        )
-        candidates = self._build_claim_candidates(positions)
-        self.state.claim_last_scan_at = time.time()
+        positions: list[dict[str, Any]] = []
+        api_statuses: list[str] = []
+        api_errors: list[str] = []
+        for label, user in identities:
+            label_s = self._claim_scan_label(label, user)
+            try:
+                fetched = await self.market.get_current_positions(
+                    user=user,
+                    redeemable=True,
+                    size_threshold=0.0,
+                    limit=500,
+                )
+            except Exception as exc:
+                api_statuses.append(f"{label}:exception")
+                api_errors.append(f"{label}:{str(exc)[:120]}")
+                continue
 
-        active_claimable_total = 0.0
-        active_pending_count = 0
+            snapshot_fn = getattr(self.market, "session_snapshot", None)
+            snapshot = snapshot_fn() if callable(snapshot_fn) else {}
+            status = str(snapshot.get("last_positions_status", "") or "ok")
+            error = str(snapshot.get("last_positions_error", "") or "")
+            api_statuses.append(f"{label}:{status}")
+            if error:
+                api_errors.append(f"{label}:{error[:120]}")
+
+            for item in fetched:
+                if not isinstance(item, dict):
+                    continue
+                annotated = dict(item)
+                annotated["_claim_scan_identity"] = label_s
+                annotated["_claim_scan_user"] = _mask_address(user)
+                positions.append(annotated)
+
+        candidates = self._build_claim_candidates(positions)
+        self.state.claim_last_scan_candidates = len(candidates)
+        self.state.claim_last_scan_status = ",".join(api_statuses) or "ok"
+        self.state.claim_last_scan_error = "; ".join(api_errors)[:240]
+
         for claim in candidates.values():
-            active_claimable_total += float(claim.claimable_amount or 0.0)
             current = self.state.claim_records.get(claim.claim_id)
+            if current is None:
+                for stale_id, stale in list(self.state.claim_records.items()):
+                    if (
+                        stale.status == "expected_pending"
+                        and stale.condition_id == claim.condition_id
+                        and stale_id != claim.claim_id
+                    ):
+                        self.state.claim_records.pop(stale_id, None)
             if current is not None and current.status in ("confirmed", "submitted"):
-                if current.status == "submitted":
-                    active_pending_count += 1
                 continue
 
             if claim.claimable_amount < AUTO_CLAIM_THRESHOLD:
@@ -10172,7 +10560,6 @@ class TradingBot:
                 self._persist_claim_state(skipped)
                 continue
 
-            active_pending_count += 1
             queued_at = current.queued_at if current is not None else claim.last_seen_at
             queued = ClaimRecord(**{
                 **claim.to_record(),
@@ -10214,13 +10601,14 @@ class TradingBot:
             self._persist_claim_state(final)
 
         self._sync_claim_runtime_counts()
-        self.state.claimable_total = round(active_claimable_total, 6)
-        self.state.pending_claim_count = active_pending_count
-        if candidates or trigger == "startup":
+        if candidates or trigger == "startup" or self.state.claim_last_scan_error:
             mode = "enabled" if AUTO_CLAIM_ENABLED else "discovery"
+            error_s = f" error={self.state.claim_last_scan_error}" if self.state.claim_last_scan_error else ""
             self.state.log_event(
                 f"[CLAIM] scan {trigger} candidates={len(candidates)} "
-                f"claimable=${self.state.claimable_total:.2f} mode={mode}"
+                f"claimable=${self.state.claimable_total:.2f} "
+                f"pending=${self.state.expected_claimable_total:.2f} "
+                f"mode={mode} status={self.state.claim_last_scan_status}{error_s}"
             )
             self._refresh_performance_history()
 
@@ -10357,10 +10745,14 @@ def build_layout() -> Layout:
         Layout(name="header", size=1),
         Layout(name="main"),
     )
-    # main splits into left_stack (existing panels) and price_log (new, full height)
+    # main splits into left_stack (existing panels) and right-side history/prices.
     layout["main"].split_row(
         Layout(name="left_stack", ratio=2),
-        Layout(name="price_log",  ratio=1),
+        Layout(name="price_stack", ratio=1),
+    )
+    layout["price_stack"].split_column(
+        Layout(name="bet_history", size=14),
+        Layout(name="price_log"),
     )
     layout["left_stack"].split_column(
         Layout(name="body", size=27),
@@ -10675,12 +11067,27 @@ def render_results(state: BotState) -> Panel:
     last_claim = state.claim_log[-1] if state.claim_log else f"– nothing to claim"
     resolved_pending = len([p for p in state.positions if p.status == "open"])
     claim_mode = "[green]EXEC[/green]" if AUTO_CLAIM_ENABLED else "[yellow]DISCOVERY[/yellow]"
+    scan_bits = []
+    if state.claim_last_scan_candidates or state.claim_last_scan_at:
+        scan_bits.append(f"scan={state.claim_last_scan_candidates}")
+    if state.claim_last_scan_at:
+        scan_age = max(0, int(time.time() - state.claim_last_scan_at))
+        scan_bits.append(f"{scan_age}s")
+    if state.claim_last_scan_status:
+        scan_bits.append(str(state.claim_last_scan_status)[:30])
+    if state.claim_last_scan_error:
+        scan_bits.append("err")
+    if state.claim_last_scan_identities:
+        scan_bits.append("ids=" + "/".join(state.claim_last_scan_identities)[:34])
+    scan_s = ("  " + " ".join(scan_bits)) if scan_bits else ""
     claim_summary = (
         f"{claim_mode}  amt=[white]${state.claimable_total:.2f}[/white]"
+        f"  pending=[yellow]${state.expected_claimable_total:.2f}[/yellow]"
         f"  p=[white]{state.pending_claim_count}[/white]"
         f"  ok=[green]{state.claimed_today_count}[/green]"
         f"  fail=[red]{state.failed_today_count}[/red]"
         f"  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
+        f"{scan_s}"
     )
     show_claim_log = bool(state.claim_log) and "nothing to claim" not in last_claim.lower()
 
@@ -10874,6 +11281,94 @@ def render_blocked(state: BotState) -> Panel:
     return Panel(body, title="[bold cyan]ENGINE[/bold cyan]", border_style="blue")
 
 
+def render_bet_history(state: BotState) -> Panel:
+    entries = list(state.trade_history)[:10]
+    if not entries:
+        body = Text("No settled bets yet", style="dim")
+        return Panel(body, title="[bold cyan]BET HISTORY[/bold cyan]", border_style="blue")
+
+    table = Table(show_header=True, header_style="cyan", box=None, padding=(0, 1))
+    table.add_column("Time", width=6)
+    table.add_column("Dir", width=5)
+    table.add_column("Amount", width=8, justify="right")
+    table.add_column("P/L", width=8, justify="right")
+    table.add_column("Status", width=7)
+
+    for entry in entries:
+        direction = entry.direction.upper()
+        dir_color = "green" if direction == "UP" else "red" if direction == "DOWN" else "white"
+        pnl_color = "green" if entry.pnl > 0 else "red" if entry.pnl < 0 else "white"
+        pnl_s = f"+${entry.pnl:.2f}" if entry.pnl >= 0 else f"-${abs(entry.pnl):.2f}"
+        status = entry.status.lower()
+        status_label = "WIN" if status == "won" else "LOSE" if status == "lost" else status.upper()
+        status_color = "green" if status == "won" else "red" if status == "lost" else "white"
+
+        table.add_row(
+            entry.closed_at.strftime("%H:%M"),
+            f"[{dir_color}]{direction}[/{dir_color}]",
+            f"${entry.amount_usdc:.2f}",
+            f"[{pnl_color}]{pnl_s}[/{pnl_color}]",
+            f"[{status_color}]{status_label}[/{status_color}]",
+        )
+
+    return Panel(table, title="[bold cyan]BET HISTORY[/bold cyan]", border_style="blue")
+
+
+def _trade_history_key(entry: TradeHistoryEntry) -> str:
+    if entry.order_id:
+        return entry.order_id
+    return ":".join([
+        entry.condition_id,
+        entry.direction,
+        entry.closed_at.isoformat(),
+    ])
+
+
+def _trade_history_signature(entry: TradeHistoryEntry) -> tuple:
+    return (
+        _trade_history_key(entry),
+        entry.direction,
+        round(entry.amount_usdc, 8),
+        round(entry.pnl, 8),
+        entry.status,
+        entry.closed_at.isoformat(),
+        entry.simulated,
+    )
+
+
+def refresh_trade_history_from_logs(state: BotState, *, force: bool = False) -> int:
+    now_ts = time.time()
+    if not force and now_ts - state.trade_history_last_refresh_at < TRADE_HISTORY_REFRESH_S:
+        return 0
+    state.trade_history_last_refresh_at = now_ts
+
+    try:
+        loaded = state.logger.load_recent_trade_history(
+            limit=state.trade_history.maxlen or 20
+        )
+    except Exception:
+        return 0
+
+    if not loaded:
+        return 0
+
+    maxlen = state.trade_history.maxlen or 20
+    merged: dict[str, TradeHistoryEntry] = {
+        _trade_history_key(entry): entry
+        for entry in list(state.trade_history)
+    }
+    for entry in loaded:
+        merged[_trade_history_key(entry)] = entry
+
+    latest = sorted(merged.values(), key=lambda entry: entry.closed_at, reverse=True)[:maxlen]
+    before = [_trade_history_signature(entry) for entry in state.trade_history]
+    after = [_trade_history_signature(entry) for entry in latest]
+    if before != after:
+        state.trade_history.clear()
+        state.trade_history.extend(latest)
+    return len(loaded)
+
+
 def render_price_log(state: BotState) -> Panel:
     """Stream the last N 5-second BTC price snapshots."""
     entries = list(state.price_tick_log)[-80:]  # fills flexible full-height panel
@@ -10930,6 +11425,8 @@ async def update_ui(layout: Layout, state: BotState) -> None:
         layout["results"].update(render_results(state))
         layout["blocked"].update(render_blocked(state))
         layout["logs"].update(render_logs(state))
+        refresh_trade_history_from_logs(state)
+        layout["bet_history"].update(render_bet_history(state))
         layout["price_log"].update(render_price_log(state))
         await asyncio.sleep(UI_REFRESH_S)
 
