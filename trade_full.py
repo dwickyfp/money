@@ -56,6 +56,8 @@ POLY_RELAYER_URL = os.getenv("POLY_RELAYER_URL", "https://relayer-v2.polymarket.
 POLY_BUILDER_API_KEY = os.getenv("POLY_BUILDER_API_KEY", "")
 POLY_BUILDER_SECRET = os.getenv("POLY_BUILDER_SECRET", "")
 POLY_BUILDER_PASSPHRASE = os.getenv("POLY_BUILDER_PASSPHRASE", "")
+POLY_RELAYER_API_KEY         = os.getenv("POLY_RELAYER_API_KEY", "")
+POLY_RELAYER_API_KEY_ADDRESS = os.getenv("POLY_RELAYER_API_KEY_ADDRESS", "")
 POLY_CTF_ADDRESS = os.getenv("POLY_CTF_ADDRESS", "0x4d97dcd97ec945f40cf65f87097ace5ea0476045")
 POLY_USDC_ADDRESS = os.getenv("POLY_USDC_ADDRESS", "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")
 POLY_CREDS_REFRESH_INTERVAL_S = int(os.getenv("POLY_CREDS_REFRESH_INTERVAL_S", str(23 * 3600)))
@@ -3601,12 +3603,12 @@ class MarketClient:
     def claim_execution_status() -> tuple[bool, str]:
         if not POLY_ETH_PRIVATE_KEY:
             return False, "POLY_ETH_PRIVATE_KEY missing"
-        if not (POLY_BUILDER_API_KEY and POLY_BUILDER_SECRET and POLY_BUILDER_PASSPHRASE):
-            return False, "builder relayer credentials missing"
+        if not (POLY_RELAYER_API_KEY and POLY_RELAYER_API_KEY_ADDRESS):
+            return False, "POLY_RELAYER_API_KEY / POLY_RELAYER_API_KEY_ADDRESS missing"
         try:
-            from py_builder_relayer_client.client import RelayClient  # noqa: F401
+            from polymarket_apis.clients.web3_client import PolymarketGaslessWeb3Client  # noqa: F401
         except Exception:
-            return False, "py-builder-relayer-client not installed"
+            return False, "polymarket-apis not installed (pip install polymarket-apis)"
         return True, ""
 
     @staticmethod
@@ -3636,59 +3638,54 @@ class MarketClient:
         return "0x" + (selector + args).hex()
 
     @staticmethod
-    def _build_relay_client():
-        import inspect
+    def _build_web3_client():
+        from polymarket_apis.clients.web3_client import PolymarketGaslessWeb3Client
+        from json import dumps as _json_dumps
+        import httpx as _httpx
 
-        from py_builder_relayer_client.client import RelayClient
-        from py_builder_signing_sdk.config import BuilderConfig
-        from py_builder_signing_sdk.sdk_types import BuilderApiKeyCreds
+        class _RelayerClient(PolymarketGaslessWeb3Client):
+            def __init__(self, private_key, relayer_api_key, relayer_api_key_address,
+                         signature_type=1, chain_id=137):
+                super().__init__(private_key, signature_type=signature_type,
+                                 builder_creds=None, chain_id=chain_id)
+                self._relayer_api_key = relayer_api_key
+                self._relayer_api_key_address = relayer_api_key_address
 
-        builder_config = BuilderConfig(
-            local_builder_creds=BuilderApiKeyCreds(
-                key=POLY_BUILDER_API_KEY,
-                secret=POLY_BUILDER_SECRET,
-                passphrase=POLY_BUILDER_PASSPHRASE,
-            )
+            def _execute(self, to, data, operation_name, metadata=None):
+                match self.signature_type:
+                    case 1:
+                        body = self._build_proxy_relay_transaction(to, data, metadata or "")
+                    case 2:
+                        body = self._build_safe_relay_transaction(to, data, metadata or "")
+                    case _:
+                        raise ValueError(f"Invalid signature_type: {self.signature_type}")
+                headers = {
+                    "RELAYER_API_KEY": self._relayer_api_key,
+                    "RELAYER_API_KEY_ADDRESS": self._relayer_api_key_address,
+                    "Content-Type": "application/json",
+                }
+                resp = _httpx.post(
+                    f"{self.relay_url.rstrip('/')}/submit",
+                    headers=headers,
+                    content=_json_dumps(body).encode("utf-8"),
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                relay_data = resp.json()
+                tx_hash = relay_data.get("transactionHash")
+                if not tx_hash:
+                    raise ValueError(f"No transactionHash in relay response: {relay_data}")
+                receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+                return {**dict(receipt), "transactionHash": tx_hash,
+                        "id": relay_data.get("transactionID", "")}
+
+        return _RelayerClient(
+            private_key=POLY_ETH_PRIVATE_KEY,
+            relayer_api_key=POLY_RELAYER_API_KEY,
+            relayer_api_key_address=POLY_RELAYER_API_KEY_ADDRESS,
+            signature_type=1,
+            chain_id=CHAIN_ID,
         )
-
-        kwargs: dict[str, Any] = {}
-        sig = inspect.signature(RelayClient)
-        for name in sig.parameters:
-            if name in {"url", "base_url", "relayer_url"}:
-                kwargs[name] = POLY_RELAYER_URL
-            elif name == "chain_id":
-                kwargs[name] = CHAIN_ID
-            elif name in {"private_key", "pk"}:
-                kwargs[name] = POLY_ETH_PRIVATE_KEY
-            elif name == "builder_config":
-                kwargs[name] = builder_config
-            elif name == "relay_tx_type":
-                try:
-                    from py_builder_relayer_client.client import RelayerTxType
-
-                    kwargs[name] = getattr(RelayerTxType, "PROXY", None)
-                except Exception:
-                    continue
-        if kwargs:
-            return RelayClient(**kwargs)
-
-        try:
-            from py_builder_relayer_client.client import RelayerTxType
-
-            return RelayClient(
-                POLY_RELAYER_URL,
-                CHAIN_ID,
-                POLY_ETH_PRIVATE_KEY,
-                builder_config,
-                getattr(RelayerTxType, "PROXY", None),
-            )
-        except Exception:
-            return RelayClient(
-                POLY_RELAYER_URL,
-                CHAIN_ID,
-                POLY_ETH_PRIVATE_KEY,
-                builder_config,
-            )
 
     @staticmethod
     def _extract_claim_attempt_metadata(payload: Any) -> tuple[str, str]:
@@ -3737,16 +3734,17 @@ class MarketClient:
             )
 
         try:
-            relay_client = await self._run(self._build_relay_client)
-            tx = {
-                "to": POLY_CTF_ADDRESS,
-                "data": self._encode_redeem_positions_data(claim.condition_id),
-                "value": "0",
-            }
-            response = await self._run(relay_client.execute, [tx], "Redeem positions")
-            wait_fn = getattr(response, "wait", None)
-            final_payload = await self._run(wait_fn) if callable(wait_fn) else response
-            tx_hash, request_id = self._extract_claim_attempt_metadata(final_payload)
+            web3_client = await self._run(self._build_web3_client)
+            amounts = [0.0, 0.0]
+            if 0 <= claim.outcome_index <= 1:
+                amounts[claim.outcome_index] = claim.claimable_amount
+            receipt = await self._run(
+                web3_client.redeem_position,
+                condition_id=claim.condition_id,
+                amounts=amounts,
+                neg_risk=False,
+            )
+            tx_hash, request_id = self._extract_claim_attempt_metadata(receipt)
             return ClaimAttemptResult(
                 success=True,
                 status="confirmed",
