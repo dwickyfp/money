@@ -1,0 +1,247 @@
+{
+  "2026-04-09": {
+    "live": {
+      "losses": 0,
+      "pnl": 0.0,
+      "total": 0,
+      "win_rate": 0.0,
+      "wins": 0
+    },
+    "paper": {
+      "losses": 0,
+      "pnl": 3.010101,
+      "total": 4,
+      "win_rate": 100.0,
+      "wins": 4
+    },
+    "status": {}
+  },
+  "2026-04-10": {
+    "live": {
+      "losses": 0,
+      "pnl": 0.0,
+      "total": 0,
+      "win_rate": 0.0,
+      "wins": 0
+    },
+    "paper": {
+      "losses": 3,
+      "pnl": 16.481208,
+      "total": 27,
+      "win_rate": 88.89,
+      "wins": 24
+    },
+    "status": {}
+  },
+  "2026-04-11": {
+    "live": {
+      "losses": 7,
+      "pnl": 58.275,
+      "total": 50,
+      "win_rate": 86.0,
+      "wins": 43
+    },
+    "paper": {
+      "losses": 0,
+      "pnl": 1.292152,
+      "total": 3,
+      "win_rate": 100.0,
+      "wins": 3
+    },
+    "status": {
+      "activation_reason": "scheduled_retrain",
+      "active_model_version": "20260411T120821Z-s20",
+      "active_signal_source": "ml",
+      "applied_state": "active",
+      "balance_usdc": 5.386255,
+      "bets_this_hour": 0,
+      "claim_last_scan_at": 1775936547.272305,
+      "claim_last_scan_candidates": 1,
+      "claim_last_scan_error": "",
+      "claim_last_scan_identities": [
+        "address:0x6590\u202647b0",
+        "funder:0x6B41\u2026578a"
+      ],
+      "claim_last_scan_status": "address:ok,funder:ok",
+      "claim_last_scan_trigger": "scheduled",
+      "claimable_total": 42.5431,
+      "claimed_today_count": 21,
+      "daily_budget_left_usdc": 66.567152,
+      "daily_budget_returned_usdc": 220.692152,
+      "daily_budget_spent_usdc": 161.125,
+      "daily_halted": false,
+      "daily_loss": 2.5,
+      "daily_profit": 22.45,
+      "daily_profit_halted": true,
+      "expected_claim_pending_count": 10,
+      "expected_claimable_total": 50.0,
+      "failed_today_count": 1,
+      "last_claim_error": "PolymarketGaslessWeb3Client.__init__() got an unexpected keyword argument 'builder_creds'",
+      "last_claim_success_at": "2026-04-11T19:42:28.155Z",
+      "mode": "live",
+      "open_positions": 0,
+      "participation_recent100": {
+        "blocked_profitable_rate": {
+          "GATE_BANDAR_PUSH": 0.7966,
+          "GATE_CHOPPY_BEAT": 1.0,
+          "GATE_LATE_PROXIMITY_RISK": 0.6316,
+          "GATE_LOW_CONF": 1.0,
+          "GATE_NO_MOVE": 1.0,
+          "GATE_TOO_LATE": 0.7941,
+          "GATE_TOO_SURE": 0.8
+        },
+        "buy_prediction_rate": 1.0,
+        "executed_bet_rate": 0.33,
+        "placement_failed_rate": 0.13,
+        "placement_failure_by_code": {
+          "INSUFFICIENT_BALANCE_MIN_ORDER": 8,
+          "PLACEMENT_FAILED": 5
+        },
+        "reserved_signal_rate": 0.2,
+        "retryable_failure_rate": 0.05,
+        "threshold_counterfactuals": {
+          "0.72": {
+            "coverage": 0.7,
+            "executed_windows": 70,
+            "total_windows": 100,
+            "win_rate": 0.7714,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.9,
+              "LATE_EXEC": 0.7708,
+              "RESERVE": 0.6667
+            }
+          },
+          "0.74": {
+            "coverage": 0.7,
+            "executed_windows": 70,
+            "total_windows": 100,
+            "win_rate": 0.7714,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.9,
+              "LATE_EXEC": 0.7708,
+              "RESERVE": 0.6667
+            }
+          },
+          "0.76": {
+            "coverage": 0.7,
+            "executed_windows": 70,
+            "total_windows": 100,
+            "win_rate": 0.7714,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.9,
+              "LATE_EXEC": 0.7708,
+              "RESERVE": 0.6667
+            }
+          },
+          "0.78": {
+            "coverage": 0.65,
+            "executed_windows": 65,
+            "total_windows": 100,
+            "win_rate": 0.7846,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.9,
+              "LATE_EXEC": 0.7872,
+              "RESERVE": 0.625
+            }
+          }
+        },
+        "win_rate_by_execution_bucket": {
+          "EARLY_EXEC": 1.0,
+          "LATE_EXEC": 0.9474,
+          "TOO_LATE": 0.5
+        },
+        "window_count": 100
+      },
+      "participation_recent24": {
+        "blocked_profitable_rate": {
+          "GATE_BANDAR_PUSH": 1.0,
+          "GATE_LATE_PROXIMITY_RISK": 0.8571,
+          "GATE_TOO_LATE": 0.75,
+          "GATE_TOO_SURE": 0.6667
+        },
+        "buy_prediction_rate": 1.0,
+        "executed_bet_rate": 0.5,
+        "placement_failed_rate": 0.0833,
+        "placement_failure_by_code": {
+          "PLACEMENT_FAILED": 2
+        },
+        "reserved_signal_rate": 0.2917,
+        "retryable_failure_rate": 0.0833,
+        "threshold_counterfactuals": {
+          "0.72": {
+            "coverage": 0.75,
+            "executed_windows": 18,
+            "total_windows": 24,
+            "win_rate": 0.7778,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.8333,
+              "LATE_EXEC": 0.8,
+              "RESERVE": 0.5
+            }
+          },
+          "0.74": {
+            "coverage": 0.75,
+            "executed_windows": 18,
+            "total_windows": 24,
+            "win_rate": 0.7778,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.8333,
+              "LATE_EXEC": 0.8,
+              "RESERVE": 0.5
+            }
+          },
+          "0.76": {
+            "coverage": 0.75,
+            "executed_windows": 18,
+            "total_windows": 24,
+            "win_rate": 0.7778,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.8333,
+              "LATE_EXEC": 0.8,
+              "RESERVE": 0.5
+            }
+          },
+          "0.78": {
+            "coverage": 0.75,
+            "executed_windows": 18,
+            "total_windows": 24,
+            "win_rate": 0.7778,
+            "win_rate_by_phase": {
+              "EARLY_EXEC": 0.8333,
+              "LATE_EXEC": 0.8,
+              "RESERVE": 0.5
+            }
+          }
+        },
+        "win_rate_by_execution_bucket": {
+          "EARLY_EXEC": 1.0,
+          "LATE_EXEC": 1.0,
+          "TOO_LATE": 0.5
+        },
+        "window_count": 24
+      },
+      "pending_claim_count": 8,
+      "polymarket_session": {
+        "can_refresh_credentials": true,
+        "consecutive_auth_failures": 0,
+        "creds_refreshed_at": "2026-04-11T17:39:50.707Z",
+        "generation": 0,
+        "has_l2_credentials": true,
+        "last_auth_error": "",
+        "last_auth_failure_at": "2026-04-11T18:44:06.526Z",
+        "last_auth_success_at": "2026-04-11T19:42:32.814Z",
+        "last_heartbeat_ok_at": "2026-04-11T19:42:32.814Z",
+        "last_positions_checked_at": "2026-04-11T19:42:27.757Z",
+        "last_positions_error": "",
+        "last_positions_status": "ok",
+        "last_positions_user": "0x6B41\u2026578a",
+        "market_ws_connected": true,
+        "market_ws_last_message_at": "2026-04-11T19:42:36.305Z",
+        "market_ws_reconnect_requested": false,
+        "refresh_in_progress": false
+      },
+      "threshold_profile_version": "rtp_v1",
+      "updated_at": "2026-04-11T19:42:38.021Z"
+    }
+  }
+}
