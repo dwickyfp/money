@@ -713,3 +713,34 @@
 {"ts": "2026-04-11T01:40:47.225Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=61.5% D=38.5% | ml: candidate confidence 61% below 70%"}
 {"ts": "2026-04-11T01:40:52.279Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.66 src=ml U=65.6% D=34.4% | ml: candidate confidence 66% below 70%"}
 {"ts": "2026-04-11T01:41:56.912Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: candidate confidence 64% below 70%"}
+{"ts": "2026-04-11T01:43:01.646Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-11T01:43:01.702Z", "msg": "[HISTORY] Warmed 32 settled outcomes for calibration/context"}
+{"ts": "2026-04-11T01:43:01.832Z", "msg": "[PAPER] Warmed 1504 resolved paper analytics entries"}
+{"ts": "2026-04-11T01:43:01.832Z", "msg": "[PAPER] Restored 7024 pending paper prediction(s)"}
+{"ts": "2026-04-11T01:43:01.836Z", "msg": "[ML] Activated model 20260410T162435Z-s20 source=ml state=active"}
+{"ts": "2026-04-11T01:43:02.422Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-11T01:43:02.499Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:40PM-9:45PM ET | beat=$0.00 | ends 01:45:00 UTC"}
+{"ts": "2026-04-11T01:43:02.857Z", "msg": "[CLAIM] scan startup candidates=0 claimable=$0.00 mode=discovery"}
+{"ts": "2026-04-11T01:43:03.309Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-11T01:43:04.854Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-11T01:43:04.992Z", "msg": "[ML] Backfilled 726 pending label(s) from feature logs"}
+{"ts": "2026-04-11T01:43:08.428Z", "msg": "[ML] Activated model 20260411T014308Z-s20 source=ml state=active"}
+{"ts": "2026-04-11T01:43:08.816Z", "msg": "[ML] Bootstrap trained 20260411T014308Z-s20 state=active ap=0.787 cv_ap=0.795 ev=+1.07"}
+{"ts": "2026-04-11T01:43:08.850Z", "msg": "[MKT] Beat price set retroactively: $72,901.94"}
+{"ts": "2026-04-11T01:43:12.436Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.50 src=ml U=50.2% D=49.8% | ml: probability spread 0.3% too small"}
+{"ts": "2026-04-11T01:43:32.484Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.64 src=ml U=36.1% D=63.9% | ml: candidate confidence 64% below 81%"}
+{"ts": "2026-04-11T01:44:02.600Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.52 src=ml U=52.1% D=47.9% | ml: edge +4.2% below 5%"}
+{"ts": "2026-04-11T01:44:08.618Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.58 src=ml U=58.0% D=42.0% | ml: candidate confidence 58% below 80%"}
+{"ts": "2026-04-11T01:44:12.633Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.52 src=ml U=48.4% D=51.6% | ml: candidate confidence 52% below 80%"}
+{"ts": "2026-04-11T01:44:23.665Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.57 src=ml U=56.8% D=43.2% | ml: edge -12.7% below 5%"}
+{"ts": "2026-04-11T01:44:48.774Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.57 src=ml U=43.0% D=57.0% | ml: edge -35.2% below 5%"}
+{"ts": "2026-04-11T01:44:56.816Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.66 src=ml U=33.6% D=66.4% | ml: edge -25.4% below 5%"}
+{"ts": "2026-04-11T01:45:01.988Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 10, 9:45PM-9:50PM ET | beat=$72,896.67 | ends 01:50:00 UTC"}
+{"ts": "2026-04-11T01:45:02.441Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=\u2014 window=01:40"}
+{"ts": "2026-04-11T01:45:02.442Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=\u2014 window=01:40"}
+{"ts": "2026-04-11T01:45:02.443Z", "msg": "[PRED/PAPER] UP MISS | actual=DOWN gate=\u2014 window=01:40"}
+{"ts": "2026-04-11T01:45:02.625Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-11T01:45:02.838Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.57 src=ml U=56.8% D=43.2% | ml: candidate confidence 57% below 70%"}
+{"ts": "2026-04-11T01:45:07.872Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.62 src=ml U=62.2% D=37.8% | ml: edge -4.3% below 5%"}
+{"ts": "2026-04-11T01:45:20.933Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=68.5% D=31.5% | ml: edge -4.9% below 5%"}
+{"ts": "2026-04-11T01:45:27.972Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.58 src=ml U=58.0% D=42.0% | ml: candidate confidence 58% below 70%"}

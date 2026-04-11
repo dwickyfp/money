@@ -10041,8 +10041,8 @@ def render_results(state: BotState) -> Panel:
     claimable_s = f"[white]${state.claimable_total:.2f}[/white]  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
     claim_summary = (
         f"{claim_mode}  pending [white]{state.pending_claim_count}[/white]  "
-        f"claimed today [green]{state.claimed_today_count}[/green]  "
-        f"failed today [red]{state.failed_today_count}[/red]"
+        f"claimed [green]{state.claimed_today_count}[/green]  "
+        f"failed [red]{state.failed_today_count}[/red]"
     )
 
     t = Table.grid(padding=(0, 1))
