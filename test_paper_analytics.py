@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -251,6 +252,163 @@ def test_settling_simulated_trade_updates_paper_trade_stats(tmp_path):
     asyncio.run(run_case())
 
 
+def test_daily_budget_cashflow_win_uses_gross_return_but_target_uses_profit(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
+        monkeypatch.setattr(tf, "DAILY_PROFIT_TARGET_USDC", 1.0)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xbudget-win",
+            direction="UP",
+            order_id="SIM-BUDGET-WIN",
+            now=now,
+        )
+        pos.entry_price = 0.8
+        pos.size = 2.5
+        pos.amount_usdc = 2.0
+
+        bot._record_daily_budget_open(pos)
+        await bot._settle_position(pos, "UP", pos.amount_usdc)
+
+        assert pos.status == "won"
+        assert pos.pnl == pytest.approx(0.5)
+        assert bot.state.daily_profit == pytest.approx(0.5)
+        assert bot.state.daily_budget_spent_usdc == pytest.approx(2.0)
+        assert bot.state.daily_budget_returned_usdc == pytest.approx(2.5)
+        assert bot._daily_budget_left() == pytest.approx(7.5)
+
+        panel = tf.render_results(bot.state)
+        console = Console(record=True, width=120)
+        console.print(panel)
+        text = console.export_text()
+        assert "returned=$2.50" in text
+        assert "left=$7.50" in text
+        assert "earned=$0.50" in text
+
+    asyncio.run(run_case())
+
+
+def test_daily_budget_cashflow_loss_spends_without_return(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xbudget-loss",
+            direction="UP",
+            order_id="SIM-BUDGET-LOSS",
+            now=now,
+        )
+
+        bot._record_daily_budget_open(pos)
+        await bot._settle_position(pos, "DOWN", pos.amount_usdc)
+
+        assert pos.status == "lost"
+        assert pos.pnl == pytest.approx(-2.0)
+        assert bot.state.daily_loss == pytest.approx(2.0)
+        assert bot.state.daily_profit == pytest.approx(0.0)
+        assert bot.state.daily_budget_spent_usdc == pytest.approx(2.0)
+        assert bot.state.daily_budget_returned_usdc == pytest.approx(0.0)
+        assert bot._daily_budget_left() == pytest.approx(5.0)
+
+    asyncio.run(run_case())
+
+
+def test_daily_budget_halt_lifts_after_gross_return(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 2.0)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xbudget-halt-lift",
+            direction="UP",
+            order_id="SIM-BUDGET-HALT-LIFT",
+            now=now,
+        )
+        pos.entry_price = 0.8
+        pos.size = 2.5
+        pos.amount_usdc = 2.0
+
+        bot._record_daily_budget_open(pos)
+        bot._sync_daily_budget_halt()
+
+        assert bot.state.daily_halted is True
+
+        await bot._settle_position(pos, "UP", pos.amount_usdc)
+
+        assert bot.state.daily_budget_spent_usdc == pytest.approx(2.0)
+        assert bot.state.daily_budget_returned_usdc == pytest.approx(2.5)
+        assert bot._daily_budget_left() == pytest.approx(2.5)
+        assert bot.state.daily_halted is False
+
+    asyncio.run(run_case())
+
+
+def test_daily_budget_cashflow_canceled_trade_returns_stake(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        pos = make_position(
+            condition_id="0xbudget-cancel",
+            direction="UP",
+            order_id="SIM-BUDGET-CANCEL",
+            now=now,
+        )
+
+        bot._record_daily_budget_open(pos)
+        await bot._mark_position_canceled(pos, "test cancel")
+
+        assert pos.status == "canceled"
+        assert bot.state.daily_budget_spent_usdc == pytest.approx(2.0)
+        assert bot.state.daily_budget_returned_usdc == pytest.approx(2.0)
+        assert bot._daily_budget_left() == pytest.approx(7.0)
+
+    asyncio.run(run_case())
+
+
+def test_daily_budget_cashflow_replays_today_trade_log(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
+    bot = make_bot(tmp_path)
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    placed_at = datetime.now(timezone.utc).isoformat()
+    open_record = {
+        "event": "open",
+        "condition_id": "0xbudget-replay",
+        "direction": "UP",
+        "order_id": "SIM-BUDGET-REPLAY",
+        "placed_at": placed_at,
+        "amount_usdc": 2.0,
+        "entry_price": 0.8,
+    }
+    close_record = {
+        "event": "close",
+        "condition_id": "0xbudget-replay",
+        "direction": "UP",
+        "order_id": "SIM-BUDGET-REPLAY",
+        "placed_at": placed_at,
+        "status": "won",
+        "amount_usdc": 2.0,
+        "entry_price": 0.8,
+        "pnl": 0.5,
+    }
+    path = tmp_path / "logs" / f"trades_{day}.jsonl"
+    path.write_text(
+        json.dumps(open_record) + "\n" + json.dumps(close_record) + "\n",
+        encoding="utf-8",
+    )
+
+    counted = bot._warm_daily_budget_cashflow(day)
+    bot._sync_daily_budget_halt()
+
+    assert counted == 2
+    assert bot.state.daily_budget_spent_usdc == pytest.approx(2.0)
+    assert bot.state.daily_budget_returned_usdc == pytest.approx(2.5)
+    assert bot._daily_budget_left() == pytest.approx(7.5)
+    assert bot.state.daily_halted is False
+
+
 def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
     async def run_case():
         bot = make_bot(tmp_path)
@@ -294,8 +452,11 @@ def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
 
 def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path, monkeypatch):
     monkeypatch.setattr(tf, "LIVE_TRADING", False)
+    monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
     bot = make_bot(tmp_path)
     bot.state.balance_usdc = 0.73
+    bot.state.daily_budget_spent_usdc = 2.0
+    bot.state.daily_budget_returned_usdc = 2.5
     bot.state.paper_stats.paper_trade_wins_total = 3
     bot.state.paper_stats.paper_trade_losses_total = 1
     bot.state.paper_stats.paper_trade_wins_today = 1
@@ -317,15 +478,18 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path, monkeypatc
     assert "Claims" in text
     assert "AutoClaim" not in text
     assert "Daily Budget" in text
-    assert "lost=$" in text
-    assert "won=$" in text
+    assert "spent=$" in text
+    assert "returned=$" in text
     assert "left=$" in text
     assert "Claim log" not in text
 
 
-def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path):
+def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
     bot = make_bot(tmp_path)
     bot.state.balance_usdc = 0.73
+    bot.state.daily_budget_spent_usdc = 2.0
+    bot.state.daily_budget_returned_usdc = 2.5
     bot.state.claimable_total = 5.5
     bot.state.pending_claim_count = 1
     bot.state.claimed_today_count = 2
@@ -340,6 +504,8 @@ def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path
     assert "Claim log" in text
     assert "queued $5.50" in text
     assert "Daily Budget" in text
+    assert "spent=$" in text
+    assert "returned=$" in text
     assert "left=$" in text
 
 
@@ -525,7 +691,7 @@ def test_stable_buy_sends_single_shadow_notification(tmp_path):
     asyncio.run(run_case())
 
 
-def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path):
+def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatch):
     class StubMarket:
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
             return tf.TradeResult(
@@ -538,6 +704,7 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path):
             )
 
     async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
         bot = make_bot(tmp_path)
         bot.market = StubMarket()
         now = datetime.now(timezone.utc)
@@ -923,6 +1090,84 @@ def test_live_low_balance_records_trade_failure_without_strategy_block(tmp_path,
         assert updated.execution_allowed is True
         assert updated.blocked_gate == ""
         assert updated.placement_failure_code == "INSUFFICIENT_BALANCE_PRECHECK"
+        assert "prediction_trade_failed" in contents
+        assert "prediction_blocked" not in contents
+
+    asyncio.run(run_case())
+
+
+def test_daily_budget_preflight_holds_trade_without_strategy_block(tmp_path, monkeypatch):
+    class StubMarket:
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("place_bet should not run when daily budget left is too small")
+
+    async def run_case():
+        monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 7.0)
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "compute_kelly_size", lambda **_kwargs: 2.0)
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.daily_budget_spent_usdc = 6.0
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xbudget-hold", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="budget hold",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-budget-hold",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="paper",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            decision_action="observe",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            execution_allowed=True,
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
+        strategy_block = bot._execution_block(
+            win=win,
+            signal=signal,
+            decision=decision,
+            elapsed_s=250,
+            seconds_remaining=45,
+            now=datetime.now(timezone.utc).timestamp(),
+        )
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+
+        assert strategy_block is None
+        assert len(bot.state.positions) == 0
+        assert updated.execution_allowed is True
+        assert updated.blocked_gate == ""
+        assert updated.placement_failure_code == "DAILY_BUDGET_PRECHECK"
         assert "prediction_trade_failed" in contents
         assert "prediction_blocked" not in contents
 

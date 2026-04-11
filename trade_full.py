@@ -6793,8 +6793,12 @@ class BotState:
     # ── Daily limits (reset at midnight UTC)
     daily_loss: float = 0.0           # realized losses today
     daily_profit: float = 0.0         # realized profit today
+    daily_budget_spent_usdc: float = 0.0
+    daily_budget_returned_usdc: float = 0.0
+    daily_budget_open_keys: set[str] = field(default_factory=set)
+    daily_budget_close_keys: set[str] = field(default_factory=set)
     daily_day: str = ""               # "YYYY-MM-DD" of current trading day
-    daily_halted: bool = False        # True when daily loss limit reached
+    daily_halted: bool = False        # True when daily budget cashflow limit reached
     daily_profit_halted: bool = False # True when daily profit target reached
 
     # ── Loss streak protection ──────────────────────────────────────────────
@@ -6936,6 +6940,17 @@ class TradingBot:
 
     async def run(self) -> None:
         self.state.log_event("[BOT] Starting up…")
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        self.state.daily_day = today
+        replayed_budget_events = self._warm_daily_budget_cashflow(today)
+        self._sync_daily_budget_halt(log_change=False)
+        if replayed_budget_events:
+            self.state.log_event(
+                f"[BUDGET] Replayed {replayed_budget_events} daily cashflow event(s) "
+                f"spent=${self.state.daily_budget_spent_usdc:.2f} "
+                f"returned=${self.state.daily_budget_returned_usdc:.2f} "
+                f"left=${self._daily_budget_left():.2f}"
+            )
         recovered, skipped = await self._recover_open_positions()
         if recovered:
             self.state.log_event(
@@ -6966,7 +6981,6 @@ class TradingBot:
             self.state.log_event(f"[CLAIM] Warmed {warmed_claims} claim record(s)")
         if not LIVE_TRADING:
             await self._sync_recovered_paper_positions()
-        self.state.daily_day = datetime.now(_UTC).strftime("%Y-%m-%d")
         self._sync_model_activation_status(reason="startup", allow_auto_promote=True, log_change=True)
         self._refresh_performance_history()
         self._log_startup_continuity_summary()
@@ -7013,6 +7027,134 @@ class TradingBot:
             "win_rate": round((wins / total * 100.0) if total else 0.0, 2),
             "pnl": pnl,
         }
+
+    def _reset_daily_budget_cashflow(self) -> None:
+        self.state.daily_budget_spent_usdc = 0.0
+        self.state.daily_budget_returned_usdc = 0.0
+        self.state.daily_budget_open_keys.clear()
+        self.state.daily_budget_close_keys.clear()
+
+    def _daily_budget_used(self) -> float:
+        return round(self.state.daily_budget_spent_usdc - self.state.daily_budget_returned_usdc, 6)
+
+    def _daily_budget_left(self) -> float:
+        if DAILY_BUDGET_USDC <= 0:
+            return float("inf")
+        return round(DAILY_BUDGET_USDC - self._daily_budget_used(), 6)
+
+    @staticmethod
+    def _daily_budget_key_from_position(pos: "Position") -> str:
+        return BotLogger._trade_key({
+            "order_id": pos.order_id,
+            "condition_id": pos.condition_id,
+            "direction": pos.direction,
+            "placed_at": pos.placed_at.isoformat() if hasattr(pos.placed_at, "isoformat") else str(pos.placed_at),
+        })
+
+    @staticmethod
+    def _daily_budget_return_amount(*, status: str, amount: float, entry_price: float, pnl: float | None) -> float:
+        status_key = str(status or "").strip().lower()
+        amount = max(0.0, float(amount or 0.0))
+        entry_price = float(entry_price or 0.0)
+        pnl_value = float(pnl) if pnl is not None else None
+        if status_key == "won":
+            if pnl_value is not None:
+                return max(0.0, round(amount + pnl_value, 6))
+            if entry_price > 0:
+                return max(0.0, round(amount / entry_price, 6))
+            return 0.0
+        if status_key in ("void", "canceled"):
+            return amount
+        return 0.0
+
+    def _record_daily_budget_open(self, pos: "Position") -> float:
+        key = self._daily_budget_key_from_position(pos)
+        amount = max(0.0, float(pos.amount_usdc or 0.0))
+        if not key or amount <= 0.0 or key in self.state.daily_budget_open_keys:
+            return 0.0
+        self.state.daily_budget_open_keys.add(key)
+        self.state.daily_budget_spent_usdc = round(self.state.daily_budget_spent_usdc + amount, 6)
+        return amount
+
+    def _record_daily_budget_close(self, pos: "Position") -> float:
+        key = self._daily_budget_key_from_position(pos)
+        if not key or key not in self.state.daily_budget_open_keys or key in self.state.daily_budget_close_keys:
+            return 0.0
+        returned = self._daily_budget_return_amount(
+            status=pos.status,
+            amount=pos.amount_usdc,
+            entry_price=pos.entry_price,
+            pnl=pos.pnl,
+        )
+        self.state.daily_budget_close_keys.add(key)
+        self.state.daily_budget_returned_usdc = round(self.state.daily_budget_returned_usdc + returned, 6)
+        return returned
+
+    def _record_daily_budget_open_raw(self, record: dict[str, Any]) -> int:
+        key = BotLogger._trade_key(record)
+        amount = max(0.0, _safe_float(record.get("amount_usdc"), 0.0))
+        if not key or amount <= 0.0 or key in self.state.daily_budget_open_keys:
+            return 0
+        self.state.daily_budget_open_keys.add(key)
+        self.state.daily_budget_spent_usdc = round(self.state.daily_budget_spent_usdc + amount, 6)
+        return 1
+
+    def _record_daily_budget_close_raw(self, record: dict[str, Any]) -> int:
+        key = BotLogger._trade_key(record)
+        if not key or key not in self.state.daily_budget_open_keys or key in self.state.daily_budget_close_keys:
+            return 0
+        returned = self._daily_budget_return_amount(
+            status=str(record.get("status", "")),
+            amount=_safe_float(record.get("amount_usdc"), 0.0),
+            entry_price=_safe_float(record.get("entry_price"), 0.0),
+            pnl=_safe_float(record.get("pnl"), 0.0) if record.get("pnl") is not None else None,
+        )
+        self.state.daily_budget_close_keys.add(key)
+        self.state.daily_budget_returned_usdc = round(self.state.daily_budget_returned_usdc + returned, 6)
+        return 1
+
+    def _warm_daily_budget_cashflow(self, day_key: str | None = None) -> int:
+        self._reset_daily_budget_cashflow()
+        day_key = day_key or datetime.now(_UTC).strftime("%Y-%m-%d")
+        path = self.state.logger._dir / f"trades_{day_key}.jsonl"
+        if not path.exists():
+            return 0
+        counted = 0
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    try:
+                        record = json.loads(line)
+                    except Exception:
+                        continue
+                    event = str(record.get("event", "") or "")
+                    if event == "open":
+                        counted += self._record_daily_budget_open_raw(record)
+                    elif event == "close":
+                        counted += self._record_daily_budget_close_raw(record)
+        except Exception:
+            return counted
+        return counted
+
+    def _sync_daily_budget_halt(self, *, log_change: bool = False) -> None:
+        if DAILY_BUDGET_USDC <= 0:
+            self.state.daily_halted = False
+            return
+        used = self._daily_budget_used()
+        should_halt = used >= DAILY_BUDGET_USDC
+        if should_halt and not self.state.daily_halted:
+            self.state.daily_halted = True
+            if log_change:
+                self.state.log_event(
+                    f"[HALT] Daily budget used ${used:.2f} reached "
+                    f"limit ${DAILY_BUDGET_USDC:.2f} — no new bets until midnight UTC"
+                )
+        elif not should_halt and self.state.daily_halted:
+            self.state.daily_halted = False
+            if log_change:
+                self.state.log_event(
+                    f"[BOT] Halt lifted — daily budget left ${self._daily_budget_left():.2f}"
+                )
 
     def _sync_model_activation_status(
         self,
@@ -7079,6 +7221,9 @@ class TradingBot:
                 "balance_usdc": round(float(self.state.balance_usdc or 0.0), 6),
                 "daily_loss": round(float(self.state.daily_loss or 0.0), 6),
                 "daily_profit": round(float(self.state.daily_profit or 0.0), 6),
+                "daily_budget_spent_usdc": round(float(self.state.daily_budget_spent_usdc or 0.0), 6),
+                "daily_budget_returned_usdc": round(float(self.state.daily_budget_returned_usdc or 0.0), 6),
+                "daily_budget_left_usdc": round(float(self._daily_budget_left()), 6) if DAILY_BUDGET_USDC > 0 else None,
                 "daily_halted": bool(self.state.daily_halted),
                 "daily_profit_halted": bool(self.state.daily_profit_halted),
                 "bets_this_hour": int(self.state.bets_this_hour or 0),
@@ -8026,15 +8171,13 @@ class TradingBot:
                     )
 
         if DAILY_BUDGET_USDC > 0:
-            net_loss = self.state.daily_loss - self.state.daily_profit
-            if net_loss >= DAILY_BUDGET_USDC:
-                if not self.state.daily_halted:
-                    self.state.daily_halted = True
-                    self.state.log_event(
-                        f"[HALT] Daily net loss limit ${DAILY_BUDGET_USDC:.2f} reached "
-                        f"(net loss ${net_loss:.2f} today) — no new bets until midnight UTC"
-                    )
-                return ("GATE_DAILY_LOSS_LIMIT", "daily loss limit reached")
+            self._sync_daily_budget_halt(log_change=True)
+            if self.state.daily_halted:
+                used = self._daily_budget_used()
+                return (
+                    "GATE_DAILY_LOSS_LIMIT",
+                    f"daily budget used ${used:.2f} hit limit ${DAILY_BUDGET_USDC:.2f}",
+                )
 
         if DAILY_PROFIT_TARGET_USDC > 0 and self.state.daily_profit >= DAILY_PROFIT_TARGET_USDC:
             if not self.state.daily_profit_halted:
@@ -8529,6 +8672,7 @@ class TradingBot:
                 self.state.daily_day = today
                 self.state.daily_loss = 0.0
                 self.state.daily_profit = 0.0
+                self._reset_daily_budget_cashflow()
                 self.state.daily_halted = False
                 self.state.daily_profit_halted = False
                 self.state.paper_stats.reset_today()
@@ -8912,6 +9056,37 @@ class TradingBot:
                 self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
                 self.state.log_event(f"[TRADE] Aborted — {error_msg}")
                 return
+        if DAILY_BUDGET_USDC > 0:
+            daily_budget_left = self._daily_budget_left()
+            if bet_size > daily_budget_left + 1e-9:
+                error_msg = (
+                    f"daily budget left ${daily_budget_left:.2f} below target bet "
+                    f"${bet_size:.2f}"
+                )
+                result = TradeResult(
+                    success=False,
+                    error=error_msg,
+                    failure_code="DAILY_BUDGET_PRECHECK",
+                    retryable=False,
+                    attempt_consumed=True,
+                )
+                execution_state = self._complete_window_execution_attempt(
+                    condition_id=win.condition_id,
+                    row_id=prediction_row_id,
+                    result=result,
+                    attempted_at=attempt_started_at_ts,
+                )
+                await self._mark_prediction_trade_failed(
+                    prediction_row_id,
+                    condition_id=win.condition_id,
+                    result=result,
+                    attempt_count=execution_state.attempt_count,
+                    attempted_at=attempt_started_at,
+                )
+                self._sync_daily_budget_halt(log_change=True)
+                self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
+                self.state.log_event(f"[TRADE] Held — {error_msg}")
+                return
         self.state.log_event(
             f"[KELLY/{zone_tag}] bankroll=${bankroll:.2f} conf={signal.confidence:.2f} "
             f"implied={entry_odds:.3f} → bet=${bet_size:.2f}"
@@ -8959,6 +9134,8 @@ class TradingBot:
             )
             async with self.state._lock:
                 self.state.positions.append(pos)
+                self._record_daily_budget_open(pos)
+            self._sync_daily_budget_halt(log_change=True)
             self.state.bets_this_hour += 1
             await self._attach_trade_to_prediction(pos)
             self.state.logger.log_trade_open(pos, window_question=win.question)
@@ -9202,15 +9379,6 @@ class TradingBot:
                 self.state.daily_profit    += pos.pnl or 0
                 self.state.consecutive_wins   += 1
                 self.state.consecutive_losses  = 0
-                # Un-halt if profit brought net loss back below the limit
-                if (self.state.daily_halted and DAILY_BUDGET_USDC > 0
-                        and (self.state.daily_loss - self.state.daily_profit) < DAILY_BUDGET_USDC):
-                    self.state.daily_halted = False
-                    self.state.log_event(
-                        f"[BOT] Halt lifted — net loss now "
-                        f"${self.state.daily_loss - self.state.daily_profit:.2f} "
-                        f"(profit restored budget)"
-                    )
             elif won is False:
                 self.state.loss_count         += 1
                 self.state.total_pnl          += pos.pnl or 0
@@ -9223,6 +9391,7 @@ class TradingBot:
                         f"[STREAK_HALT] {self.state.consecutive_losses} consecutive losses — "
                         f"pausing bets for {STREAK_PAUSE_MIN}min"
                     )
+            self._record_daily_budget_close(pos)
 
             # Record for AI historical context
             if isinstance(won, bool):
@@ -9257,6 +9426,7 @@ class TradingBot:
                 self.state.paper_prediction_records[pos.condition_id] = prediction_record
             self.state.resolved_count += 1
 
+        self._sync_daily_budget_halt(log_change=True)
         self.state.log_event(
             f"[RESULT] {pos.direction} {pos.status.upper()} PnL={pos.pnl:+.2f} actual={actual_winner}"
         )
@@ -9280,7 +9450,9 @@ class TradingBot:
                 return
             pos.status = "canceled"
             pos.pnl = 0.0
+            self._record_daily_budget_close(pos)
 
+        self._sync_daily_budget_halt(log_change=True)
         self.state.log_event(f"[CANCEL] {reason}")
         self.state.logger.log_trade_close(pos)
 
@@ -10518,15 +10690,15 @@ def render_results(state: BotState) -> Panel:
 
     t.add_row("Balance",   f"[bold white]$  {state.balance_usdc:.2f} USDC[/bold white]")
     if DAILY_BUDGET_USDC > 0:
-        net_loss  = state.daily_loss - state.daily_profit
-        remaining = DAILY_BUDGET_USDC - net_loss   # can exceed limit when profits > losses
+        budget_used = state.daily_budget_spent_usdc - state.daily_budget_returned_usdc
+        remaining = DAILY_BUDGET_USDC - budget_used   # can exceed limit after profitable returns
         if state.daily_halted:
-            budget_s = f"[bold red]HALTED — net loss ${net_loss:.2f} hit limit ${DAILY_BUDGET_USDC:.2f}[/bold red]"
+            budget_s = f"[bold red]HALTED — cash used ${budget_used:.2f} hit limit ${DAILY_BUDGET_USDC:.2f}[/bold red]"
         else:
             bud_color = "green" if remaining >= DAILY_BUDGET_USDC else ("yellow" if remaining > 0 else "red")
             budget_s = (
-                f"lost=[red]${state.daily_loss:.2f}[/red]  "
-                f"won=[green]${state.daily_profit:.2f}[/green]  "
+                f"spent=[red]${state.daily_budget_spent_usdc:.2f}[/red]  "
+                f"returned=[green]${state.daily_budget_returned_usdc:.2f}[/green]  "
                 f"left=[{bud_color}]${remaining:.2f}[/{bud_color}]  "
                 f"limit=${DAILY_BUDGET_USDC:.2f}"
             )

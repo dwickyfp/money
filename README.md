@@ -651,12 +651,12 @@ The **filter accuracy** score (`blocked_accuracy`) = % of blocked trades that wo
 
 | Control | Config key | Behavior |
 |---|---|---|
-| Daily loss limit | `DAILY_BUDGET_USDC` | Halt trading when net loss ≥ limit (0 = disabled) |
-| Daily profit target | `DAILY_PROFIT_TARGET_USDC` | Halt trading when profit ≥ target (0 = disabled) |
+| Daily cashflow budget | `DAILY_BUDGET_USDC` | Halt trading when spent - returned ≥ limit (0 = disabled) |
+| Daily profit target | `DAILY_PROFIT_TARGET_USDC` | Halt trading when net profit ≥ target (0 = disabled) |
 | Max bets per hour | `MAX_BETS_PER_HOUR = 8` | Hard cap on hourly trade count |
 | Min balance | `BET_SIZE_USDC + $0.50` | Skip if insufficient USDC (live only) |
 
-Daily limits reset at **UTC midnight**. If a win during a halted day brings the net loss back below the budget threshold, the halt is automatically lifted.
+Daily limits reset at **UTC midnight**. Budget left is calculated as `DAILY_BUDGET_USDC - spent + returned`; a winning trade returns its gross payout to the budget, while the daily profit target still counts profit only.
 
 ---
 
@@ -739,7 +739,7 @@ All settings live in `config.py` and can be overridden via environment variables
 |---|---|---|
 | `LIVE_TRADING` | `false` | `true` = real orders; `false` = paper simulation |
 | `BET_SIZE_USDC` | `2.00` | Maximum bet size ceiling (Kelly may bet less) |
-| `DAILY_BUDGET_USDC` | `0` | Max daily net loss (0 = disabled) |
+| `DAILY_BUDGET_USDC` | `0` | Max daily cashflow used, calculated as spent - returned (0 = disabled) |
 | `DAILY_PROFIT_TARGET_USDC` | `0` | Daily profit target to halt (0 = disabled) |
 | `MAX_BETS_PER_HOUR` | `8` | Hourly bet cap |
 
@@ -871,7 +871,7 @@ Every 1s (_trading_loop)
 └─ Phase 2 [elapsed_s ≥ 180 only — one bet per window]
     │
     ├─ Guard checks:
-    │   - daily loss/profit limits not breached
+    │   - daily cashflow budget/profit target not breached
     │   - bets_this_hour < MAX_BETS_PER_HOUR
     │   - balance sufficient (live only)
     │   - seconds_remaining ≥ LAST_MIN_SECONDS_GUARD (8s)
