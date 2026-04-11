@@ -47,7 +47,7 @@ SIGNAL_COOLDOWN_S    = 1
 MAX_BETS_PER_HOUR    = 10
 HEARTBEAT_INTERVAL_S = 30     # POST /heartbeats to keep session alive
 LIVE_TRADING         = os.getenv("LIVE_TRADING", "false").lower() == "true"
-AUTO_CLAIM_THRESHOLD = float(os.getenv("AUTO_CLAIM_THRESHOLD", "4.00"))
+AUTO_CLAIM_THRESHOLD = float(os.getenv("AUTO_CLAIM_THRESHOLD", "0.00"))
 AUTO_CLAIM_ENABLED = os.getenv("AUTO_CLAIM_ENABLED", "false").lower() == "true"
 AUTO_CLAIM_LIVE_ONLY = os.getenv("AUTO_CLAIM_LIVE_ONLY", "true").lower() == "true"
 AUTO_CLAIM_SCAN_INTERVAL_S = int(os.getenv("AUTO_CLAIM_SCAN_INTERVAL_S", "300"))
@@ -6949,6 +6949,8 @@ class BotState:
     # ── Results
     balance_usdc: float = 0.0
     total_pnl: float = 0.0
+    total_gross_wins: float = 0.0   # sum of net gain from all winning bets
+    total_gross_losses: float = 0.0 # sum of stakes lost from all losing bets
     resolved_count: int = 0
     win_count: int = 0
     loss_count: int = 0
@@ -9595,15 +9597,17 @@ class TradingBot:
             pos.status = "won" if won is True else "lost" if won is False else "void"
             pos.pnl    = (amount * (1.0 / pos.entry_price - 1)) if won is True else (-amount if won is False else 0.0)
             if won is True:
-                self.state.win_count       += 1
-                self.state.total_pnl       += pos.pnl or 0
-                self.state.daily_profit    += pos.pnl or 0
-                self.state.consecutive_wins   += 1
-                self.state.consecutive_losses  = 0
+                self.state.win_count           += 1
+                self.state.total_pnl           += pos.pnl or 0
+                self.state.total_gross_wins    += pos.pnl or 0
+                self.state.daily_profit        += pos.pnl or 0
+                self.state.consecutive_wins    += 1
+                self.state.consecutive_losses   = 0
             elif won is False:
-                self.state.loss_count         += 1
-                self.state.total_pnl          += pos.pnl or 0
-                self.state.daily_loss         += amount
+                self.state.loss_count          += 1
+                self.state.total_pnl           += pos.pnl or 0
+                self.state.total_gross_losses  += amount
+                self.state.daily_loss          += amount
                 self.state.consecutive_losses += 1
                 self.state.consecutive_wins    = 0
                 if self.state.consecutive_losses >= STREAK_HALT_COUNT:
@@ -11109,7 +11113,8 @@ def render_results(state: BotState) -> Panel:
     wr    = state.win_rate
     wr_bar = _win_rate_bar(wr, width=18)
     pnl_color = "green" if state.total_pnl >= 0 else "red"
-    pnl_s = f"+${state.total_pnl:.2f}" if state.total_pnl >= 0 else f"-${abs(state.total_pnl):.2f}"
+    pnl_sign = "+" if state.total_pnl >= 0 else "-"
+    pnl_s = f"{pnl_sign}${abs(state.total_pnl):.2f}"
     last_claim = state.claim_log[-1] if state.claim_log else f"– nothing to claim"
     resolved_pending = len([p for p in state.positions if p.status == "open"])
     claim_mode = "[green]EXEC[/green]" if AUTO_CLAIM_ENABLED else "[yellow]DISCOVERY[/yellow]"
@@ -11126,14 +11131,14 @@ def render_results(state: BotState) -> Panel:
     if state.claim_last_scan_identities:
         scan_bits.append("ids=" + "/".join(state.claim_last_scan_identities)[:34])
     scan_s = ("  " + " ".join(scan_bits)) if scan_bits else ""
+    _thr_s = f"  thr=${AUTO_CLAIM_THRESHOLD:.2f}" if AUTO_CLAIM_THRESHOLD > 0 else ""
     claim_summary = (
         f"{claim_mode}  amt=[white]${state.claimable_total:.2f}[/white]"
         f"  pending=[yellow]${state.expected_claimable_total:.2f}[/yellow]"
         f"  p=[white]{state.pending_claim_count}[/white]"
         f"  ok=[green]{state.claimed_today_count}[/green]"
         f"  fail=[red]{state.failed_today_count}[/red]"
-        f"  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
-        f"{scan_s}"
+        f"{_thr_s}{scan_s}"
     )
     show_claim_log = bool(state.claim_log) and "nothing to claim" not in last_claim.lower()
 
@@ -11193,7 +11198,11 @@ def render_results(state: BotState) -> Panel:
             f"today [green]{ps.paper_trade_wins_today}W[/green]/[red]{ps.paper_trade_losses_today}L[/red] "
             f"({ps.paper_trade_today_total} · {ps.paper_trade_win_rate_today:.1f}%)"
         )
-    t.add_row("Total PnL", f"[{pnl_color}]$  {pnl_s}[/{pnl_color}]")
+    pnl_breakdown = (
+        f"  [dim](wins [green]+${state.total_gross_wins:.2f}[/green]"
+        f"  losses [red]-${state.total_gross_losses:.2f}[/red])[/dim]"
+    )
+    t.add_row("Net Profit", f"[{pnl_color}]{pnl_s}[/{pnl_color}]{pnl_breakdown}")
 
     # Streak indicator
     if state.streak_pause_until > 0 and time.time() < state.streak_pause_until:
