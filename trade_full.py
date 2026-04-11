@@ -8715,6 +8715,9 @@ class TradingBot:
                 f"${record.settlement_price:,.2f} source={record.settlement_source} "
                 f"({elapsed_s:.0f}s post-expiry)"
             )
+            # Wake up the claim manager immediately so it can scan for redeemable
+            # positions without waiting for the next scheduled scan interval.
+            self.state.market_resolved_event.set()
             return True
 
         self.state.log_event(

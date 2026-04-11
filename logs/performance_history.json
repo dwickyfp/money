@@ -55,7 +55,7 @@
       "applied_state": "active",
       "balance_usdc": 5.677964,
       "bets_this_hour": 0,
-      "claim_last_scan_at": 1775939067.662596,
+      "claim_last_scan_at": 1775939191.249387,
       "claim_last_scan_candidates": 1,
       "claim_last_scan_error": "",
       "claim_last_scan_identities": [
@@ -63,7 +63,7 @@
         "funder:0x6B41\u2026578a"
       ],
       "claim_last_scan_status": "address:ok,funder:ok",
-      "claim_last_scan_trigger": "startup",
+      "claim_last_scan_trigger": "scheduled",
       "claimable_total": 42.5431,
       "claimed_today_count": 22,
       "daily_budget_left_usdc": 66.567152,
@@ -230,19 +230,19 @@
         "has_l2_credentials": true,
         "last_auth_error": "",
         "last_auth_failure_at": "",
-        "last_auth_success_at": "2026-04-11T20:24:27.863Z",
-        "last_heartbeat_ok_at": "2026-04-11T20:24:27.863Z",
-        "last_positions_checked_at": "2026-04-11T20:24:28.166Z",
+        "last_auth_success_at": "2026-04-11T20:26:28.759Z",
+        "last_heartbeat_ok_at": "2026-04-11T20:26:28.759Z",
+        "last_positions_checked_at": "2026-04-11T20:26:31.629Z",
         "last_positions_error": "",
         "last_positions_status": "ok",
         "last_positions_user": "0x6B41\u2026578a",
         "market_ws_connected": true,
-        "market_ws_last_message_at": "2026-04-11T20:24:38.329Z",
+        "market_ws_last_message_at": "2026-04-11T20:26:31.948Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
       "threshold_profile_version": "rtp_v1",
-      "updated_at": "2026-04-11T20:24:39.231Z"
+      "updated_at": "2026-04-11T20:26:32.841Z"
     }
   }
 }

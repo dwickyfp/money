@@ -8939,3 +8939,13 @@
 2026-04-11T20:25:01.607Z  [MKT] Window: Bitcoin Up or Down - April 11, 4:25PM-4:30PM ET | beat=$73,450.99 | ends 20:30:00 UTC
 2026-04-11T20:25:02.356Z  [SIGNAL/OBSERVE] SKIP conf=0.67 src=ml U=32.6% D=67.4% | ml: candidate confidence 67% below 70%
 2026-04-11T20:25:07.042Z  [MKTWS] Market WebSocket connected
+2026-04-11T20:25:30.274Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-11T20:25:33.255Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-11T20:25:43.299Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-11T20:25:48.329Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-11T20:26:15.494Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-11T20:26:18.545Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-11T20:26:27.598Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-11T20:26:29.612Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-11T20:26:31.956Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-11T20:26:38.919Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
