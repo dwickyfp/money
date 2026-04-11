@@ -23,6 +23,7 @@
     "price_roc_30s",
     "cvd_change_last_30s",
     "odds_edge_strength",
+    "beat_above_ratio",
     "elapsed_fraction",
     "gap_alignment_interaction",
     "realized_vol_30s",

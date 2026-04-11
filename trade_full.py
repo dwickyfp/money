@@ -2513,14 +2513,25 @@ class DecisionMaker:
         contrarian = (ai_dir != natural_dir)  # AI bets against current BTC position
         weak_consensus = ctx.signal_alignment <= 2
         is_temp_dip = ctx.dip_label == "TEMPORARY_DIP"
+        # Sustained position: price has been on the same side as natural_dir for 80%+ of the window.
+        # Betting contrarian against a sustained move requires the same high conviction.
+        sustained_contrarian_position = (
+            (ai_dir == "DOWN" and ctx.beat_above_ratio >= 0.80) or
+            (ai_dir == "UP"  and ctx.beat_below_ratio >= 0.80)
+        )
 
-        if contrarian and (is_temp_dip or weak_consensus):
+        if contrarian and (is_temp_dip or weak_consensus or sustained_contrarian_position):
             required = ctx.dir_conflict_min_conf
             if signal.confidence < required:
+                conflict_reason = (
+                    "TEMP_DIP" if is_temp_dip
+                    else f"sustained {natural_dir} {ctx.beat_above_ratio if ai_dir == 'DOWN' else ctx.beat_below_ratio:.0%}" if sustained_contrarian_position
+                    else "weak"
+                )
                 return TradeDecision(
                     action="SKIP", direction=ai_dir, confidence=signal.confidence,
                     reason=(
-                        f"contrarian {ai_dir} vs {'TEMP_DIP' if is_temp_dip else 'weak'} "
+                        f"contrarian {ai_dir} vs {conflict_reason} "
                         f"alignment={ctx.signal_alignment} — "
                         f"need conf≥{required:.0%}, got {signal.confidence:.0%}"
                     ),
@@ -4349,6 +4360,7 @@ MODEL_FEATURE_COLUMNS = [
     "price_roc_30s",
     "cvd_change_last_30s",
     "odds_edge_strength",
+    "beat_above_ratio",
     "elapsed_fraction",
     "gap_alignment_interaction",
     "realized_vol_30s",
@@ -4394,6 +4406,7 @@ NUMERIC_DEFAULTS = {
     "signal_alignment_lag1": 0.0,
     "odds_edge_strength_lag1": 0.0,
     "ob_imbalance": 0.0,
+    "beat_above_ratio": 0.5,
     "fair_up": 0.5,
     "fair_down": 0.5,
     "edge_up": 0.0,
@@ -5033,6 +5046,7 @@ class SignalFeatures:
     odds_edge_strength_lag1: float = 0.0
     gap_crossed_zero: int = 0
     ob_imbalance: float = 0.0
+    beat_above_ratio: float = 0.5
     fair_up: float = 0.5
     fair_down: float = 0.5
     edge_up: float = 0.0
@@ -5382,9 +5396,11 @@ class RuntimePolicy:
         _proximity_active = features.is_bandar_zone or features.is_proximity_risk or features.is_proximity_risk_above or features.is_proximity_risk_below
         if phase_bucket in ("RESERVE", "EARLY_EXEC", "LATE_EXEC") and _proximity_active:
             bump = _safe_float(profile.get("late_risk_bump"), SOFT_PENALTY_CONF_BUMP)
-            # Extra bump for BUY_UP signal when price is actually below target (must reverse).
+            # Extra bump for contrarian bets: betting against the current price position.
             if side == LABEL_BUY_UP and features.is_proximity_risk_below:
-                bump += SOFT_PENALTY_CONF_BUMP
+                bump += SOFT_PENALTY_CONF_BUMP  # UP bet when price is BELOW target
+            elif side == LABEL_BUY_DOWN and features.is_proximity_risk_above:
+                bump += SOFT_PENALTY_CONF_BUMP  # DOWN bet when price is ABOVE target
             required_conf += bump
 
         if spread < spread_floor:
@@ -5531,6 +5547,9 @@ class RuntimeSignalEngine:
         # Prevents lagging technicals from inflating UP confidence when gap has clearly crossed down.
         if features.is_late_window and features.gap_signed_pct < -0.02:
             prob_up = min(prob_up, 0.65)
+        # Symmetric cap: price meaningfully above target in final 60s — DOWN reversal is unlikely.
+        if features.is_late_window and features.gap_signed_pct > 0.02:
+            prob_up = max(prob_up, 0.35)  # i.e., DOWN confidence ≤ 65%
         return _clip_probability(prob_up)
 
     def _predict_model_probability(self, features: SignalFeatures, bundle: tuple[Any, Any, ModelManifest] | None) -> tuple[float, str]:
@@ -5573,6 +5592,9 @@ class RuntimeSignalEngine:
         # Counteracts the model's learned bias of "proximity + bullish technicals = high UP".
         if features.is_late_window and features.gap_signed_pct < -0.02:
             prob_up = min(prob_up, 0.65)
+        # Symmetric cap: price meaningfully above target in final 60s — cap ML DOWN confidence.
+        if features.is_late_window and features.gap_signed_pct > 0.02:
+            prob_up = max(prob_up, 0.35)  # i.e., DOWN confidence ≤ 65%
         return _clip_probability(prob_up), ""
 
     def predict(self, features: SignalFeatures) -> SignalPrediction:
@@ -6239,6 +6261,9 @@ def _prepare_training_frame(dataset: pd.DataFrame) -> pd.DataFrame:
         frame["realized_vol_60s"] = frame["realized_vol_60s"].fillna(computed_vol_60s).fillna(0.0)
 
     for column in MODEL_FEATURE_COLUMNS:
+        if column not in frame.columns:
+            # New feature not yet present in historical logs — backfill with default.
+            frame[column] = NUMERIC_DEFAULTS.get(column, 0.0)
         frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(NUMERIC_DEFAULTS.get(column, 0.0))
     return frame
 
@@ -6972,6 +6997,7 @@ class BotState:
     window: WindowInfo | None = None
     window_found_at: float = 0.0
     market_resolved_event: asyncio.Event = field(default_factory=asyncio.Event)
+    balance_refresh_event: asyncio.Event = field(default_factory=asyncio.Event)
 
     # ── Live odds
     up_odds: float | None = None
@@ -7734,6 +7760,7 @@ class TradingBot:
                 _safe_float(previous_row.get("gap_signed_pct"), 0.0) < 0 and gap_signed_pct > 0
             ) else 0,
             ob_imbalance=ob_imbalance,
+            beat_above_ratio=_safe_float(beat_chop.get("above_ratio"), 0.5),
             fair_up=fair.get("fair_up", 0.5),
             fair_down=fair.get("fair_down", 0.5),
             edge_up=fair.get("edge_up", 0.0),
@@ -10741,6 +10768,8 @@ class TradingBot:
                 "last_attempt_at": submitted.last_attempt_at or submitted.last_seen_at,
             })
             self._persist_claim_state(final)
+            if final.status == "confirmed":
+                self.state.balance_refresh_event.set()
 
         self._sync_claim_runtime_counts()
         if candidates or trigger == "startup" or self.state.claim_last_scan_error:
@@ -10779,7 +10808,14 @@ class TradingBot:
             bal = await self.market.get_balance()
             if bal > 0:
                 self.state.balance_usdc = bal
-            await asyncio.sleep(120)
+            try:
+                await asyncio.wait_for(
+                    self.state.balance_refresh_event.wait(),
+                    timeout=120,
+                )
+            except asyncio.TimeoutError:
+                pass
+            self.state.balance_refresh_event.clear()
 
     async def _refresh_polymarket_session(self, reason: str) -> bool:
         ok, detail = await self.market.refresh_session()
