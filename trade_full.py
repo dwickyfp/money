@@ -3997,14 +3997,21 @@ class TelegramNotifier:
 
     # ── Public fire-and-forget helpers ────────────────────────────────────────
 
-    def notify_window(self, win: "WindowInfo") -> None:
+    def notify_window(self, win: "WindowInfo", state: "BotState | None" = None) -> None:
         """New market window detected."""
         if not self._enabled:
             return
+        record_line = ""
+        if state is not None:
+            record_line = (
+                f"Record: Win {state.win_count} / Lose {state.loss_count}  "
+                f"Winrate: {state.win_rate:.1f}%\n"
+            )
         text = (
             f"🆕 <b>New Window</b> | {win.window_label} UTC\n"
             f"Beat: <code>${win.beat_price:,.2f}</code>\n"
             f"Ends: {win.end_time.strftime('%H:%M:%S')} UTC\n"
+            f"{record_line}"
             f"Mode: {self._mode}"
         )
         self._fire(text)
@@ -8779,7 +8786,7 @@ class TradingBot:
                 if current_execution_state is not None:
                     self.state.window_execution_states[win.condition_id] = current_execution_state
                 self.state.market_resolved_event.clear()
-                self.notifier.notify_window(win)
+                self.notifier.notify_window(win, self.state)
                 self.state.log_event(
                     f"[MKT] Window: {win.question[:55]} | "
                     f"beat=${win.beat_price:,.2f} | ends {win.end_time.strftime('%H:%M:%S UTC')}"
