@@ -8875,3 +8875,18 @@
 {"ts": "2026-04-11T19:43:00.312Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%"}
 {"ts": "2026-04-11T19:43:05.353Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 74%"}
 {"ts": "2026-04-11T19:43:30.522Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%"}
+{"ts": "2026-04-11T19:43:43.566Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%"}
+{"ts": "2026-04-11T19:43:55.665Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 74%"}
+{"ts": "2026-04-11T19:44:00.720Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: candidate confidence 55% below 78%"}
+{"ts": "2026-04-11T19:44:05.768Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 78%"}
+{"ts": "2026-04-11T19:44:37.084Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
+{"ts": "2026-04-11T19:44:45.174Z", "msg": "[SIGNAL/LATE_EXEC] BUY_UP conf=0.79 src=ml U=79.4% D=20.6% | ml: BUY_UP prob=79% edge=+58.8%"}
+{"ts": "2026-04-11T19:44:45.174Z", "msg": "[SHADOW] BUY_UP conf=79% \u2014 blocked by GATE_NO_MOVE"}
+{"ts": "2026-04-11T19:44:57.296Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-11T19:45:04.924Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 11, 3:45PM-3:50PM ET | beat=$73,726.03 | ends 19:50:00 UTC"}
+{"ts": "2026-04-11T19:45:05.367Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+40.1%"}
+{"ts": "2026-04-11T19:45:05.876Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-11T19:45:10.428Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+52.3%"}
+{"ts": "2026-04-11T19:45:18.046Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=19:40"}
+{"ts": "2026-04-11T19:45:18.049Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=19:40"}
+{"ts": "2026-04-11T19:45:18.049Z", "msg": "[PRED/LIVE] UP HIT | actual=UP gate=GATE_NO_MOVE window=19:40"}
