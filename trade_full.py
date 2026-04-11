@@ -28,6 +28,7 @@ POLY_ETH_PRIVATE_KEY = os.getenv("POLY_ETH_PRIVATE_KEY", "")
 # ── API base URLs ────────────────────────────────────────────────────────────
 CLOB_HOST = "https://clob.polymarket.com"
 GAMMA_API = "https://gamma-api.polymarket.com"
+DATA_API  = "https://data-api.polymarket.com"
 CHAIN_ID  = 137
 
 # ── WebSocket URLs ───────────────────────────────────────────────────────────
@@ -42,11 +43,21 @@ BTC_HISTORY_SIZE = 300   # rolling ticks kept in memory
 BET_SIZE_USDC             = float(os.getenv("BET_SIZE_USDC", "2.00"))
 DAILY_BUDGET_USDC         = float(os.getenv("DAILY_BUDGET_USDC", "0"))          # 0 = disabled
 DAILY_PROFIT_TARGET_USDC  = float(os.getenv("DAILY_PROFIT_TARGET_USDC", "0"))   # 0 = disabled
-AUTO_CLAIM_THRESHOLD = 4.00   # min winnings before auto-claim note
 SIGNAL_COOLDOWN_S    = 1
 MAX_BETS_PER_HOUR    = 10
 HEARTBEAT_INTERVAL_S = 30     # POST /heartbeats to keep session alive
 LIVE_TRADING         = os.getenv("LIVE_TRADING", "false").lower() == "true"
+AUTO_CLAIM_THRESHOLD = float(os.getenv("AUTO_CLAIM_THRESHOLD", "4.00"))
+AUTO_CLAIM_ENABLED = os.getenv("AUTO_CLAIM_ENABLED", "false").lower() == "true"
+AUTO_CLAIM_LIVE_ONLY = os.getenv("AUTO_CLAIM_LIVE_ONLY", "true").lower() == "true"
+AUTO_CLAIM_SCAN_INTERVAL_S = int(os.getenv("AUTO_CLAIM_SCAN_INTERVAL_S", "300"))
+AUTO_CLAIM_MAX_RETRIES = int(os.getenv("AUTO_CLAIM_MAX_RETRIES", "3"))
+POLY_RELAYER_URL = os.getenv("POLY_RELAYER_URL", "https://relayer-v2.polymarket.com/")
+POLY_BUILDER_API_KEY = os.getenv("POLY_BUILDER_API_KEY", "")
+POLY_BUILDER_SECRET = os.getenv("POLY_BUILDER_SECRET", "")
+POLY_BUILDER_PASSPHRASE = os.getenv("POLY_BUILDER_PASSPHRASE", "")
+POLY_CTF_ADDRESS = os.getenv("POLY_CTF_ADDRESS", "0x4d97dcd97ec945f40cf65f87097ace5ea0476045")
+POLY_USDC_ADDRESS = os.getenv("POLY_USDC_ADDRESS", "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")
 POLY_CREDS_REFRESH_INTERVAL_S = int(os.getenv("POLY_CREDS_REFRESH_INTERVAL_S", str(23 * 3600)))
 POLY_CREDS_REFRESH_RETRY_S = int(os.getenv("POLY_CREDS_REFRESH_RETRY_S", "3600"))
 POLY_AUTH_HEALTHCHECK_INTERVAL_S = int(os.getenv("POLY_AUTH_HEALTHCHECK_INTERVAL_S", "300"))
@@ -218,6 +229,7 @@ Files written to logs/ (rotated daily at UTC midnight):
   prices_YYYY-MM-DD.jsonl  — 5-second BTC price + volume snapshots
   prediction_analytics_YYYY-MM-DD.jsonl — unified prediction/shadow/trade analytics
   settlements_YYYY-MM-DD.jsonl — market settlement registry for label truth
+  claims_YYYY-MM-DD.jsonl — claim discovery/queue/execution lifecycle
 """
 
 from collections import defaultdict
@@ -353,6 +365,14 @@ class BotLogger:
     def log_settlement(self, settlement_row: dict) -> None:
         today = datetime.now(_UTC).strftime("%Y-%m-%d")
         self._append(f"settlements_{today}.jsonl", settlement_row)
+
+    def log_claim_state(self, claim_record) -> None:
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        payload = claim_record.to_record() if hasattr(claim_record, "to_record") else dict(claim_record)
+        self._append(f"claims_{today}.jsonl", {
+            "ts": self._ts(),
+            **payload,
+        })
 
     def log_trade_open(self, position, window_question: str = "") -> None:
         """Record a newly placed trade."""
@@ -785,6 +805,75 @@ class BotLogger:
             })
 
         return outcomes[-limit:]
+
+    def load_claim_records(
+        self,
+        lookback_days: int = 90,
+        *,
+        today: str | None = None,
+    ) -> tuple[dict[str, dict], dict[str, Any]]:
+        if today is None:
+            today = datetime.now(_UTC).strftime("%Y-%m-%d")
+
+        cutoff = (datetime.now(_UTC) - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        files = sorted(
+            f for f in self._dir.glob("claims_*.jsonl")
+            if f.stem.rsplit("_", 1)[-1] >= cutoff
+        )
+
+        latest_by_id: dict[str, dict] = {}
+        claimed_today: set[str] = set()
+        failed_today: set[str] = set()
+        last_claim_success_at = ""
+        last_claim_error = ""
+
+        for path in files:
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        try:
+                            record = json.loads(line)
+                        except Exception:
+                            continue
+                        claim_id = str(record.get("claim_id", "") or "").strip()
+                        if not claim_id:
+                            continue
+                        current = latest_by_id.get(claim_id)
+                        record_ts = str(record.get("ts") or "")
+                        current_ts = str(current.get("ts") or "") if current else ""
+                        if current is None or record_ts >= current_ts:
+                            latest_by_id[claim_id] = record
+
+                        status = str(record.get("status", "") or "")
+                        if record_ts[:10] == today:
+                            if status == "confirmed":
+                                claimed_today.add(claim_id)
+                                last_claim_success_at = max(last_claim_success_at, record_ts)
+                            elif status == "failed":
+                                failed_today.add(claim_id)
+                                last_claim_error = str(record.get("error_message", "") or record.get("error_code", "") or "")
+            except Exception:
+                continue
+
+        counts = {
+            "claimable_total": round(
+                sum(
+                    float(record.get("claimable_amount", 0.0) or 0.0)
+                    for record in latest_by_id.values()
+                    if str(record.get("status", "")) in ("discovered", "queued", "submitted")
+                ),
+                6,
+            ),
+            "pending_claim_count": sum(
+                1 for record in latest_by_id.values()
+                if str(record.get("status", "")) in ("queued", "submitted")
+            ),
+            "claimed_today_count": len(claimed_today),
+            "failed_today_count": len(failed_today),
+            "last_claim_success_at": last_claim_success_at,
+            "last_claim_error": last_claim_error,
+        }
+        return latest_by_id, counts
 
     def load_prediction_analytics(
         self,
@@ -3185,6 +3274,216 @@ class MarketClient:
             )
         return None
 
+    async def get_current_positions(
+        self,
+        *,
+        user: str | None = None,
+        redeemable: bool | None = None,
+        size_threshold: float = 0.0,
+        limit: int = 500,
+        market: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Fetch current user positions from the public Polymarket Data API."""
+        user = str(user or POLY_ADDRESS or "").strip()
+        if not user:
+            return []
+
+        positions: list[dict[str, Any]] = []
+        offset = 0
+        page_size = max(1, min(int(limit or 500), 500))
+        while True:
+            params: dict[str, Any] = {
+                "user": user,
+                "sizeThreshold": size_threshold,
+                "limit": page_size,
+                "offset": offset,
+            }
+            if redeemable is not None:
+                params["redeemable"] = str(bool(redeemable)).lower()
+            if market:
+                params["market"] = market
+
+            try:
+                _, http_client, _ = await self._get_client_snapshot()
+                response = await http_client.get(f"{DATA_API}/positions", params=params, timeout=5.0)
+                if not response.is_success:
+                    return positions
+                payload = response.json()
+                if not isinstance(payload, list):
+                    return positions
+                positions.extend(item for item in payload if isinstance(item, dict))
+                if len(payload) < page_size:
+                    return positions
+                offset += page_size
+                if offset >= 5000:
+                    return positions
+            except Exception:
+                return positions
+
+    @staticmethod
+    def claim_execution_status() -> tuple[bool, str]:
+        if not POLY_ETH_PRIVATE_KEY:
+            return False, "POLY_ETH_PRIVATE_KEY missing"
+        if not (POLY_BUILDER_API_KEY and POLY_BUILDER_SECRET and POLY_BUILDER_PASSPHRASE):
+            return False, "builder relayer credentials missing"
+        try:
+            from py_builder_relayer_client.client import RelayClient  # noqa: F401
+        except Exception:
+            return False, "py-builder-relayer-client not installed"
+        return True, ""
+
+    @staticmethod
+    def _binary_redeem_index_sets() -> list[int]:
+        return [1, 2]
+
+    @staticmethod
+    def _encode_redeem_positions_data(condition_id: str) -> str:
+        from eth_abi import encode as abi_encode
+        from eth_utils import function_signature_to_4byte_selector, to_checksum_address
+
+        selector = function_signature_to_4byte_selector(
+            "redeemPositions(address,bytes32,bytes32,uint256[])"
+        )
+        condition_hex = str(condition_id or "").removeprefix("0x")
+        if len(condition_hex) != 64:
+            raise ValueError("invalid condition_id for redeem")
+        args = abi_encode(
+            ["address", "bytes32", "bytes32", "uint256[]"],
+            [
+                to_checksum_address(POLY_USDC_ADDRESS),
+                b"\x00" * 32,
+                bytes.fromhex(condition_hex),
+                MarketClient._binary_redeem_index_sets(),
+            ],
+        )
+        return "0x" + (selector + args).hex()
+
+    @staticmethod
+    def _build_relay_client():
+        import inspect
+
+        from py_builder_relayer_client.client import RelayClient
+        from py_builder_signing_sdk.config import BuilderConfig
+        from py_builder_signing_sdk.sdk_types import BuilderApiKeyCreds
+
+        builder_config = BuilderConfig(
+            local_builder_creds=BuilderApiKeyCreds(
+                key=POLY_BUILDER_API_KEY,
+                secret=POLY_BUILDER_SECRET,
+                passphrase=POLY_BUILDER_PASSPHRASE,
+            )
+        )
+
+        kwargs: dict[str, Any] = {}
+        sig = inspect.signature(RelayClient)
+        for name in sig.parameters:
+            if name in {"url", "base_url", "relayer_url"}:
+                kwargs[name] = POLY_RELAYER_URL
+            elif name == "chain_id":
+                kwargs[name] = CHAIN_ID
+            elif name in {"private_key", "pk"}:
+                kwargs[name] = POLY_ETH_PRIVATE_KEY
+            elif name == "builder_config":
+                kwargs[name] = builder_config
+            elif name == "relay_tx_type":
+                try:
+                    from py_builder_relayer_client.client import RelayerTxType
+
+                    kwargs[name] = getattr(RelayerTxType, "PROXY", None)
+                except Exception:
+                    continue
+        if kwargs:
+            return RelayClient(**kwargs)
+
+        try:
+            from py_builder_relayer_client.client import RelayerTxType
+
+            return RelayClient(
+                POLY_RELAYER_URL,
+                CHAIN_ID,
+                POLY_ETH_PRIVATE_KEY,
+                builder_config,
+                getattr(RelayerTxType, "PROXY", None),
+            )
+        except Exception:
+            return RelayClient(
+                POLY_RELAYER_URL,
+                CHAIN_ID,
+                POLY_ETH_PRIVATE_KEY,
+                builder_config,
+            )
+
+    @staticmethod
+    def _extract_claim_attempt_metadata(payload: Any) -> tuple[str, str]:
+        if payload is None:
+            return "", ""
+        if isinstance(payload, dict):
+            tx_hash = str(
+                payload.get("transactionHash")
+                or payload.get("txHash")
+                or payload.get("transaction_hash")
+                or payload.get("hash")
+                or ""
+            )
+            request_id = str(payload.get("id") or payload.get("requestId") or payload.get("request_id") or "")
+            return tx_hash, request_id
+        tx_hash = str(
+            getattr(payload, "transactionHash", "")
+            or getattr(payload, "txHash", "")
+            or getattr(payload, "transaction_hash", "")
+            or getattr(payload, "hash", "")
+            or ""
+        )
+        request_id = str(
+            getattr(payload, "id", "")
+            or getattr(payload, "requestId", "")
+            or getattr(payload, "request_id", "")
+            or ""
+        )
+        return tx_hash, request_id
+
+    async def claim_position(self, claim: ClaimRecord) -> ClaimAttemptResult:
+        supported, reason = self.claim_execution_status()
+        if not supported:
+            return ClaimAttemptResult(
+                success=False,
+                status="failed",
+                error_code="executor_unavailable",
+                error_message=reason,
+            )
+        if claim.negative_risk:
+            return ClaimAttemptResult(
+                success=False,
+                status="failed",
+                error_code="neg_risk_not_supported",
+                error_message="negative-risk claim execution is not implemented",
+            )
+
+        try:
+            relay_client = await self._run(self._build_relay_client)
+            tx = {
+                "to": POLY_CTF_ADDRESS,
+                "data": self._encode_redeem_positions_data(claim.condition_id),
+                "value": "0",
+            }
+            response = await self._run(relay_client.execute, [tx], "Redeem positions")
+            wait_fn = getattr(response, "wait", None)
+            final_payload = await self._run(wait_fn) if callable(wait_fn) else response
+            tx_hash, request_id = self._extract_claim_attempt_metadata(final_payload)
+            return ClaimAttemptResult(
+                success=True,
+                status="confirmed",
+                tx_hash=tx_hash,
+                request_id=request_id,
+            )
+        except Exception as exc:
+            return ClaimAttemptResult(
+                success=False,
+                status="failed",
+                error_code="claim_execution_failed",
+                error_message=str(exc),
+            )
+
     # ── Market WebSocket (odds + resolved events) ─────────────────────────────
 
     async def subscribe_market_ws(
@@ -4332,6 +4631,47 @@ class SettlementInfo:
     settlement_source_priority: int
     chainlink_settlement_price: float | None = None
     binance_resolution_diff_s: float | None = None
+
+
+@dataclass
+class ClaimAttemptResult:
+    success: bool
+    status: str
+    tx_hash: str = ""
+    request_id: str = ""
+    error_code: str = ""
+    error_message: str = ""
+
+
+@dataclass
+class ClaimRecord:
+    claim_id: str
+    condition_id: str
+    market_id: str = ""
+    asset: str = ""
+    outcome: str = ""
+    outcome_index: int = -1
+    title: str = ""
+    end_date: str = ""
+    claimable_amount: float = 0.0
+    claim_source: str = "positions_api_redeemable"
+    status: str = "discovered"
+    attempt_count: int = 0
+    last_attempt_at: str = ""
+    last_seen_at: str = ""
+    queued_at: str = ""
+    tx_hash: str = ""
+    request_id: str = ""
+    error_code: str = ""
+    error_message: str = ""
+    redeemable: bool = False
+    mergeable: bool = False
+    negative_risk: bool = False
+    proxy_wallet: str = ""
+    schema_version: str = FEATURE_SCHEMA_VERSION
+
+    def to_record(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
@@ -6289,6 +6629,14 @@ class BotState:
     loss_count: int = 0
     pending_count: int = 0
     claim_log: list[str] = field(default_factory=list)
+    claim_records: dict[str, ClaimRecord] = field(default_factory=dict)
+    claimable_total: float = 0.0
+    pending_claim_count: int = 0
+    claimed_today_count: int = 0
+    failed_today_count: int = 0
+    last_claim_success_at: str = ""
+    last_claim_error: str = ""
+    claim_last_scan_at: float = 0.0
 
     # ── Daily limits (reset at midnight UTC)
     daily_loss: float = 0.0           # realized losses today
@@ -6461,6 +6809,9 @@ class TradingBot:
             self.state.log_event(
                 f"[PAPER] Restored {restored_predictions} pending paper prediction(s)"
             )
+        warmed_claims = self._warm_claim_records()
+        if warmed_claims:
+            self.state.log_event(f"[CLAIM] Warmed {warmed_claims} claim record(s)")
         if not LIVE_TRADING:
             await self._sync_recovered_paper_positions()
         self.state.daily_day = datetime.now(_UTC).strftime("%Y-%m-%d")
@@ -6476,6 +6827,7 @@ class TradingBot:
                 safe_loop(self._position_monitor_loop,    "pos_mon",   self.state),
                 safe_loop(self._results_loop,             "results",   self.state),
                 safe_loop(self._balance_loop,             "balance",   self.state),
+                safe_loop(self._claim_manager_loop,       "claims",    self.state),
                 safe_loop(self._polymarket_heartbeat_loop,"poly_hb",   self.state),
                 safe_loop(self._polymarket_auth_health_loop, "poly_auth", self.state),
                 safe_loop(self._creds_refresh_loop,       "creds",     self.state),
@@ -6578,6 +6930,12 @@ class TradingBot:
                 "open_positions": len([p for p in self.state.positions if p.status == "open"]),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
+                "claimable_total": round(float(self.state.claimable_total or 0.0), 6),
+                "pending_claim_count": int(self.state.pending_claim_count or 0),
+                "claimed_today_count": int(self.state.claimed_today_count or 0),
+                "failed_today_count": int(self.state.failed_today_count or 0),
+                "last_claim_success_at": self.state.last_claim_success_at,
+                "last_claim_error": self.state.last_claim_error,
                 "polymarket_session": market_client.session_snapshot() if market_client is not None else {},
                 "participation_recent24": self.state.logger.compute_recent_participation_metrics(limit=24),
                 "participation_recent100": self.state.logger.compute_recent_participation_metrics(limit=100),
@@ -8466,14 +8824,6 @@ class TradingBot:
         self._refresh_performance_history()
         self.notifier.notify_result(pos, self.state)
 
-        winnings = pos.pnl or 0
-        if won is True and winnings >= AUTO_CLAIM_THRESHOLD:
-            msg = f"claim pending ${winnings:.2f} ({pos.condition_id[:8]}…)"
-            self.state.claim_log.append(
-                f"{datetime.now().strftime('%H:%M:%S')} {msg}"
-            )
-            self.state.log_event(f"[CLAIM] {msg}")
-
     async def _mark_position_canceled(self, pos: "Position", reason: str) -> None:
         async with self.state._lock:
             if pos.status != "open":
@@ -8838,6 +9188,86 @@ class TradingBot:
         )
         return restored, warmed
 
+    def _append_claim_log(self, message: str) -> None:
+        stamp = datetime.now().strftime("%H:%M:%S")
+        self.state.claim_log.append(f"{stamp} {message}")
+        if len(self.state.claim_log) > 50:
+            self.state.claim_log.pop(0)
+
+    @staticmethod
+    def _claim_record_from_raw(raw: dict[str, Any]) -> ClaimRecord:
+        return ClaimRecord(
+            claim_id=str(raw.get("claim_id", "") or ""),
+            condition_id=str(raw.get("condition_id", "") or ""),
+            market_id=str(raw.get("market_id", "") or ""),
+            asset=str(raw.get("asset", "") or ""),
+            outcome=str(raw.get("outcome", "") or ""),
+            outcome_index=int(raw.get("outcome_index", -1) or -1),
+            title=str(raw.get("title", "") or ""),
+            end_date=str(raw.get("end_date", "") or ""),
+            claimable_amount=float(raw.get("claimable_amount", 0.0) or 0.0),
+            claim_source=str(raw.get("claim_source", "positions_api_redeemable") or "positions_api_redeemable"),
+            status=str(raw.get("status", "discovered") or "discovered"),
+            attempt_count=int(raw.get("attempt_count", 0) or 0),
+            last_attempt_at=str(raw.get("last_attempt_at", "") or ""),
+            last_seen_at=str(raw.get("last_seen_at", "") or ""),
+            queued_at=str(raw.get("queued_at", "") or ""),
+            tx_hash=str(raw.get("tx_hash", "") or ""),
+            request_id=str(raw.get("request_id", "") or ""),
+            error_code=str(raw.get("error_code", "") or ""),
+            error_message=str(raw.get("error_message", "") or ""),
+            redeemable=bool(raw.get("redeemable", False)),
+            mergeable=bool(raw.get("mergeable", False)),
+            negative_risk=bool(raw.get("negative_risk", False)),
+            proxy_wallet=str(raw.get("proxy_wallet", "") or ""),
+            schema_version=str(raw.get("schema_version", FEATURE_SCHEMA_VERSION) or FEATURE_SCHEMA_VERSION),
+        )
+
+    def _sync_claim_runtime_counts(self) -> None:
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        pending_count = 0
+        claimable_total = 0.0
+        claimed_today = 0
+        failed_today = 0
+        last_success = self.state.last_claim_success_at
+        last_error = self.state.last_claim_error
+
+        for record in self.state.claim_records.values():
+            if record.status in ("discovered", "queued", "submitted", "failed"):
+                claimable_total += float(record.claimable_amount or 0.0)
+            if record.status in ("queued", "submitted"):
+                pending_count += 1
+            if record.status == "confirmed" and record.last_attempt_at[:10] == today:
+                claimed_today += 1
+                last_success = max(last_success, record.last_attempt_at)
+            if record.status == "failed" and record.last_attempt_at[:10] == today:
+                failed_today += 1
+                if record.error_message:
+                    last_error = record.error_message
+
+        self.state.claimable_total = round(claimable_total, 6)
+        self.state.pending_claim_count = pending_count
+        self.state.claimed_today_count = claimed_today
+        self.state.failed_today_count = failed_today
+        self.state.last_claim_success_at = last_success
+        self.state.last_claim_error = last_error
+
+    def _warm_claim_records(self) -> int:
+        records, counts = self.state.logger.load_claim_records(
+            today=datetime.now(_UTC).strftime("%Y-%m-%d")
+        )
+        self.state.claim_records = {
+            claim_id: self._claim_record_from_raw(raw)
+            for claim_id, raw in records.items()
+        }
+        self.state.claimable_total = float(counts.get("claimable_total", 0.0) or 0.0)
+        self.state.pending_claim_count = int(counts.get("pending_claim_count", 0) or 0)
+        self.state.claimed_today_count = int(counts.get("claimed_today_count", 0) or 0)
+        self.state.failed_today_count = int(counts.get("failed_today_count", 0) or 0)
+        self.state.last_claim_success_at = str(counts.get("last_claim_success_at", "") or "")
+        self.state.last_claim_error = str(counts.get("last_claim_error", "") or "")
+        return len(self.state.claim_records)
+
     async def _sync_recovered_paper_positions(self) -> None:
         async with self.state._lock:
             open_simulated = [p for p in self.state.positions if p.simulated and p.status == "open"]
@@ -8943,6 +9373,237 @@ class TradingBot:
         trust = max(0.35, min(0.90, trust))
         calibrated = entry_odds + (raw - entry_odds) * trust
         return max(0.0, min(raw, round(calibrated, 4)))
+
+    @staticmethod
+    def _claimable_amount_from_position(position: dict[str, Any]) -> float:
+        current_value = float(position.get("currentValue", 0.0) or 0.0)
+        cash_pnl = float(position.get("cashPnl", 0.0) or 0.0)
+        size = float(position.get("size", 0.0) or 0.0)
+        cur_price = float(position.get("curPrice", 0.0) or 0.0)
+        fallback_value = size * cur_price if size > 0.0 and cur_price > 0.0 else 0.0
+        return round(max(current_value, cash_pnl, fallback_value), 6)
+
+    @staticmethod
+    def _claim_id_from_positions(condition_id: str, negative_risk: bool) -> str:
+        cid = str(condition_id or "").strip()
+        return f"{cid}:neg_risk" if negative_risk else cid
+
+    def _build_claim_candidates(self, positions: list[dict[str, Any]]) -> dict[str, ClaimRecord]:
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for position in positions:
+            if not isinstance(position, dict):
+                continue
+            condition_id = str(position.get("conditionId", "") or "").strip()
+            if not condition_id:
+                continue
+            claim_id = self._claim_id_from_positions(
+                condition_id,
+                bool(position.get("negativeRisk", False)),
+            )
+            grouped[claim_id].append(position)
+
+        now_iso = _iso_z(_utc_now())
+        settlement_cache = self.state.settlement_registry_cache
+        candidates: dict[str, ClaimRecord] = {}
+        for claim_id, records in grouped.items():
+            first = records[0]
+            condition_id = str(first.get("conditionId", "") or "").strip()
+            settlement = settlement_cache.get(condition_id, {})
+            claimable_amount = round(
+                sum(self._claimable_amount_from_position(item) for item in records),
+                6,
+            )
+            market_id = str(settlement.get("market_id", "") or first.get("market", "") or "")
+            outcomes = [str(item.get("outcome", "") or "").strip() for item in records if item.get("outcome")]
+            outcome_indices = [int(item.get("outcomeIndex", -1) or -1) for item in records]
+            candidates[claim_id] = ClaimRecord(
+                claim_id=claim_id,
+                condition_id=condition_id,
+                market_id=market_id,
+                asset=str(first.get("asset", "") or ""),
+                outcome=" / ".join(sorted({item for item in outcomes if item})) or str(first.get("outcome", "") or ""),
+                outcome_index=next((idx for idx in outcome_indices if idx >= 0), -1),
+                title=str(first.get("title", "") or ""),
+                end_date=str(first.get("endDate", "") or ""),
+                claimable_amount=claimable_amount,
+                claim_source="positions_api_redeemable",
+                status="discovered",
+                last_seen_at=now_iso,
+                redeemable=any(bool(item.get("redeemable", False)) for item in records),
+                mergeable=any(bool(item.get("mergeable", False)) for item in records),
+                negative_risk=any(bool(item.get("negativeRisk", False)) for item in records),
+                proxy_wallet=str(first.get("proxyWallet", "") or ""),
+            )
+        return candidates
+
+    def _claim_state_changed(self, current: ClaimRecord | None, candidate: ClaimRecord) -> bool:
+        if current is None:
+            return True
+        return any(
+            (
+                current.status != candidate.status,
+                abs(float(current.claimable_amount or 0.0) - float(candidate.claimable_amount or 0.0)) >= 0.01,
+                current.attempt_count != candidate.attempt_count,
+                current.tx_hash != candidate.tx_hash,
+                current.request_id != candidate.request_id,
+                current.error_code != candidate.error_code,
+                current.error_message != candidate.error_message,
+                current.last_seen_at != candidate.last_seen_at and candidate.status in ("confirmed", "failed"),
+            )
+        )
+
+    def _persist_claim_state(self, record: ClaimRecord) -> None:
+        current = self.state.claim_records.get(record.claim_id)
+        if not self._claim_state_changed(current, record):
+            self.state.claim_records[record.claim_id] = record
+            self._sync_claim_runtime_counts()
+            return
+
+        self.state.claim_records[record.claim_id] = record
+        self.state.logger.log_claim_state(record)
+        amount_s = f"${record.claimable_amount:.2f}"
+        short = f"{record.condition_id[:8]}…" if record.condition_id else record.claim_id[:12]
+        if record.status == "queued":
+            msg = f"queued {amount_s} ({short})"
+            self._append_claim_log(msg)
+            self.state.log_event(f"[CLAIM] {msg}")
+        elif record.status == "submitted":
+            msg = f"submitted {amount_s} ({short})"
+            self._append_claim_log(msg)
+            self.state.log_event(f"[CLAIM] {msg}")
+        elif record.status == "confirmed":
+            msg = f"confirmed {amount_s} ({short})"
+            self._append_claim_log(msg)
+            self.state.log_event(f"[CLAIM] {msg}")
+        elif record.status == "failed":
+            detail = record.error_code or record.error_message or "unknown"
+            msg = f"failed {amount_s} ({short}) {detail}"
+            self._append_claim_log(msg)
+            self.state.log_event(f"[CLAIM] {msg}")
+
+        self._sync_claim_runtime_counts()
+        self._refresh_performance_history()
+
+    def _claim_execution_block_reason(self) -> str:
+        if AUTO_CLAIM_LIVE_ONLY and not LIVE_TRADING:
+            return "live-only"
+        if not AUTO_CLAIM_ENABLED:
+            return "discovery-only"
+        status_fn = getattr(self.market, "claim_execution_status", None)
+        if callable(status_fn):
+            supported, detail = status_fn()
+            if not supported:
+                return detail or "executor-unavailable"
+        snapshot = self.market.session_snapshot()
+        if bool(snapshot.get("refresh_in_progress")):
+            return "session-refreshing"
+        if int(snapshot.get("consecutive_auth_failures", 0) or 0) >= 1:
+            return "session-degraded"
+        return ""
+
+    async def _scan_and_process_claims(self, *, trigger: str) -> None:
+        user = str(POLY_ADDRESS or "").strip()
+        if not user:
+            return
+
+        positions = await self.market.get_current_positions(
+            user=user,
+            redeemable=True,
+            size_threshold=0.0,
+            limit=500,
+        )
+        candidates = self._build_claim_candidates(positions)
+        self.state.claim_last_scan_at = time.time()
+
+        active_claimable_total = 0.0
+        active_pending_count = 0
+        for claim in candidates.values():
+            active_claimable_total += float(claim.claimable_amount or 0.0)
+            current = self.state.claim_records.get(claim.claim_id)
+            if current is not None and current.status in ("confirmed", "submitted"):
+                if current.status == "submitted":
+                    active_pending_count += 1
+                continue
+
+            if claim.claimable_amount < AUTO_CLAIM_THRESHOLD:
+                skipped = ClaimRecord(**{
+                    **claim.to_record(),
+                    "status": "skipped",
+                    "error_code": "below_threshold",
+                    "error_message": f"claimable {claim.claimable_amount:.2f} below threshold",
+                })
+                self._persist_claim_state(skipped)
+                continue
+
+            active_pending_count += 1
+            queued_at = current.queued_at if current is not None else claim.last_seen_at
+            queued = ClaimRecord(**{
+                **claim.to_record(),
+                "status": "queued",
+                "queued_at": queued_at,
+                "attempt_count": current.attempt_count if current is not None else 0,
+                "last_attempt_at": current.last_attempt_at if current is not None else "",
+                "tx_hash": current.tx_hash if current is not None else "",
+                "request_id": current.request_id if current is not None else "",
+                "error_code": "",
+                "error_message": "",
+            })
+            self._persist_claim_state(queued)
+
+            block_reason = self._claim_execution_block_reason()
+            if block_reason:
+                continue
+
+            if queued.attempt_count >= AUTO_CLAIM_MAX_RETRIES:
+                continue
+
+            submitted = ClaimRecord(**{
+                **queued.to_record(),
+                "status": "submitted",
+                "attempt_count": queued.attempt_count + 1,
+                "last_attempt_at": queued.last_seen_at,
+            })
+            self._persist_claim_state(submitted)
+            result = await self.market.claim_position(submitted)
+            final = ClaimRecord(**{
+                **submitted.to_record(),
+                "status": result.status,
+                "tx_hash": result.tx_hash or submitted.tx_hash,
+                "request_id": result.request_id or submitted.request_id,
+                "error_code": result.error_code,
+                "error_message": result.error_message,
+                "last_attempt_at": submitted.last_attempt_at or submitted.last_seen_at,
+            })
+            self._persist_claim_state(final)
+
+        self._sync_claim_runtime_counts()
+        self.state.claimable_total = round(active_claimable_total, 6)
+        self.state.pending_claim_count = active_pending_count
+        if candidates or trigger == "startup":
+            mode = "enabled" if AUTO_CLAIM_ENABLED else "discovery"
+            self.state.log_event(
+                f"[CLAIM] scan {trigger} candidates={len(candidates)} "
+                f"claimable=${self.state.claimable_total:.2f} mode={mode}"
+            )
+            self._refresh_performance_history()
+
+    async def _claim_manager_loop(self) -> None:
+        await self._scan_and_process_claims(trigger="startup")
+        while self.state.running:
+            triggered = False
+            try:
+                await asyncio.wait_for(
+                    self.state.market_resolved_event.wait(),
+                    timeout=AUTO_CLAIM_SCAN_INTERVAL_S,
+                )
+                triggered = self.state.market_resolved_event.is_set()
+            except asyncio.TimeoutError:
+                triggered = False
+            if triggered:
+                self.state.market_resolved_event.clear()
+            await self._scan_and_process_claims(
+                trigger="market_resolved" if triggered else "scheduled"
+            )
 
     # ── Balance loop ──────────────────────────────────────────────────────────
 
@@ -9374,19 +10035,23 @@ def render_results(state: BotState) -> Panel:
     wr_bar = _win_rate_bar(wr, width=18)
     pnl_color = "green" if state.total_pnl >= 0 else "red"
     pnl_s = f"+${state.total_pnl:.2f}" if state.total_pnl >= 0 else f"-${abs(state.total_pnl):.2f}"
-    bal_ok = state.balance_usdc >= AUTO_CLAIM_THRESHOLD
-    claim_status = f"[green]OK (thr < ${AUTO_CLAIM_THRESHOLD:.0f})[/green]" if bal_ok \
-                   else f"[yellow]LOW (${state.balance_usdc:.2f})[/yellow]"
-
     last_claim = state.claim_log[-1] if state.claim_log else f"– nothing to claim"
     resolved_pending = len([p for p in state.positions if p.status == "open"])
+    claim_mode = "[green]EXEC[/green]" if AUTO_CLAIM_ENABLED else "[yellow]DISCOVERY[/yellow]"
+    claimable_s = f"[white]${state.claimable_total:.2f}[/white]  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
+    claim_summary = (
+        f"{claim_mode}  pending [white]{state.pending_claim_count}[/white]  "
+        f"claimed today [green]{state.claimed_today_count}[/green]  "
+        f"failed today [red]{state.failed_today_count}[/red]"
+    )
 
     t = Table.grid(padding=(0, 1))
     t.add_column(style="cyan", width=12)
     t.add_column()
 
     t.add_row("Balance",   f"[bold white]$  {state.balance_usdc:.2f} USDC[/bold white]")
-    t.add_row("AutoClaim", claim_status)
+    t.add_row("Claimable", claimable_s)
+    t.add_row("Claims",    claim_summary)
     t.add_row("Claim log", f"[dim]{last_claim[:50]}[/dim]")
     t.add_row("Bets/hour", f"[white]{state.bets_this_hour}/{MAX_BETS_PER_HOUR}[/white]"
                            f"  │  Bet size: [white]${BET_SIZE_USDC:.2f}[/white]")

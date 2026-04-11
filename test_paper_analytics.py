@@ -30,11 +30,32 @@ class DummyNotifier:
         return None
 
 
+class DummyMarket:
+    def __init__(self, positions=None, claim_result=None) -> None:
+        self._positions = list(positions or [])
+        self._claim_result = claim_result or tf.ClaimAttemptResult(success=False, status="failed")
+        self.claim_calls = []
+
+    async def get_current_positions(self, **_kwargs):
+        return list(self._positions)
+
+    async def claim_position(self, claim):
+        self.claim_calls.append(claim.claim_id)
+        return self._claim_result
+
+    def session_snapshot(self):
+        return {
+            "refresh_in_progress": False,
+            "consecutive_auth_failures": 0,
+        }
+
+
 def make_bot(tmp_path):
     bot = tf.TradingBot.__new__(tf.TradingBot)
     bot.state = tf.BotState(logger=tf.BotLogger(tmp_path / "logs"))
     bot.notifier = DummyNotifier()
     bot.decision = tf.DecisionMaker()
+    bot.market = DummyMarket()
     return bot
 
 
@@ -276,6 +297,10 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
     bot.state.paper_stats.paper_trade_losses_total = 1
     bot.state.paper_stats.paper_trade_wins_today = 1
     bot.state.paper_stats.paper_trade_losses_today = 0
+    bot.state.claimable_total = 5.5
+    bot.state.pending_claim_count = 1
+    bot.state.claimed_today_count = 2
+    bot.state.failed_today_count = 0
 
     panel = tf.render_results(bot.state)
     console = Console(record=True, width=120)
@@ -286,6 +311,84 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
     assert "Trades Today" in text
     assert "Predictions" not in text
     assert "Pred Today" not in text
+    assert "Claimable" in text
+    assert "Claims" in text
+    assert "AutoClaim" not in text
+
+
+def test_claim_scan_queues_redeemable_positions_in_discovery_mode(tmp_path, monkeypatch):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = DummyMarket(
+            positions=[
+                {
+                    "conditionId": "0xabc",
+                    "asset": "asset-up",
+                    "outcome": "Yes",
+                    "outcomeIndex": 0,
+                    "currentValue": 6.25,
+                    "redeemable": True,
+                    "mergeable": False,
+                    "negativeRisk": False,
+                    "title": "BTC above?",
+                }
+            ]
+        )
+        monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", False)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_LIVE_ONLY", True)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_THRESHOLD", 4.0)
+
+        await bot._scan_and_process_claims(trigger="test")
+
+        claim = bot.state.claim_records["0xabc"]
+        assert claim.status == "queued"
+        assert bot.state.pending_claim_count == 1
+        assert bot.state.claimable_total == 6.25
+        assert bot.market.claim_calls == []
+
+    asyncio.run(run_case())
+
+
+def test_claim_scan_executes_confirmed_claim_when_enabled(tmp_path, monkeypatch):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = DummyMarket(
+            positions=[
+                {
+                    "conditionId": "0xdef",
+                    "asset": "asset-up",
+                    "outcome": "Yes",
+                    "outcomeIndex": 0,
+                    "currentValue": 7.0,
+                    "redeemable": True,
+                    "mergeable": False,
+                    "negativeRisk": False,
+                    "title": "BTC above?",
+                }
+            ],
+            claim_result=tf.ClaimAttemptResult(
+                success=True,
+                status="confirmed",
+                tx_hash="0xtx",
+                request_id="req-1",
+            ),
+        )
+        monkeypatch.setattr(tf, "POLY_ADDRESS", "0x123")
+        monkeypatch.setattr(tf, "AUTO_CLAIM_ENABLED", True)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_LIVE_ONLY", True)
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+        monkeypatch.setattr(tf, "AUTO_CLAIM_THRESHOLD", 4.0)
+
+        await bot._scan_and_process_claims(trigger="test")
+
+        claim = bot.state.claim_records["0xdef"]
+        assert claim.status == "confirmed"
+        assert claim.tx_hash == "0xtx"
+        assert bot.market.claim_calls == ["0xdef"]
+        assert bot.state.claimed_today_count == 1
+
+    asyncio.run(run_case())
 
 
 def test_stable_buy_sends_single_shadow_notification(tmp_path):
