@@ -3970,39 +3970,6 @@ class TelegramNotifier:
         )
         self._fire(text)
 
-    def notify_shadow_signal(
-        self,
-        signal: "AISignal",
-        win: "WindowInfo",
-        snap: "IndicatorSnapshot",
-        *,
-        blocked_gate: str,
-        blocked_reason: str,
-        btc_price: float,
-        up_odds: float,
-        down_odds: float,
-    ) -> None:
-        """Send a single shadow notification for a locked BUY blocked by execution gates."""
-        if not self._enabled:
-            return
-
-        emoji = "⬆️" if signal.signal == "BUY_UP" else "⬇️"
-        signal_label = html.escape(signal.signal)
-        source = html.escape(signal.source or "unknown")
-        reason = html.escape((blocked_reason or signal.reason)[:160])
-        text = (
-            f"🫥 <b>Shadow Signal</b> {emoji}  {self._mode}\n"
-            f"Signal: <b>{signal_label}</b>  conf=<code>{signal.confidence:.0%}</code>  "
-            f"src=<code>{source}</code>\n"
-            f"Blocked: <code>{html.escape(blocked_gate)}</code>\n"
-            f"Window: {html.escape(win.window_label)}  Beat: <code>${win.beat_price:,.2f}</code>\n"
-            f"BTC: <code>${btc_price:,.2f}</code>  Odds U/D: <code>{up_odds:.3f}/{down_odds:.3f}</code>\n"
-            f"Align: {snap.signal_alignment}/6  Dip: {html.escape(signal.dip_label)}  "
-            f"CVD: {html.escape(snap.cvd_divergence)}\n"
-            f"Why: {reason}"
-        )
-        self._fire(text)
-
     def notify_result(self, pos: "Position", state: "BotState") -> None:
         """Bet resolved — won or lost."""
         if not self._enabled:
@@ -7707,17 +7674,6 @@ class TradingBot:
                 down_odds=down_odds,
                 decision=decision,
             )
-        else:
-            self.notifier.notify_shadow_signal(
-                signal,
-                win,
-                snap,
-                blocked_gate=gate,
-                blocked_reason=reason,
-                btc_price=btc_price,
-                up_odds=up_odds,
-                down_odds=down_odds,
-            )
 
         row_id = session.locked_row_id
         if row_id:
@@ -7834,7 +7790,6 @@ class TradingBot:
             if record is None:
                 return None
             record.decision_action = "trade_failed_retryable" if result.retryable and not result.attempt_consumed else "trade_failed"
-            record.execution_allowed = bool(result.retryable and not result.attempt_consumed)
             record.decision_reason = str(result.error or "trade placement failed")
             record.placement_failure_code = result.failure_code or "PLACEMENT_FAILED"
             record.placement_failure_reason = str(result.error or "")
@@ -8029,6 +7984,15 @@ class TradingBot:
         if decision.action != "BUY":
             return (decision.gate, decision.reason)
 
+        return None
+
+    def _operational_execution_block(
+        self,
+        *,
+        win: "WindowInfo",
+        seconds_remaining: int,
+        now: float,
+    ) -> tuple[str, str] | None:
         if any(p.condition_id == win.condition_id for p in self.state.open_positions):
             return (GATE_ALREADY_OPEN, "open position already active in this window")
 
@@ -8087,9 +8051,6 @@ class TradingBot:
         if now < self.state.streak_pause_until:
             remaining_m = max(1, int((self.state.streak_pause_until - now) / 60))
             return ("GATE_STREAK_PAUSE", f"{remaining_m}m remaining")
-
-        if LIVE_TRADING and self.state.balance_usdc < BET_SIZE_USDC + 0.50:
-            return ("GATE_LOW_BALANCE", "insufficient balance for next live order")
 
         return None
 
@@ -8810,6 +8771,16 @@ class TradingBot:
             if decision.action != "BUY":
                 continue
 
+            operational_block = self._operational_execution_block(
+                win=win,
+                seconds_remaining=seconds_remaining,
+                now=now,
+            )
+            if operational_block is not None:
+                gate, reason = operational_block
+                self.state.set_engine_status("EXECUTION_HOLD", gate, reason)
+                continue
+
             self.state.log_event(
                 f"[EXECUTE] {elapsed_s}s | BTC {gap_pct:.2f}% → {side} "
                 f"@ {leading_odds:.3f} | align={snap.signal_alignment} "
@@ -8872,13 +8843,13 @@ class TradingBot:
             attempted_at=attempt_started_at_ts,
         )
         if LIVE_TRADING:
+            available_balance = max(0.0, self.state.balance_usdc)
             try:
                 min_order_size = await self.market.get_min_order_size(token_id)
             except Exception:
                 min_order_size = 0.0
             if min_order_size > 0:
                 min_notional = round(min_order_size * entry_odds, 4)
-                available_balance = max(0.0, self.state.balance_usdc)
                 if bet_size + 1e-9 < min_notional:
                     if available_balance + 1e-9 < min_notional:
                         error_msg = (
@@ -8913,6 +8884,34 @@ class TradingBot:
                         f"({min_order_size:.2f} shares @ {entry_odds:.2f})"
                     )
                     bet_size = min_notional
+            if available_balance + 1e-9 < bet_size:
+                error_msg = (
+                    f"live balance ${available_balance:.2f} below target bet "
+                    f"${bet_size:.2f}"
+                )
+                result = TradeResult(
+                    success=False,
+                    error=error_msg,
+                    failure_code="INSUFFICIENT_BALANCE_PRECHECK",
+                    retryable=False,
+                    attempt_consumed=True,
+                )
+                execution_state = self._complete_window_execution_attempt(
+                    condition_id=win.condition_id,
+                    row_id=prediction_row_id,
+                    result=result,
+                    attempted_at=attempt_started_at_ts,
+                )
+                await self._mark_prediction_trade_failed(
+                    prediction_row_id,
+                    condition_id=win.condition_id,
+                    result=result,
+                    attempt_count=execution_state.attempt_count,
+                    attempted_at=attempt_started_at,
+                )
+                self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
+                self.state.log_event(f"[TRADE] Aborted — {error_msg}")
+                return
         self.state.log_event(
             f"[KELLY/{zone_tag}] bankroll=${bankroll:.2f} conf={signal.confidence:.2f} "
             f"implied={entry_odds:.3f} → bet=${bet_size:.2f}"

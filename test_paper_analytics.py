@@ -706,7 +706,7 @@ def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path
         assert execution_state.terminal is False
 
         decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
-        blocked_now = bot._execution_block(
+        strategy_block_now = bot._execution_block(
             win=win,
             signal=signal,
             decision=decision,
@@ -714,7 +714,12 @@ def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path
             seconds_remaining=45,
             now=execution_state.last_attempt_at,
         )
-        blocked_later = bot._execution_block(
+        blocked_now = bot._operational_execution_block(
+            win=win,
+            seconds_remaining=45,
+            now=execution_state.last_attempt_at,
+        )
+        strategy_block_later = bot._execution_block(
             win=win,
             signal=signal,
             decision=decision,
@@ -722,9 +727,16 @@ def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path
             seconds_remaining=40,
             now=execution_state.last_attempt_at + tf.LIVE_RETRY_COOLDOWN_S + 0.2,
         )
+        blocked_later = bot._operational_execution_block(
+            win=win,
+            seconds_remaining=40,
+            now=execution_state.last_attempt_at + tf.LIVE_RETRY_COOLDOWN_S + 0.2,
+        )
 
+        assert strategy_block_now is None
         assert blocked_now is not None
         assert blocked_now[0] == tf.GATE_RETRY_COOLDOWN
+        assert strategy_block_later is None
         assert blocked_later is None
 
         await bot._place_trade(
@@ -813,7 +825,7 @@ def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
 
         execution_state = bot.state.window_execution_states[win.condition_id]
         decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
-        blocked = bot._execution_block(
+        strategy_block = bot._execution_block(
             win=win,
             signal=signal,
             decision=decision,
@@ -821,12 +833,98 @@ def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
             seconds_remaining=40,
             now=datetime.now(timezone.utc).timestamp(),
         )
+        blocked = bot._operational_execution_block(
+            win=win,
+            seconds_remaining=40,
+            now=datetime.now(timezone.utc).timestamp(),
+        )
 
         assert len(bot.state.positions) == 0
         assert execution_state.terminal is True
+        assert strategy_block is None
         assert blocked is not None
         assert blocked[0] == tf.GATE_ALREADY_ATTEMPTED
         assert "INSUFFICIENT_BALANCE" in blocked[1]
+
+    asyncio.run(run_case())
+
+
+def test_live_low_balance_records_trade_failure_without_strategy_block(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_min_order_size(self, token_id):
+            return 1.0
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("place_bet should not run when balance is below target bet")
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.balance_usdc = 0.75
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xlow-balance", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="low balance",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-low-balance",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="live",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            decision_action="observe",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            execution_allowed=True,
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+
+        decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
+        strategy_block = bot._execution_block(
+            win=win,
+            signal=signal,
+            decision=decision,
+            elapsed_s=250,
+            seconds_remaining=45,
+            now=datetime.now(timezone.utc).timestamp(),
+        )
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+
+        assert strategy_block is None
+        assert len(bot.state.positions) == 0
+        assert updated.execution_allowed is True
+        assert updated.blocked_gate == ""
+        assert updated.placement_failure_code == "INSUFFICIENT_BALANCE_PRECHECK"
+        assert "prediction_trade_failed" in contents
+        assert "prediction_blocked" not in contents
 
     asyncio.run(run_case())
 
