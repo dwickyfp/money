@@ -8874,3 +8874,4 @@
 {"ts": "2026-04-11T19:42:37.154Z", "msg": "[CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
 {"ts": "2026-04-11T19:43:00.312Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%"}
 {"ts": "2026-04-11T19:43:05.353Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 74%"}
+{"ts": "2026-04-11T19:43:30.522Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%"}
