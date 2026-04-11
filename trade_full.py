@@ -4282,6 +4282,9 @@ MODEL_FEATURE_COLUMNS = [
     "is_late_window",
     "is_bandar_zone",
     "is_proximity_risk",
+    "is_proximity_risk_above",
+    "is_proximity_risk_below",
+    "gap_crossed_zero",
     "price_roc_15s",
     "price_roc_30s",
     "cvd_change_last_30s",
@@ -4316,6 +4319,9 @@ NUMERIC_DEFAULTS = {
     "is_late_window": 0,
     "is_bandar_zone": 0,
     "is_proximity_risk": 0,
+    "is_proximity_risk_above": 0,
+    "is_proximity_risk_below": 0,
+    "gap_crossed_zero": 0,
     "price_roc_15s": 0.0,
     "price_roc_30s": 0.0,
     "cvd_change_last_30s": 0.0,
@@ -4957,12 +4963,15 @@ class SignalFeatures:
     cvd_change_last_30s: float
     odds_edge_strength: float
     elapsed_fraction: float = 0.0
+    is_proximity_risk_above: int = 0
+    is_proximity_risk_below: int = 0
     gap_alignment_interaction: float = 0.0
     realized_vol_30s: float = 0.0
     realized_vol_60s: float = 0.0
     gap_signed_pct_lag1: float = 0.0
     signal_alignment_lag1: float = 0.0
     odds_edge_strength_lag1: float = 0.0
+    gap_crossed_zero: int = 0
     ob_imbalance: float = 0.0
     fair_up: float = 0.5
     fair_down: float = 0.5
@@ -5310,8 +5319,13 @@ class RuntimePolicy:
         spread = abs(prob_up - prob_down)
         phase_bucket, candidate_floor, min_edge, spread_floor, safety_floor, profile = self._thresholds(features, threshold_profile=threshold_profile)
         required_conf = max(candidate_floor, safety_floor)
-        if phase_bucket in ("RESERVE", "EARLY_EXEC", "LATE_EXEC") and (features.is_bandar_zone or features.is_proximity_risk):
-            required_conf += _safe_float(profile.get("late_risk_bump"), SOFT_PENALTY_CONF_BUMP)
+        _proximity_active = features.is_bandar_zone or features.is_proximity_risk or features.is_proximity_risk_above or features.is_proximity_risk_below
+        if phase_bucket in ("RESERVE", "EARLY_EXEC", "LATE_EXEC") and _proximity_active:
+            bump = _safe_float(profile.get("late_risk_bump"), SOFT_PENALTY_CONF_BUMP)
+            # Extra bump for BUY_UP signal when price is actually below target (must reverse).
+            if side == LABEL_BUY_UP and features.is_proximity_risk_below:
+                bump += SOFT_PENALTY_CONF_BUMP
+            required_conf += bump
 
         if spread < spread_floor:
             return SignalPrediction(
@@ -5444,8 +5458,19 @@ class RuntimeSignalEngine:
         prob_up += 0.04 * math.tanh(features.momentum_pct / 0.12)
         prob_up += 0.03 * math.tanh(features.macd_histogram / 25.0)
         prob_up += 0.03 * features.cvd_divergence
-        if features.is_proximity_risk:
+        if features.is_proximity_risk_below:
+            # Price is BELOW target in final 60s: heavy dampening toward DOWN.
+            prob_up = 0.4 * prob_up + 0.20
+        elif features.is_proximity_risk_above:
+            # Price is just ABOVE target in final 60s: gentle dampening toward 50/50.
             prob_up = 0.5 * prob_up + 0.25
+        elif features.is_proximity_risk:
+            # Fallback for older feature rows that don't have the split fields.
+            prob_up = 0.5 * prob_up + 0.25
+        # Sanity cap: price meaningfully below target in final 60s — UP reversal is unlikely.
+        # Prevents lagging technicals from inflating UP confidence when gap has clearly crossed down.
+        if features.is_late_window and features.gap_signed_pct < -0.02:
+            prob_up = min(prob_up, 0.65)
         return _clip_probability(prob_up)
 
     def _predict_model_probability(self, features: SignalFeatures, bundle: tuple[Any, Any, ModelManifest] | None) -> tuple[float, str]:
@@ -5484,6 +5509,10 @@ class RuntimeSignalEngine:
             prob_up = float(calibrator.predict([prob_up])[0])
         except Exception:
             pass
+        # Sanity cap: price meaningfully below target in final 60s — cap ML UP confidence.
+        # Counteracts the model's learned bias of "proximity + bullish technicals = high UP".
+        if features.is_late_window and features.gap_signed_pct < -0.02:
+            prob_up = min(prob_up, 0.65)
         return _clip_probability(prob_up), ""
 
     def predict(self, features: SignalFeatures) -> SignalPrediction:
@@ -5761,6 +5790,8 @@ def compute_legacy_feature_row(
         is_late_window=1 if seconds_remaining < 60 else 0,
         is_bandar_zone=1 if seconds_remaining < 45 else 0,
         is_proximity_risk=1 if seconds_remaining < 60 and gap_pct < 0.08 else 0,
+        is_proximity_risk_above=1 if seconds_remaining < 60 and gap_pct < 0.08 and gap_signed_pct >= 0 else 0,
+        is_proximity_risk_below=1 if seconds_remaining < 60 and gap_pct < 0.08 and gap_signed_pct < 0 else 0,
         price_roc_15s=price_roc_15s,
         price_roc_30s=price_roc_30s,
         cvd_change_last_30s=cvd_change_30s,
@@ -6187,6 +6218,8 @@ def _signal_features_from_row(row: Any) -> SignalFeatures:
         is_late_window=_safe_int(row.is_late_window, 0),
         is_bandar_zone=_safe_int(row.is_bandar_zone, 0),
         is_proximity_risk=_safe_int(row.is_proximity_risk, 0),
+        is_proximity_risk_above=_safe_int(getattr(row, "is_proximity_risk_above", 0), 0),
+        is_proximity_risk_below=_safe_int(getattr(row, "is_proximity_risk_below", 0), 0),
         price_roc_15s=_safe_float(row.price_roc_15s, 0.0),
         price_roc_30s=_safe_float(row.price_roc_30s, 0.0),
         cvd_change_last_30s=_safe_float(row.cvd_change_last_30s, 0.0),
@@ -6198,6 +6231,7 @@ def _signal_features_from_row(row: Any) -> SignalFeatures:
         gap_signed_pct_lag1=_safe_float(getattr(row, "gap_signed_pct_lag1", 0.0), 0.0),
         signal_alignment_lag1=_safe_float(getattr(row, "signal_alignment_lag1", 0.0), 0.0),
         odds_edge_strength_lag1=_safe_float(getattr(row, "odds_edge_strength_lag1", 0.0), 0.0),
+        gap_crossed_zero=_safe_int(getattr(row, "gap_crossed_zero", 0), 0),
         ob_imbalance=_safe_float(getattr(row, "ob_imbalance", 0.0), 0.0),
         fair_up=_safe_float(row.fair_up, 0.5),
         fair_down=_safe_float(row.fair_down, 0.5),
@@ -7559,7 +7593,7 @@ class TradingBot:
             if win.beat_price > 0 else 0.0
         )
         gap_pct = abs(gap_signed_pct)
-        direction_bias = snap.direction_bias or ("UP" if gap_signed_pct > 0 else "DOWN" if gap_signed_pct < 0 else "NONE")
+        direction_bias = "UP" if gap_signed_pct > 0 else "DOWN" if gap_signed_pct < 0 else "NONE"
         signed_alignment = (
             float(snap.signal_alignment)
             if direction_bias == "UP"
@@ -7614,6 +7648,8 @@ class TradingBot:
             is_late_window=1 if seconds_remaining < 60 else 0,
             is_bandar_zone=1 if seconds_remaining < 45 else 0,
             is_proximity_risk=1 if seconds_remaining < 60 and gap_pct < LATE_GAP_RISK_PCT else 0,
+            is_proximity_risk_above=1 if seconds_remaining < 60 and gap_pct < LATE_GAP_RISK_PCT and gap_signed_pct >= 0 else 0,
+            is_proximity_risk_below=1 if seconds_remaining < 60 and gap_pct < LATE_GAP_RISK_PCT and gap_signed_pct < 0 else 0,
             price_roc_15s=price_roc_15s,
             price_roc_30s=price_roc_30s,
             cvd_change_last_30s=cvd_change_last_30s,
@@ -7625,6 +7661,11 @@ class TradingBot:
             gap_signed_pct_lag1=_safe_float(previous_row.get("gap_signed_pct"), 0.0),
             signal_alignment_lag1=_safe_float(previous_row.get("signal_alignment"), 0.0),
             odds_edge_strength_lag1=_safe_float(previous_row.get("odds_edge_strength"), 0.0),
+            gap_crossed_zero=1 if (
+                _safe_float(previous_row.get("gap_signed_pct"), 0.0) > 0 and gap_signed_pct < 0
+            ) or (
+                _safe_float(previous_row.get("gap_signed_pct"), 0.0) < 0 and gap_signed_pct > 0
+            ) else 0,
             ob_imbalance=ob_imbalance,
             fair_up=fair.get("fair_up", 0.5),
             fair_down=fair.get("fair_down", 0.5),
@@ -10755,7 +10796,7 @@ def build_layout() -> Layout:
         Layout(name="price_log"),
     )
     layout["left_stack"].split_column(
-        Layout(name="body", size=27),
+        Layout(name="body", size=33),
         Layout(name="logs"),
     )
     layout["body"].split_row(
@@ -10766,11 +10807,11 @@ def build_layout() -> Layout:
         Layout(name="window_panel", size=7),
         Layout(name="market_data",  size=7),
         Layout(name="filters",      size=9),
-        Layout(name="signal",       size=4),
+        Layout(name="signal",       size=10),
     )
     layout["right"].split_column(
         Layout(name="positions", size=6),
-        Layout(name="results",   size=12),
+        Layout(name="results",   size=18),
         Layout(name="blocked",   size=9),
     )
     return layout
