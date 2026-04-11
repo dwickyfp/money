@@ -539,8 +539,10 @@ def test_market_client_heartbeat_failure_marks_session_degraded(monkeypatch):
     class FakeClient:
         def __init__(self):
             self.creds = FakeCreds()
+            self.heartbeat_ids = []
 
-        def post_heartbeat(self):
+        def post_heartbeat(self, heartbeat_id=None):
+            self.heartbeat_ids.append(heartbeat_id)
             raise RuntimeError("401 invalid signature")
 
     class FakeHttp:
@@ -554,11 +556,125 @@ def test_market_client_heartbeat_failure_marks_session_degraded(monkeypatch):
         market = ml.MarketClient()
         ok = await market.send_heartbeat()
         snapshot = market.session_snapshot()
+        heartbeat_ids = market._client.heartbeat_ids
         await market.close()
-        return ok, snapshot
+        return ok, snapshot, heartbeat_ids
 
-    ok, snapshot = asyncio.run(_run())
+    ok, snapshot, heartbeat_ids = asyncio.run(_run())
 
     assert ok is False
+    assert heartbeat_ids == [None]
     assert snapshot["consecutive_auth_failures"] == 1
     assert "invalid signature" in snapshot["last_auth_error"].lower()
+
+
+def test_market_client_heartbeat_supports_legacy_noarg_clients(monkeypatch):
+    class FakeCreds:
+        api_key = "key"
+        api_secret = "secret"
+        api_passphrase = "pass"
+
+    class FakeClient:
+        def __init__(self):
+            self.creds = FakeCreds()
+            self.calls = 0
+
+        def post_heartbeat(self):
+            self.calls += 1
+            return {"ok": True}
+
+    class FakeHttp:
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+
+    async def _run():
+        market = ml.MarketClient()
+        ok = await market.send_heartbeat()
+        snapshot = market.session_snapshot()
+        calls = market._client.calls
+        await market.close()
+        return ok, snapshot, calls
+
+    ok, snapshot, calls = asyncio.run(_run())
+
+    assert ok is True
+    assert calls == 1
+    assert snapshot["last_heartbeat_ok_at"]
+
+
+def test_market_client_place_bet_floors_to_live_min_order_size(monkeypatch):
+    class FakeClient:
+        def __init__(self):
+            self.order_args = None
+
+        def create_order(self, order_args):
+            self.order_args = order_args
+            return {"signed": True}
+
+        def post_order(self, signed, order_type):
+            return {"success": True, "orderID": "live-123"}
+
+    class FakeHttp:
+        async def aclose(self):
+            return None
+
+    async def fake_min_order_size(self, token_id):
+        return 5.0
+
+    monkeypatch.setattr(ml, "LIVE_TRADING", True)
+    monkeypatch.setattr(ml, "POLY_ETH_PRIVATE_KEY", "0xabc")
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+    monkeypatch.setattr(ml.MarketClient, "get_min_order_size", fake_min_order_size)
+
+    async def _run():
+        market = ml.MarketClient()
+        result = await market.place_bet("UP", "token-up", 2.0, 0.50)
+        placed_size = market._client.order_args.size
+        await market.close()
+        return result, placed_size
+
+    result, placed_size = asyncio.run(_run())
+
+    assert result.success is True
+    assert placed_size == pytest.approx(5.0)
+    assert result.size == pytest.approx(5.0)
+    assert result.amount_usdc == pytest.approx(2.5)
+
+
+def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch):
+    class FakeClient:
+        def create_order(self, order_args):
+            return {"signed": True}
+
+        def post_order(self, signed, order_type):
+            return {"success": False, "errorMsg": "timeout talking to matching engine"}
+
+    class FakeHttp:
+        async def aclose(self):
+            return None
+
+    async def fake_min_order_size(self, token_id):
+        return 1.0
+
+    monkeypatch.setattr(ml, "LIVE_TRADING", True)
+    monkeypatch.setattr(ml, "POLY_ETH_PRIVATE_KEY", "0xabc")
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+    monkeypatch.setattr(ml.MarketClient, "get_min_order_size", fake_min_order_size)
+
+    async def _run():
+        market = ml.MarketClient()
+        result = await market.place_bet("UP", "token-up", 2.0, 0.50)
+        await market.close()
+        return result
+
+    result = asyncio.run(_run())
+
+    assert result.success is False
+    assert result.failure_code == "TRANSIENT_NETWORK"
+    assert result.retryable is True
+    assert result.attempt_consumed is False

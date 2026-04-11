@@ -1,7 +1,7 @@
 {
   "model_name": "bandar_avoider_xgb",
-  "model_version": "20260411T020045Z-s20",
-  "trained_at": "2026-04-11T02:00:45.029Z",
+  "model_version": "20260411T020005Z-s20",
+  "trained_at": "2026-04-11T02:00:05.381Z",
   "feature_list": [
     "gap_signed_pct",
     "seconds_remaining",
@@ -282,14 +282,14 @@
   },
   "promotion_state": "active",
   "artifact_paths": {
-    "model": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020045Z-s20/model.joblib",
-    "calibrator": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020045Z-s20/calibrator.joblib",
-    "feature_schema": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020045Z-s20/feature_schema.json",
-    "metrics": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020045Z-s20/metrics.json",
-    "manifest": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020045Z-s20/manifest.json"
+    "model": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020005Z-s20/model.joblib",
+    "calibrator": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020005Z-s20/calibrator.joblib",
+    "feature_schema": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020005Z-s20/feature_schema.json",
+    "metrics": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020005Z-s20/metrics.json",
+    "manifest": "artifacts/ml/bandar_avoider_xgb/versions/20260411T020005Z-s20/manifest.json"
   },
   "applied_state": "active",
-  "activated_at": "2026-04-11T02:00:45.035Z",
+  "activated_at": "2026-04-11T02:00:05.390Z",
   "activation_reason": "scheduled_retrain",
   "runtime_thresholds": {
     "observe": 0.7,

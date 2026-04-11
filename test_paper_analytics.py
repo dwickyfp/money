@@ -291,7 +291,8 @@ def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
     asyncio.run(run_case())
 
 
-def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
+def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "LIVE_TRADING", False)
     bot = make_bot(tmp_path)
     bot.state.balance_usdc = 0.73
     bot.state.paper_stats.paper_trade_wins_total = 3
@@ -569,6 +570,266 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path):
     asyncio.run(run_case())
 
 
+def test_place_trade_lifts_live_bet_to_market_minimum(tmp_path, monkeypatch):
+    class StubMarket:
+        def __init__(self):
+            self.bet_calls = []
+
+        async def get_min_order_size(self, token_id):
+            return 5.0
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            self.bet_calls.append((direction, token_id, amount_usdc, current_odds))
+            return tf.TradeResult(
+                success=True,
+                order_id="LIVE-123",
+                simulated=False,
+                size=5.0,
+                price=current_odds,
+                amount_usdc=amount_usdc,
+            )
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.balance_usdc = 14.51
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xlive-min", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.93,
+            raw_confidence=0.93,
+            reason="live trade",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        bot.state.up_odds = 0.50
+        bot.state.down_odds = 0.50
+
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id="row-live-min",
+        )
+
+        assert bot.market.bet_calls == [("UP", "up-token", 2.5, 0.5)]
+        assert len(bot.state.positions) == 1
+        assert bot.state.positions[0].simulated is False
+        assert bot.state.positions[0].amount_usdc == 2.5
+
+    asyncio.run(run_case())
+
+
+def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path, monkeypatch):
+    class StubMarket:
+        def __init__(self):
+            self.bet_calls = 0
+
+        async def get_min_order_size(self, token_id):
+            return 1.0
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            self.bet_calls += 1
+            if self.bet_calls == 1:
+                return tf.TradeResult(
+                    success=False,
+                    error="timeout talking to matching engine",
+                    failure_code="TRANSIENT_NETWORK",
+                    retryable=True,
+                    attempt_consumed=False,
+                )
+            return tf.TradeResult(
+                success=True,
+                order_id="LIVE-RETRY",
+                simulated=False,
+                size=4.0,
+                price=current_odds,
+                amount_usdc=amount_usdc,
+            )
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.balance_usdc = 20.0
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xretry-live", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.93,
+            raw_confidence=0.93,
+            reason="retry me",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-live-retry",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="live",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        execution_state = bot.state.window_execution_states[win.condition_id]
+        assert len(bot.state.positions) == 0
+        assert execution_state.attempt_count == 1
+        assert execution_state.retryable_failures == 1
+        assert execution_state.terminal is False
+
+        decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
+        blocked_now = bot._execution_block(
+            win=win,
+            signal=signal,
+            decision=decision,
+            elapsed_s=250,
+            seconds_remaining=45,
+            now=execution_state.last_attempt_at,
+        )
+        blocked_later = bot._execution_block(
+            win=win,
+            signal=signal,
+            decision=decision,
+            elapsed_s=253,
+            seconds_remaining=40,
+            now=execution_state.last_attempt_at + tf.LIVE_RETRY_COOLDOWN_S + 0.2,
+        )
+
+        assert blocked_now is not None
+        assert blocked_now[0] == tf.GATE_RETRY_COOLDOWN
+        assert blocked_later is None
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.2],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        execution_state = bot.state.window_execution_states[win.condition_id]
+        record_after = bot.state.paper_prediction_records[win.condition_id]
+        assert len(bot.state.positions) == 1
+        assert execution_state.attempt_count == 2
+        assert execution_state.successful is True
+        assert execution_state.terminal is True
+        assert record_after.executed_order_id == "LIVE-RETRY"
+        assert record_after.placement_failure_code == ""
+
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+        assert "prediction_trade_failed" in contents
+
+    asyncio.run(run_case())
+
+
+def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_min_order_size(self, token_id):
+            return 1.0
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            return tf.TradeResult(
+                success=False,
+                error="insufficient balance on exchange",
+                failure_code="INSUFFICIENT_BALANCE",
+                retryable=False,
+                attempt_consumed=True,
+            )
+
+    async def run_case():
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.balance_usdc = 20.0
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xterminal-live", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="terminal fail",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-live-terminal",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="live",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        execution_state = bot.state.window_execution_states[win.condition_id]
+        decision = tf.TradeDecision(action="BUY", direction="UP", confidence=signal.confidence, reason="ok", gate=tf.GATE_OK)
+        blocked = bot._execution_block(
+            win=win,
+            signal=signal,
+            decision=decision,
+            elapsed_s=252,
+            seconds_remaining=40,
+            now=datetime.now(timezone.utc).timestamp(),
+        )
+
+        assert len(bot.state.positions) == 0
+        assert execution_state.terminal is True
+        assert blocked is not None
+        assert blocked[0] == tf.GATE_ALREADY_ATTEMPTED
+        assert "INSUFFICIENT_BALANCE" in blocked[1]
+
+    asyncio.run(run_case())
+
+
 def test_tie_settlement_is_void_not_down_win(tmp_path):
     async def run_case():
         bot = make_bot(tmp_path)
@@ -703,7 +964,8 @@ def test_reserve_buy_locks_and_carries_into_execute(tmp_path):
     asyncio.run(run_case())
 
 
-def test_execution_window_opens_at_210_seconds(tmp_path):
+def test_execution_window_opens_at_210_seconds(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "LIVE_TRADING", False)
     bot = make_bot(tmp_path)
     win = make_window(condition_id="0xwindow", beat_price=100.0, end_time=datetime.now(timezone.utc) + timedelta(minutes=1))
     signal = tf.AISignal(signal="BUY_UP", confidence=0.82, raw_confidence=0.84, reason="buy", source="ml")
@@ -765,7 +1027,7 @@ def test_soft_bandar_push_only_hard_blocks_under_30_seconds():
         tf.BET_FREQUENCY_EXPANSION_PHASE = previous
 
 
-def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
+def test_soft_late_proximity_risk_only_hard_blocks_inside_final_25_seconds():
     previous = tf.BET_FREQUENCY_EXPANSION_PHASE
     tf.BET_FREQUENCY_EXPANSION_PHASE = "B"
     try:
@@ -781,7 +1043,7 @@ def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
             snap=snap,
             signal_alignment=4,
         )
-        ctx_hard = tf.DecisionContext(
+        ctx_mid = tf.DecisionContext(
             win=SimpleNamespace(beat_price=100.0),
             elapsed_s=220,
             seconds_remaining=40,
@@ -791,14 +1053,64 @@ def test_soft_late_proximity_risk_only_hard_blocks_for_weaker_alignment():
             snap=snap,
             signal_alignment=3,
         )
+        ctx_hard = tf.DecisionContext(
+            win=SimpleNamespace(beat_price=100.0),
+            elapsed_s=280,
+            seconds_remaining=20,
+            btc_price=100.02,
+            up_odds=0.58,
+            down_odds=0.42,
+            snap=snap,
+            signal_alignment=5,
+        )
 
         assert decision._check_late_reversal_risk(ctx_soft) is None
         assert "SOFT_LATE_PROXIMITY_RISK" in decision.soft_penalties(ctx_soft)
+        assert decision._check_late_reversal_risk(ctx_mid) is None
         hard = decision._check_late_reversal_risk(ctx_hard)
         assert hard is not None
         assert hard.gate == "GATE_LATE_PROXIMITY_RISK"
     finally:
         tf.BET_FREQUENCY_EXPANSION_PHASE = previous
+
+
+def test_warm_paper_analytics_restores_pending_live_trade_failure_state(tmp_path):
+    bot = make_bot(tmp_path)
+    now = datetime.now(timezone.utc)
+    record = tf.WindowPredictionRecord(
+        row_id="row-live-failure",
+        condition_id="0xrestore-live",
+        window_label="12:40",
+        window_end_at=now + timedelta(minutes=1),
+        beat_price=100.0,
+        mode="live",
+        signal="BUY_UP",
+        predicted_direction="UP",
+        decision_action="trade_failed_retryable",
+        confidence=0.86,
+        raw_confidence=0.88,
+        source="ml",
+        placement_failure_code="TRANSIENT_NETWORK",
+        placement_failure_reason="timeout talking to matching engine",
+        placement_retryable=True,
+        placement_attempt_consumed=False,
+        placement_attempt_count=1,
+        last_attempted_at=now,
+        last_updated_at=now,
+    )
+
+    bot.state.logger.log_prediction_trade_failed(record)
+
+    restored, warmed = bot._warm_paper_analytics()
+    execution_state = bot.state.window_execution_states[record.condition_id]
+    restored_record = bot.state.prediction_records[record.row_id]
+
+    assert restored == 1
+    assert warmed == 0
+    assert restored_record.placement_failure_code == "TRANSIENT_NETWORK"
+    assert restored_record.placement_retryable is True
+    assert execution_state.retryable_failures == 1
+    assert execution_state.terminal is False
 
 
 def test_prediction_state_logs_structured_skip_reason_codes(tmp_path):

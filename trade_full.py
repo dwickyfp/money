@@ -113,6 +113,10 @@ GOLD_ZONE_MIN_CONF     = 0.70   # minimum calibrated confidence to execute a bet
 GOLD_ZONE_MAX_ODDS     = 0.82   # leading side must still be ≤ this (not fully priced)
 LAST_MIN_SECONDS_GUARD = 12     # stop accepting new bets with < 8s left (order latency)
 MIN_SIGNAL_ALIGNMENT   = int(os.getenv("MIN_SIGNAL_ALIGNMENT", "4"))  # require at least 4/6 family-weighted alignment
+LIVE_RETRY_MAX_RETRIES = int(os.getenv("LIVE_RETRY_MAX_RETRIES", "2"))
+LIVE_RETRY_COOLDOWN_S = float(os.getenv("LIVE_RETRY_COOLDOWN_S", "3"))
+LIVE_RETRY_BUFFER_S = int(os.getenv("LIVE_RETRY_BUFFER_S", "5"))
+LIVE_RETRY_MIN_SECONDS_REMAINING = LAST_MIN_SECONDS_GUARD + LIVE_RETRY_BUFFER_S
 
 # ── Beat-relative chop filter ─────────────────────────────────────────────────
 # Skip windows where BTC is repeatedly crossing the beat price or spending an
@@ -477,6 +481,12 @@ class BotLogger:
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
             "notification_gate":   record.notification_gate,
+            "placement_failure_code": record.placement_failure_code,
+            "placement_failure_reason": record.placement_failure_reason,
+            "placement_retryable": record.placement_retryable,
+            "placement_attempt_consumed": record.placement_attempt_consumed,
+            "placement_attempt_count": record.placement_attempt_count,
+            "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
             "sample_seq":          record.sample_seq,
             "counterfactual_pnl":  record.counterfactual_pnl,
             "paper_trade_won":     record.paper_trade_won,
@@ -534,6 +544,12 @@ class BotLogger:
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
             "notification_gate":   record.notification_gate,
+            "placement_failure_code": record.placement_failure_code,
+            "placement_failure_reason": record.placement_failure_reason,
+            "placement_retryable": record.placement_retryable,
+            "placement_attempt_consumed": record.placement_attempt_consumed,
+            "placement_attempt_count": record.placement_attempt_count,
+            "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
             "sample_seq":          record.sample_seq,
             "last_updated_at":     record.last_updated_at.isoformat() if record.last_updated_at else "",
         })
@@ -590,6 +606,12 @@ class BotLogger:
             "notification_sent":   record.notification_sent,
             "notification_signal": record.notification_signal,
             "notification_gate":   record.notification_gate,
+            "placement_failure_code": record.placement_failure_code,
+            "placement_failure_reason": record.placement_failure_reason,
+            "placement_retryable": record.placement_retryable,
+            "placement_attempt_consumed": record.placement_attempt_consumed,
+            "placement_attempt_count": record.placement_attempt_count,
+            "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
             "sample_seq":          record.sample_seq,
             "actual_winner":       record.actual_winner,
             "prediction_correct":  record.prediction_correct,
@@ -597,6 +619,46 @@ class BotLogger:
             "paper_trade_won":     record.paper_trade_won,
             "live_trade_won":      record.live_trade_won,
             "resolved_at":         record.resolved_at.isoformat() if record.resolved_at else "",
+        })
+
+    def log_prediction_trade_failed(self, record) -> None:
+        """Persist an attempted trade that failed before opening a position."""
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        self._append(f"prediction_analytics_{today}.jsonl", {
+            "ts":                  self._ts(),
+            "event":               "prediction_trade_failed",
+            "row_id":              record.row_id,
+            "condition_id":        record.condition_id,
+            "window_label":        record.window_label,
+            "window_end_at":       record.window_end_at.isoformat() if record.window_end_at else "",
+            "beat_price":          record.beat_price,
+            "mode":                record.mode,
+            "signal":              record.signal,
+            "predicted_direction": record.predicted_direction,
+            "decision_action":     record.decision_action,
+            "confidence":          record.confidence,
+            "raw_confidence":      record.raw_confidence,
+            "source":              record.source,
+            "model_version":       record.model_version,
+            "promotion_state":     record.promotion_state,
+            "prob_up":             record.prob_up,
+            "prob_down":           record.prob_down,
+            "alignment":           record.alignment,
+            "execution_allowed":   record.execution_allowed,
+            "execution_bucket":    record.execution_bucket,
+            "seconds_remaining":   record.seconds_remaining,
+            "btc_price":           record.btc_price,
+            "up_odds":             record.up_odds,
+            "down_odds":           record.down_odds,
+            "signal_reason":       record.signal_reason,
+            "decision_reason":     record.decision_reason,
+            "placement_failure_code": record.placement_failure_code,
+            "placement_failure_reason": record.placement_failure_reason,
+            "placement_retryable": record.placement_retryable,
+            "placement_attempt_consumed": record.placement_attempt_consumed,
+            "placement_attempt_count": record.placement_attempt_count,
+            "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
+            "last_updated_at":     record.last_updated_at.isoformat() if record.last_updated_at else "",
         })
 
     def log_trade_execution_resolved(self, position, won: bool | None) -> None:
@@ -944,11 +1006,11 @@ class BotLogger:
                         prediction_id = _prediction_id(record)
                         condition_id = str(record.get("condition_id", "")).strip()
 
-                        if event in ("prediction_state", "prediction_blocked"):
+                        if event in ("prediction_state", "prediction_blocked", "prediction_trade_failed"):
                             if prediction_id and prediction_id not in resolved_predictions:
                                 pending_by_id[prediction_id] = record
                                 gate = str(record.get("blocked_gate", "") or "")
-                                if gate:
+                                if event == "prediction_blocked" and gate:
                                     shadow_by_gate[gate]["count"] += 1
                             continue
 
@@ -1067,6 +1129,9 @@ class BotLogger:
                                 "has_buy_prediction": False,
                                 "reserved_signal": False,
                                 "executed_bet": False,
+                                "placement_failed": False,
+                                "retryable_failure": False,
+                                "placement_failure_codes": {},
                                 "execution_bucket": "",
                                 "won": None,
                                 "blocked_by_gate": {},
@@ -1079,7 +1144,16 @@ class BotLogger:
                             bucket["reserved_signal"] = True
                         if str(record.get("execution_bucket", "") or ""):
                             bucket["execution_bucket"] = str(record.get("execution_bucket", "") or "")
-                        if event == "prediction_resolved":
+                        if event == "prediction_trade_failed":
+                            bucket["placement_failed"] = True
+                            retryable = bool(record.get("placement_retryable", False))
+                            bucket["retryable_failure"] = bucket["retryable_failure"] or retryable
+                            failure_code = str(record.get("placement_failure_code", "") or "")
+                            if failure_code:
+                                bucket["placement_failure_codes"][failure_code] = (
+                                    int(bucket["placement_failure_codes"].get(failure_code, 0) or 0) + 1
+                                )
+                        elif event == "prediction_resolved":
                             resolved_at = str(record.get("resolved_at") or record.get("ts") or "")
                             if resolved_at:
                                 bucket["resolved_at"] = resolved_at
@@ -1121,6 +1195,9 @@ class BotLogger:
             "buy_prediction_rate": 0.0,
             "reserved_signal_rate": 0.0,
             "executed_bet_rate": 0.0,
+            "placement_failed_rate": 0.0,
+            "retryable_failure_rate": 0.0,
+            "placement_failure_by_code": {},
             "blocked_profitable_rate": {},
             "win_rate_by_execution_bucket": {},
             "threshold_counterfactuals": {},
@@ -1131,15 +1208,20 @@ class BotLogger:
         metrics["buy_prediction_rate"] = round(sum(1 for row in recent if row.get("has_buy_prediction")) / total, 4)
         metrics["reserved_signal_rate"] = round(sum(1 for row in recent if row.get("reserved_signal")) / total, 4)
         metrics["executed_bet_rate"] = round(sum(1 for row in recent if row.get("executed_bet")) / total, 4)
+        metrics["placement_failed_rate"] = round(sum(1 for row in recent if row.get("placement_failed")) / total, 4)
+        metrics["retryable_failure_rate"] = round(sum(1 for row in recent if row.get("retryable_failure")) / total, 4)
 
         gate_hits: dict[str, int] = defaultdict(int)
         gate_totals: dict[str, int] = defaultdict(int)
         bucket_wins: dict[str, int] = defaultdict(int)
         bucket_totals: dict[str, int] = defaultdict(int)
+        failure_codes: dict[str, int] = defaultdict(int)
         for row in recent:
             for gate, stats in row.get("blocked_by_gate", {}).items():
                 gate_hits[gate] += int(stats.get("hits", 0) or 0)
                 gate_totals[gate] += int(stats.get("total", 0) or 0)
+            for failure_code, count in dict(row.get("placement_failure_codes", {})).items():
+                failure_codes[str(failure_code)] += int(count or 0)
             execution_bucket = str(row.get("execution_bucket", "") or "")
             if execution_bucket and isinstance(row.get("won"), bool):
                 bucket_totals[execution_bucket] += 1
@@ -1156,6 +1238,7 @@ class BotLogger:
             for bucket, total_count in bucket_totals.items()
             if total_count > 0
         }
+        metrics["placement_failure_by_code"] = dict(sorted(failure_codes.items()))
         tuning_windows = _load_threshold_tuning_windows(self._dir, lookback_days=ML_THRESHOLD_LOOKBACK_DAYS)
         if tuning_windows:
             metrics["threshold_counterfactuals"] = _threshold_counterfactuals(tuning_windows[-limit:])
@@ -1974,6 +2057,11 @@ GATE_AI_HOLD              = "GATE_AI_HOLD"              # signal engine returned
 GATE_LOW_ALIGNMENT        = "GATE_LOW_ALIGNMENT"        # indicator families do not agree enough
 GATE_LOW_CONF             = "GATE_LOW_CONF"             # signal confidence below threshold
 GATE_OK                   = "OK"                        # all gates passed → BUY
+GATE_ALREADY_OPEN         = "GATE_ALREADY_OPEN"         # position already open in this window
+GATE_ALREADY_ATTEMPTED    = "GATE_ALREADY_ATTEMPTED"    # window consumed by a successful/terminal attempt
+GATE_RETRY_COOLDOWN       = "GATE_RETRY_COOLDOWN"       # waiting before retrying a retryable placement failure
+GATE_RETRY_WINDOW_CLOSED  = "GATE_RETRY_WINDOW_CLOSED"  # retry window closed due to remaining time
+GATE_RETRY_LIMIT          = "GATE_RETRY_LIMIT"          # retry budget exhausted for this window
 
 
 # ── Data classes ─────────────────────────────────────────────────────────────
@@ -2044,34 +2132,11 @@ class DecisionMaker:
         if ctx.seconds_remaining > LATE_RISK_WINDOW_S:
             return None
 
-        phase_bucket = _phase_bucket_from_timing(ctx.elapsed_s, ctx.seconds_remaining)
         gap_pct = abs(ctx.btc_price - ctx.win.beat_price) / ctx.win.beat_price * 100
         if gap_pct >= LATE_GAP_RISK_PCT:
             return None
 
-        if not _bet_frequency_phase_at_least("B"):
-            if ctx.signal_alignment < 5:
-                return TradeDecision(
-                    action="SKIP",
-                    direction=ctx.snap.direction_bias or "NONE",
-                    confidence=0.0,
-                    reason=f"LATE_PROXIMITY_RISK: gap={gap_pct:.3f}% < {LATE_GAP_RISK_PCT:.2f}% di final {ctx.seconds_remaining}s (align={ctx.signal_alignment}/6)",
-                    gate="GATE_LATE_PROXIMITY_RISK",
-                )
-            return None
-
-        if phase_bucket in ("RESERVE", "EARLY_EXEC") and ctx.seconds_remaining >= LATE_HARD_RISK_SECONDS:
-            if gap_pct < 0.04 or ctx.signal_alignment <= 3:
-                return TradeDecision(
-                    action="SKIP",
-                    direction=ctx.snap.direction_bias or "NONE",
-                    confidence=0.0,
-                    reason=f"LATE_PROXIMITY_RISK: gap={gap_pct:.3f}% < {LATE_GAP_RISK_PCT:.2f}% di final {ctx.seconds_remaining}s (align={ctx.signal_alignment}/6)",
-                    gate="GATE_LATE_PROXIMITY_RISK",
-                )
-            return None
-
-        if ctx.seconds_remaining < LATE_HARD_RISK_SECONDS or ctx.signal_alignment < 5 or gap_pct < LATE_GAP_RISK_PCT:
+        if ctx.seconds_remaining < LATE_HARD_RISK_SECONDS:
             return TradeDecision(
                 action="SKIP",
                 direction=ctx.snap.direction_bias or "NONE",
@@ -2122,8 +2187,6 @@ class DecisionMaker:
 
     def soft_penalties(self, ctx: DecisionContext) -> list[str]:
         penalties: list[str] = []
-        if not _bet_frequency_phase_at_least("B"):
-            return penalties
         snap = ctx.snap
         if snap is None:
             return penalties
@@ -2133,10 +2196,12 @@ class DecisionMaker:
 
         if LATE_HARD_RISK_SECONDS <= ctx.seconds_remaining <= LATE_RISK_WINDOW_S:
             gap_pct = abs(ctx.btc_price - ctx.win.beat_price) / ctx.win.beat_price * 100 if ctx.win and ctx.win.beat_price > 0 else 0.0
-            if gap_pct < LATE_GAP_RISK_PCT and gap_pct >= 0.04 and ctx.signal_alignment >= 4:
+            if gap_pct < LATE_GAP_RISK_PCT:
                 penalties.append("SOFT_LATE_PROXIMITY_RISK")
 
         if LATE_HARD_RISK_SECONDS <= ctx.seconds_remaining <= BANDAR_FINAL_SECONDS:
+            if not _bet_frequency_phase_at_least("B"):
+                return penalties
             if (
                 abs(_safe_float(getattr(snap, "odds_vel_value", 0.0), 0.0)) > BANDAR_ODDS_VEL_THRESHOLD
                 or abs(_safe_float(getattr(snap, "odds_vel_accel", 0.0), 0.0)) > BANDAR_CVD_ACCEL_THRESHOLD
@@ -2540,6 +2605,7 @@ wraps them with asyncio.run_in_executor so the event loop never blocks.
 """
 
 import asyncio
+import inspect
 import json
 import math
 import re
@@ -2583,6 +2649,9 @@ class TradeResult:
     size: float | None = None
     price: float | None = None
     amount_usdc: float | None = None
+    failure_code: str = ""
+    retryable: bool = False
+    attempt_consumed: bool = True
 
 
 @dataclass
@@ -2769,6 +2838,15 @@ class MarketClient:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, partial(fn, *args, **kwargs))
 
+    @staticmethod
+    def _heartbeat_call_args(client) -> tuple[Any, ...]:
+        try:
+            param_count = len(inspect.signature(client.post_heartbeat).parameters)
+        except (TypeError, ValueError):
+            # Newer py-clob-client requires heartbeat_id; default to None when introspection fails.
+            return (None,)
+        return (None,) if param_count >= 1 else ()
+
     async def auth_health_check(self) -> tuple[bool, str]:
         """Run a read-only authenticated probe against the active client."""
         client, _, _ = await self._get_client_snapshot()
@@ -2954,6 +3032,55 @@ class MarketClient:
             self._mark_auth_failure(str(exc), source="get_balance")
             return 0.0
 
+    @staticmethod
+    def _classify_trade_failure(error_msg: str) -> tuple[str, bool, bool]:
+        text = str(error_msg or "").strip()
+        lowered = text.lower()
+        if not lowered:
+            return "PLACEMENT_FAILED", True, False
+
+        if "private key" in lowered or "cannot sign orders" in lowered:
+            return "AUTH_MISSING_KEY", False, True
+        if (
+            "invalid signature" in lowered
+            or "l2 header" in lowered
+            or "unauthorized" in lowered
+            or "forbidden" in lowered
+            or "authentication" in lowered
+            or "invalid api key" in lowered
+            or "nonce" in lowered
+        ):
+            return "AUTH_FAILURE", True, False
+        if (
+            "timed out" in lowered
+            or "timeout" in lowered
+            or "temporarily unavailable" in lowered
+            or "connection reset" in lowered
+            or "connection aborted" in lowered
+            or "connection refused" in lowered
+            or "network" in lowered
+            or "502" in lowered
+            or "503" in lowered
+            or "504" in lowered
+            or "too many requests" in lowered
+            or "rate limit" in lowered
+            or "no orders found to match" in lowered
+        ):
+            return "TRANSIENT_NETWORK", True, False
+        if "insufficient" in lowered and ("balance" in lowered or "allowance" in lowered or "fund" in lowered):
+            return "INSUFFICIENT_BALANCE", False, True
+        if "minimum" in lowered or "min order" in lowered or "too small" in lowered:
+            return "MIN_ORDER_SIZE", False, True
+        if (
+            "market resolved" in lowered
+            or "closed" in lowered
+            or "expired" in lowered
+            or "too late" in lowered
+            or "not accepting orders" in lowered
+        ):
+            return "MARKET_CLOSED", False, True
+        return "PLACEMENT_FAILED", True, False
+
     # ── Order placement ───────────────────────────────────────────────────────
 
     async def place_bet(
@@ -2982,6 +3109,9 @@ class MarketClient:
                 success=False,
                 error="POLY_ETH_PRIVATE_KEY missing — cannot sign orders for live trading. "
                       "Export your Ethereum private key and add it to .env",
+                failure_code="AUTH_MISSING_KEY",
+                retryable=False,
+                attempt_consumed=True,
             )
 
         client, _, _ = await self._get_client_snapshot()
@@ -2998,18 +3128,9 @@ class MarketClient:
             size = math.floor(requested_size * 100) / 100
             min_order_size = await self.get_min_order_size(token_id)
 
-            if min_order_size > 0 and requested_size + 1e-9 < min_order_size:
-                min_notional = min_order_size * price
-                return TradeResult(
-                    success=False,
-                    error=(
-                        f"requested ${amount_usdc:.2f} buys only {requested_size:.2f} shares "
-                        f"at {price:.2f}, below market minimum {min_order_size:.2f} shares "
-                        f"(min spend ${min_notional:.2f})"
-                    ),
-                )
-
             if min_order_size > 0 and size < min_order_size:
+                # Live CLOB orders are share-size constrained; floor to the
+                # exchange minimum instead of treating the attempt as a failure.
                 size = min_order_size
 
             actual_amount_usdc = round(size * price, 4)
@@ -3034,10 +3155,25 @@ class MarketClient:
                 )
             error_msg = str(resp.get("errorMsg", "unknown")) if isinstance(resp, dict) else "unknown"
             self._mark_auth_failure(error_msg, source="place_bet")
-            return TradeResult(success=False, error=error_msg)
+            failure_code, retryable, attempt_consumed = self._classify_trade_failure(error_msg)
+            return TradeResult(
+                success=False,
+                error=error_msg,
+                failure_code=failure_code,
+                retryable=retryable,
+                attempt_consumed=attempt_consumed,
+            )
         except Exception as exc:
-            self._mark_auth_failure(str(exc), source="place_bet")
-            return TradeResult(success=False, error=str(exc))
+            error_msg = str(exc)
+            self._mark_auth_failure(error_msg, source="place_bet")
+            failure_code, retryable, attempt_consumed = self._classify_trade_failure(error_msg)
+            return TradeResult(
+                success=False,
+                error=error_msg,
+                failure_code=failure_code,
+                retryable=retryable,
+                attempt_consumed=attempt_consumed,
+            )
 
     async def get_min_order_size(self, token_id: str) -> float:
         """Return the market minimum order size from the public order book."""
@@ -3059,7 +3195,7 @@ class MarketClient:
         """POST /heartbeats to keep the CLOB session alive."""
         client, _, _ = await self._get_client_snapshot()
         try:
-            await self._run(client.post_heartbeat)
+            await self._run(client.post_heartbeat, *self._heartbeat_call_args(client))
             self._mark_auth_success("heartbeat")
             return True
         except Exception as exc:
@@ -6384,6 +6520,12 @@ class WindowPredictionRecord:
     notification_sent: bool = False
     notification_signal: str = ""
     notification_gate: str = ""
+    placement_failure_code: str = ""
+    placement_failure_reason: str = ""
+    placement_retryable: bool = False
+    placement_attempt_consumed: bool = False
+    placement_attempt_count: int = 0
+    last_attempted_at: datetime | None = None
     sample_seq: int = 0
     resolved_at: datetime | None = None
     last_updated_at: datetime | None = None
@@ -6527,9 +6669,25 @@ class ModelActivationStatus:
     applied_state: str = "fallback"
     activated_at: str = ""
     activation_reason: str = ""
+    threshold_profile_version: str = ""
 
     def to_record(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass
+class WindowExecutionState:
+    condition_id: str = ""
+    attempt_count: int = 0
+    retryable_failures: int = 0
+    successful: bool = False
+    terminal: bool = False
+    last_attempt_at: float = 0.0
+    last_failure_code: str = ""
+    last_failure_reason: str = ""
+    last_retryable: bool = False
+    last_attempt_consumed: bool = False
+    last_prediction_row_id: str = ""
 
 
 @dataclass
@@ -6617,9 +6775,7 @@ class BotState:
     positions: list[Position] = field(default_factory=list)
     bets_this_hour: int = 0
     hour_reset_at: float = field(default_factory=time.time)
-    # Set of condition_ids where a bet was ATTEMPTED this session (success or fail).
-    # Populated BEFORE place_bet is called so that a failed order never retries.
-    bet_attempted_windows: set = field(default_factory=set)
+    window_execution_states: dict[str, WindowExecutionState] = field(default_factory=dict)
 
     # ── Results
     balance_usdc: float = 0.0
@@ -6817,6 +6973,7 @@ class TradingBot:
         self.state.daily_day = datetime.now(_UTC).strftime("%Y-%m-%d")
         self._sync_model_activation_status(reason="startup", allow_auto_promote=True, log_change=True)
         self._refresh_performance_history()
+        self._log_startup_continuity_summary()
         try:
             await asyncio.gather(
                 safe_loop(self.feed.run,                  "btc_feed",  self.state),
@@ -6896,6 +7053,7 @@ class TradingBot:
             applied_state=(manifest.applied_state or manifest.promotion_state) if manifest is not None else "fallback",
             activated_at=manifest.activated_at if manifest is not None else "",
             activation_reason=manifest.activation_reason if manifest is not None else "",
+            threshold_profile_version=_manifest_runtime_threshold_payload(manifest).get("version", DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION),
         )
         self.state.model_activation_status = status
 
@@ -6903,7 +7061,8 @@ class TradingBot:
             version = status.active_model_version or "none"
             self.state.log_event(
                 f"[ML] Activated model {version} source={status.active_signal_source} "
-                f"state={status.applied_state or 'fallback'}"
+                f"state={status.applied_state or 'fallback'} "
+                f"thresholds={status.threshold_profile_version or DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION}"
             )
         return status
 
@@ -6930,6 +7089,9 @@ class TradingBot:
                 "open_positions": len([p for p in self.state.positions if p.status == "open"]),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
+                "applied_state": self.state.model_activation_status.applied_state,
+                "activation_reason": self.state.model_activation_status.activation_reason,
+                "threshold_profile_version": self.state.model_activation_status.threshold_profile_version,
                 "claimable_total": round(float(self.state.claimable_total or 0.0), 6),
                 "pending_claim_count": int(self.state.pending_claim_count or 0),
                 "claimed_today_count": int(self.state.claimed_today_count or 0),
@@ -7014,6 +7176,27 @@ class TradingBot:
         history[today_key] = self._build_daily_history_snapshot(today_key, history.get(today_key)).to_record()
         self.state.performance_history_cache = history
         self._write_performance_history_cache(history)
+
+    def _log_startup_continuity_summary(self) -> None:
+        status = self.state.model_activation_status
+        recent24 = self.state.logger.compute_recent_participation_metrics(limit=24)
+        recent100 = self.state.logger.compute_recent_participation_metrics(limit=100)
+        model_version = status.active_model_version or "none"
+        thresholds = status.threshold_profile_version or DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION
+        self.state.log_event(
+            f"[CONTINUITY] mode={'live' if LIVE_TRADING else 'paper'} "
+            f"model={model_version} state={status.applied_state or 'fallback'} "
+            f"thresholds={thresholds}"
+        )
+        self.state.log_event(
+            f"[CONTINUITY] recent24 buy={recent24.get('buy_prediction_rate', 0.0):.0%} "
+            f"exec={recent24.get('executed_bet_rate', 0.0):.0%} "
+            f"fail={recent24.get('placement_failed_rate', 0.0):.0%} "
+            f"reserve={recent24.get('reserved_signal_rate', 0.0):.0%} "
+            f"| recent100 buy={recent100.get('buy_prediction_rate', 0.0):.0%} "
+            f"exec={recent100.get('executed_bet_rate', 0.0):.0%} "
+            f"fail={recent100.get('placement_failed_rate', 0.0):.0%}"
+        )
 
     async def _refresh_order_book_snapshot(self, token_id: str) -> None:
         try:
@@ -7606,6 +7789,36 @@ class TradingBot:
         self.state.logger.log_prediction_blocked(record)
         return record
 
+    async def _mark_prediction_trade_failed(
+        self,
+        row_id: str,
+        *,
+        condition_id: str,
+        result: TradeResult,
+        attempt_count: int,
+        attempted_at: datetime | None = None,
+    ) -> WindowPredictionRecord | None:
+        async with self.state._lock:
+            record = self.state.prediction_records.get(row_id) if row_id else None
+            if record is None:
+                record = self.state.paper_prediction_records.get(condition_id)
+            if record is None:
+                return None
+            record.decision_action = "trade_failed_retryable" if result.retryable and not result.attempt_consumed else "trade_failed"
+            record.execution_allowed = bool(result.retryable and not result.attempt_consumed)
+            record.decision_reason = str(result.error or "trade placement failed")
+            record.placement_failure_code = result.failure_code or "PLACEMENT_FAILED"
+            record.placement_failure_reason = str(result.error or "")
+            record.placement_retryable = bool(result.retryable)
+            record.placement_attempt_consumed = bool(result.attempt_consumed)
+            record.placement_attempt_count = max(int(attempt_count or 0), int(record.placement_attempt_count or 0))
+            record.last_attempted_at = attempted_at or datetime.now(_UTC)
+            record.last_updated_at = datetime.now(_UTC)
+            self.state.paper_prediction_records[record.condition_id] = record
+
+        self.state.logger.log_prediction_trade_failed(record)
+        return record
+
     async def _attach_trade_to_prediction(self, pos: "Position") -> None:
         row_id = getattr(pos, "prediction_row_id", "") or ""
 
@@ -7622,6 +7835,17 @@ class TradingBot:
             else:
                 record.decision_action = "live_trade"
             record.execution_allowed = True
+            record.placement_failure_code = ""
+            record.placement_failure_reason = ""
+            record.placement_retryable = False
+            record.placement_attempt_consumed = True
+            record.last_attempted_at = datetime.now(_UTC)
+            execution_state = self.state.window_execution_states.get(pos.condition_id)
+            if execution_state is not None:
+                record.placement_attempt_count = max(
+                    int(record.placement_attempt_count or 0),
+                    int(execution_state.attempt_count or 0),
+                )
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
 
@@ -7646,6 +7870,116 @@ class TradingBot:
                 mode=record.mode,
             ))
 
+    @staticmethod
+    def _should_record_shadow_block(gate: str) -> bool:
+        return gate not in {
+            GATE_ALREADY_OPEN,
+            GATE_ALREADY_ATTEMPTED,
+            GATE_RETRY_COOLDOWN,
+            GATE_RETRY_WINDOW_CLOSED,
+            GATE_RETRY_LIMIT,
+            "GATE_DAILY_LOSS_LIMIT",
+            "GATE_DAILY_PROFIT_TARGET",
+            "GATE_RATE_LIMIT",
+            "GATE_STREAK_PAUSE",
+            "GATE_LOW_BALANCE",
+        }
+
+    def _window_execution_state(self, condition_id: str) -> WindowExecutionState:
+        state = self.state.window_execution_states.get(condition_id)
+        if state is None:
+            state = WindowExecutionState(condition_id=condition_id)
+            self.state.window_execution_states[condition_id] = state
+        return state
+
+    def _restore_window_execution_state(self, record: WindowPredictionRecord) -> None:
+        if not record.condition_id:
+            return
+        if not record.executed_order_id and not record.placement_failure_code:
+            return
+        if record.mode != "live" and not record.executed_order_id:
+            return
+
+        state = self._window_execution_state(record.condition_id)
+        state.last_prediction_row_id = record.row_id or state.last_prediction_row_id
+        if record.last_attempted_at is not None:
+            state.last_attempt_at = max(state.last_attempt_at, record.last_attempted_at.timestamp())
+        state.attempt_count = max(
+            int(state.attempt_count or 0),
+            int(record.placement_attempt_count or 0),
+            1 if (record.executed_order_id or record.placement_failure_code) else 0,
+        )
+
+        if record.executed_order_id:
+            state.successful = True
+            state.terminal = True
+            state.last_failure_code = ""
+            state.last_failure_reason = ""
+            state.last_retryable = False
+            state.last_attempt_consumed = True
+            return
+
+        if not record.placement_failure_code:
+            return
+
+        state.last_failure_code = record.placement_failure_code
+        state.last_failure_reason = record.placement_failure_reason
+        state.last_retryable = bool(record.placement_retryable)
+        state.last_attempt_consumed = bool(record.placement_attempt_consumed)
+        if record.placement_retryable:
+            state.retryable_failures = max(
+                int(state.retryable_failures or 0),
+                int(record.placement_attempt_count or 0),
+                1,
+            )
+        state.terminal = bool(record.placement_attempt_consumed)
+
+    def _begin_window_execution_attempt(
+        self,
+        *,
+        condition_id: str,
+        row_id: str,
+        attempted_at: float | None = None,
+    ) -> WindowExecutionState:
+        state = self._window_execution_state(condition_id)
+        state.attempt_count += 1
+        state.last_attempt_at = attempted_at if attempted_at is not None else time.time()
+        state.last_prediction_row_id = row_id or state.last_prediction_row_id
+        return state
+
+    def _complete_window_execution_attempt(
+        self,
+        *,
+        condition_id: str,
+        row_id: str,
+        result: TradeResult,
+        attempted_at: float | None = None,
+    ) -> WindowExecutionState:
+        state = self._window_execution_state(condition_id)
+        state.last_prediction_row_id = row_id or state.last_prediction_row_id
+        if attempted_at is not None:
+            state.last_attempt_at = attempted_at
+        state.last_failure_code = result.failure_code or ""
+        state.last_failure_reason = str(result.error or "")
+        state.last_retryable = bool(result.retryable)
+        state.last_attempt_consumed = bool(result.attempt_consumed)
+
+        if result.success:
+            state.successful = True
+            state.terminal = True
+            state.last_failure_code = ""
+            state.last_failure_reason = ""
+            state.last_retryable = False
+            state.last_attempt_consumed = True
+            return state
+
+        if result.retryable and not result.attempt_consumed:
+            state.retryable_failures += 1
+            state.terminal = state.retryable_failures > LIVE_RETRY_MAX_RETRIES
+        else:
+            state.terminal = True
+        return state
+
     def _execution_block(
         self,
         *,
@@ -7666,9 +8000,37 @@ class TradingBot:
         if decision.action != "BUY":
             return (decision.gate, decision.reason)
 
-        bet_ids = {p.condition_id for p in self.state.open_positions} | self.state.bet_attempted_windows
-        if win.condition_id in bet_ids:
-            return ("GATE_ALREADY_ATTEMPTED", "bet already attempted in this window")
+        if any(p.condition_id == win.condition_id for p in self.state.open_positions):
+            return (GATE_ALREADY_OPEN, "open position already active in this window")
+
+        execution_state = self.state.window_execution_states.get(win.condition_id)
+        if execution_state is not None:
+            if execution_state.successful:
+                return (GATE_ALREADY_ATTEMPTED, "bet already opened in this window")
+            if execution_state.terminal:
+                failure_code = execution_state.last_failure_code or "terminal_failure"
+                failure_reason = execution_state.last_failure_reason or "window consumed by terminal placement failure"
+                return (
+                    GATE_ALREADY_ATTEMPTED,
+                    f"{failure_code}: {failure_reason}",
+                )
+            if LIVE_TRADING and execution_state.retryable_failures > 0:
+                if execution_state.retryable_failures > LIVE_RETRY_MAX_RETRIES:
+                    return (
+                        GATE_RETRY_LIMIT,
+                        f"retry budget exhausted after {execution_state.retryable_failures} retryable failure(s)",
+                    )
+                if seconds_remaining < LIVE_RETRY_MIN_SECONDS_REMAINING:
+                    return (
+                        GATE_RETRY_WINDOW_CLOSED,
+                        f"seconds_remaining={seconds_remaining}s < retry minimum {LIVE_RETRY_MIN_SECONDS_REMAINING}s",
+                    )
+                cooldown_remaining = LIVE_RETRY_COOLDOWN_S - max(0.0, now - execution_state.last_attempt_at)
+                if cooldown_remaining > 0:
+                    return (
+                        GATE_RETRY_COOLDOWN,
+                        f"retry cooldown {cooldown_remaining:.1f}s remaining",
+                    )
 
         if DAILY_BUDGET_USDC > 0:
             net_loss = self.state.daily_loss - self.state.daily_profit
@@ -8066,12 +8428,10 @@ class TradingBot:
                 self.state.order_book_snapshots.pop(win.up_token_id, None)
                 self.state.order_book_snapshots.pop(win.down_token_id, None)
                 self.state.set_engine_status("NEW_WINDOW", reason="monitoring new window")
-                # Only reset the attempt budget for a genuinely NEW window.
-                # If this window's condition_id was already attempted, keep the guard
-                # so a transient API hiccup (window briefly None then re-detected)
-                # cannot produce a second bet on the same window.
-                if win.condition_id not in self.state.bet_attempted_windows:
-                    self.state.bet_attempted_windows.clear()  # fresh window, fresh attempt budget
+                current_execution_state = self.state.window_execution_states.get(win.condition_id)
+                self.state.window_execution_states.clear()
+                if current_execution_state is not None:
+                    self.state.window_execution_states[win.condition_id] = current_execution_state
                 self.state.market_resolved_event.clear()
                 self.notifier.notify_window(win)
                 self.state.log_event(
@@ -8411,7 +8771,7 @@ class TradingBot:
                         gate=gate,
                         reason=reason,
                     )
-                    if blocked is not None:
+                    if blocked is not None and self._should_record_shadow_block(gate):
                         await self._record_shadow_block(blocked)
                     self.state.set_engine_status("DECISION_SKIP", gate, reason)
                 else:
@@ -8421,8 +8781,6 @@ class TradingBot:
             if decision.action != "BUY":
                 continue
 
-            async with self.state._lock:
-                self.state.bet_attempted_windows.add(win.condition_id)
             self.state.log_event(
                 f"[EXECUTE] {elapsed_s}s | BTC {gap_pct:.2f}% → {side} "
                 f"@ {leading_odds:.3f} | align={snap.signal_alignment} "
@@ -8477,6 +8835,55 @@ class TradingBot:
                 )
                 bet_size = penalized_bet
         zone_tag = "GOLD" if is_gold_zone else "NORM"
+        attempt_started_at_ts = time.time()
+        attempt_started_at = datetime.now(_UTC)
+        execution_state = self._begin_window_execution_attempt(
+            condition_id=win.condition_id,
+            row_id=prediction_row_id,
+            attempted_at=attempt_started_at_ts,
+        )
+        if LIVE_TRADING:
+            try:
+                min_order_size = await self.market.get_min_order_size(token_id)
+            except Exception:
+                min_order_size = 0.0
+            if min_order_size > 0:
+                min_notional = round(min_order_size * entry_odds, 4)
+                available_balance = max(0.0, self.state.balance_usdc)
+                if bet_size + 1e-9 < min_notional:
+                    if available_balance + 1e-9 < min_notional:
+                        error_msg = (
+                            f"live balance ${available_balance:.2f} below market minimum "
+                            f"${min_notional:.2f} ({min_order_size:.2f} shares @ {entry_odds:.2f})"
+                        )
+                        result = TradeResult(
+                            success=False,
+                            error=error_msg,
+                            failure_code="INSUFFICIENT_BALANCE_MIN_ORDER",
+                            retryable=False,
+                            attempt_consumed=True,
+                        )
+                        execution_state = self._complete_window_execution_attempt(
+                            condition_id=win.condition_id,
+                            row_id=prediction_row_id,
+                            result=result,
+                            attempted_at=attempt_started_at_ts,
+                        )
+                        await self._mark_prediction_trade_failed(
+                            prediction_row_id,
+                            condition_id=win.condition_id,
+                            result=result,
+                            attempt_count=execution_state.attempt_count,
+                            attempted_at=attempt_started_at,
+                        )
+                        self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
+                        self.state.log_event(f"[TRADE] Aborted — {error_msg}")
+                        return
+                    self.state.log_event(
+                        f"[KELLY/MIN_ORDER] ${bet_size:.2f} -> ${min_notional:.2f} "
+                        f"({min_order_size:.2f} shares @ {entry_odds:.2f})"
+                    )
+                    bet_size = min_notional
         self.state.log_event(
             f"[KELLY/{zone_tag}] bankroll=${bankroll:.2f} conf={signal.confidence:.2f} "
             f"implied={entry_odds:.3f} → bet=${bet_size:.2f}"
@@ -8484,6 +8891,12 @@ class TradingBot:
 
         result: TradeResult = await self.market.place_bet(
             direction, token_id, bet_size, entry_odds
+        )
+        execution_state = self._complete_window_execution_attempt(
+            condition_id=win.condition_id,
+            row_id=prediction_row_id,
+            result=result,
+            attempted_at=attempt_started_at_ts,
         )
 
         if result.success:
@@ -8538,8 +8951,20 @@ class TradingBot:
                 result.order_id or "—", result.simulated, snap,
             )
         else:
-            self.state.set_engine_status("ORDER_FAILED", reason=str(result.error or "unknown placement failure"))
-            self.state.log_event(f"[TRADE] Order failed: {result.error}")
+            failure_code = result.failure_code or "PLACEMENT_FAILED"
+            failure_reason = str(result.error or "unknown placement failure")
+            await self._mark_prediction_trade_failed(
+                prediction_row_id,
+                condition_id=win.condition_id,
+                result=result,
+                attempt_count=execution_state.attempt_count,
+                attempted_at=attempt_started_at,
+            )
+            self.state.set_engine_status("ORDER_FAILED", reason=f"{failure_code}: {failure_reason}")
+            self.state.log_event(
+                f"[TRADE] Order failed ({failure_code}) retryable={result.retryable} "
+                f"consumed={result.attempt_consumed} attempt={execution_state.attempt_count}: {failure_reason}"
+            )
 
     # ── Position monitor loop ─────────────────────────────────────────────────
 
@@ -9049,7 +9474,15 @@ class TradingBot:
             )
             self.state.positions.append(pos)
             if pos.condition_id:
-                self.state.bet_attempted_windows.add(pos.condition_id)
+                execution_state = self._window_execution_state(pos.condition_id)
+                execution_state.attempt_count = max(int(execution_state.attempt_count or 0), 1)
+                execution_state.successful = True
+                execution_state.terminal = True
+                execution_state.last_attempt_at = max(
+                    float(execution_state.last_attempt_at or 0.0),
+                    pos.placed_at.timestamp(),
+                )
+                execution_state.last_prediction_row_id = pos.prediction_row_id or execution_state.last_prediction_row_id
             if pos.order_id:
                 existing_ids.add(pos.order_id)
             recovered += 1
@@ -9171,6 +9604,12 @@ class TradingBot:
                 notification_sent=bool(raw.get("notification_sent", False)),
                 notification_signal=str(raw.get("notification_signal", "")),
                 notification_gate=str(raw.get("notification_gate", "")),
+                placement_failure_code=str(raw.get("placement_failure_code", "")),
+                placement_failure_reason=str(raw.get("placement_failure_reason", "")),
+                placement_retryable=bool(raw.get("placement_retryable", False)),
+                placement_attempt_consumed=bool(raw.get("placement_attempt_consumed", False)),
+                placement_attempt_count=int(raw.get("placement_attempt_count", 0) or 0),
+                last_attempted_at=self._parse_logged_datetime(raw.get("last_attempted_at")),
                 sample_seq=int(raw.get("sample_seq", 0) or 0),
                 resolved_at=self._parse_logged_datetime(raw.get("resolved_at")),
                 last_updated_at=self._parse_logged_datetime(raw.get("last_updated_at")),
@@ -9178,6 +9617,7 @@ class TradingBot:
             self.state.prediction_records[row_id] = record
             self.state.prediction_rows_by_condition[condition_id].add(row_id)
             self.state.paper_prediction_records[condition_id] = record
+            self._restore_window_execution_state(record)
             restored += 1
 
         warmed = (
