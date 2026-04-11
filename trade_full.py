@@ -32,7 +32,10 @@ DATA_API  = "https://data-api.polymarket.com"
 CHAIN_ID  = 137
 
 # ── WebSocket URLs ───────────────────────────────────────────────────────────
-BINANCE_WS = "wss://stream.binance.com:9443/ws/btcusdc@trade"
+BINANCE_WS              = "wss://stream.binance.com:9443/ws/btcusdc@trade"
+HYPERLIQUID_WS          = "wss://api.hyperliquid.xyz/ws"
+BTC_STALENESS_THRESHOLD_S   = float(os.getenv("BTC_STALENESS_THRESHOLD_S", "5.0"))
+HL_DIVERGENCE_THRESHOLD_PCT = float(os.getenv("HL_DIVERGENCE_THRESHOLD_PCT", "0.10"))
 MARKET_WS  = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 USER_WS    = "wss://ws-subscriptions-clob.polymarket.com/ws/user"
 
@@ -4216,6 +4219,58 @@ class BTCFeed:
                     self.state._tick_buy_vol += vol
 
 
+class HyperliquidFeed:
+    """Streams BTC mid-price from Hyperliquid perpetuals WebSocket.
+
+    Uses the ``allMids`` channel which publishes mark mid-prices for all
+    perpetual assets. BTC perp tracks spot closely via the funding mechanism,
+    providing an independent cross-reference to Binance USDC spot.
+    Auto-reconnects on any disconnect, same pattern as BTCFeed.
+    """
+
+    def __init__(self, state: "BotState") -> None:
+        self.state = state
+
+    async def run(self) -> None:
+        while self.state.running:
+            try:
+                await self._connect_and_stream()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                self.state.log_event(f"[HL] reconnecting after error: {exc}")
+                self.state.hl_ws_ok = False
+                await asyncio.sleep(3)
+
+    async def _connect_and_stream(self) -> None:
+        async with websockets.connect(
+            HYPERLIQUID_WS,
+            ssl=_SSL_CTX,
+            ping_interval=20,
+            ping_timeout=10,
+        ) as ws:
+            sub_msg = json.dumps({
+                "method": "subscribe",
+                "subscription": {"type": "allMids"},
+            })
+            await ws.send(sub_msg)
+            self.state.hl_ws_ok = True
+            self.state.log_event("[HL] Hyperliquid WebSocket connected")
+            async for raw in ws:
+                try:
+                    msg = json.loads(raw)
+                    if msg.get("channel") != "allMids":
+                        continue
+                    mids = msg.get("data", {}).get("mids", {})
+                    btc_mid = mids.get("BTC") or mids.get("BTC-USD")
+                    if btc_mid is None:
+                        continue
+                    self.state.hl_btc_price      = float(btc_mid)
+                    self.state.hl_btc_price_time = time.time()
+                except Exception:
+                    pass
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Source: bot.py
 # ══════════════════════════════════════════════════════════════════════════════
@@ -6891,6 +6946,9 @@ class BotState:
     btc_price: float | None = None
     btc_price_time: float = 0.0
     btc_ws_ok: bool = False
+    hl_btc_price:      float | None = None
+    hl_btc_price_time: float        = 0.0
+    hl_ws_ok:          bool         = False
     price_history: deque = field(default_factory=lambda: deque(maxlen=300))
     # Timestamped tick buffer: (unix_ts, price) — used to look up the BTC price
     # at the exact window open time so beat_price matches Polymarket's Chainlink snapshot.
@@ -7100,6 +7158,7 @@ class TradingBot:
     def __init__(self) -> None:
         self.state    = BotState()
         self.feed     = BTCFeed(self.state)
+        self.hl_feed  = HyperliquidFeed(self.state)
         self.market   = MarketClient()
         self._ml_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="ml-bg")
         self._ml_bootstrap_done = False
@@ -7181,6 +7240,7 @@ class TradingBot:
         try:
             await asyncio.gather(
                 safe_loop(self.feed.run,                  "btc_feed",  self.state),
+                safe_loop(self.hl_feed.run,               "hl_feed",   self.state),
                 safe_loop(self._price_sampler,            "sampler",   self.state),
                 safe_loop(self._market_loop,              "market",    self.state),
                 safe_loop(self._odds_ws_loop,             "odds_ws",   self.state),
@@ -8936,12 +8996,44 @@ class TradingBot:
             if btc_price_now is None:
                 self.state.set_engine_status("WAIT_BTC", reason="waiting for BTC feed")
                 continue
+            _btc_age = now - self.state.btc_price_time
+            if _btc_age > BTC_STALENESS_THRESHOLD_S:
+                self.state.set_engine_status(
+                    "BTC_STALE",
+                    reason=f"Binance BTC feed stale ({_btc_age:.1f}s old)",
+                )
+                continue
             if up_odds_now is None or down_odds_now is None:
                 self.state.set_engine_status("WAIT_ODDS", reason="waiting for Polymarket odds")
                 continue
             if win.beat_price <= 0:
                 self.state.set_engine_status("WAIT_BEAT", reason="beat price not yet resolved")
                 continue
+
+            # ── Consensus BTC price: Binance + Hyperliquid cross-reference ────────
+            # If both feeds are fresh, average them for a more robust price.
+            # If they diverge by more than HL_DIVERGENCE_THRESHOLD_PCT of beat_price,
+            # the market is ambiguous — skip the bet cycle.
+            _hl_age   = now - self.state.hl_btc_price_time
+            _hl_fresh = (
+                self.state.hl_btc_price is not None
+                and _hl_age < BTC_STALENESS_THRESHOLD_S
+            )
+            if _hl_fresh:
+                _divergence_pct = (
+                    abs(btc_price_now - self.state.hl_btc_price)
+                    / win.beat_price * 100.0
+                )
+                if _divergence_pct > HL_DIVERGENCE_THRESHOLD_PCT:
+                    self.state.set_engine_status(
+                        "PRICE_CONFLICT",
+                        reason=(
+                            f"Binance ${btc_price_now:,.2f} vs HL ${self.state.hl_btc_price:,.2f} "
+                            f"diverge {_divergence_pct:.3f}% > {HL_DIVERGENCE_THRESHOLD_PCT:.2f}%"
+                        ),
+                    )
+                    continue
+                btc_price_now = (btc_price_now + self.state.hl_btc_price) / 2.0
 
             snap = run_all_filters(
                 prices_now,
@@ -10989,6 +11081,9 @@ def render_market_data(state: BotState) -> Panel:
     t.add_column(style="cyan",  width=12)
     t.add_column()
     t.add_row("BTC Price", f"[bold white]{btc_s}[/bold white]  WS: {ws_ok}")
+    hl_price_s = f"${state.hl_btc_price:,.2f}" if state.hl_btc_price else "—"
+    hl_ws_s    = "[bold green]OK[/bold green]" if state.hl_ws_ok else "[bold red]ERR[/bold red]"
+    t.add_row("HL BTC", f"[bold white]{hl_price_s}[/bold white]  WS: {hl_ws_s}")
     t.add_row("Odds",      f"[green]UP={up_s}[/green]  [red]DOWN={dn_s}[/red]{odds_age}")
 
     if state.window and state.btc_price is not None and state.window.beat_price > 0:
