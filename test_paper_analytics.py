@@ -293,6 +293,7 @@ def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
 
 def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
     bot = make_bot(tmp_path)
+    bot.state.balance_usdc = 0.73
     bot.state.paper_stats.paper_trade_wins_total = 3
     bot.state.paper_stats.paper_trade_losses_total = 1
     bot.state.paper_stats.paper_trade_wins_today = 1
@@ -311,9 +312,33 @@ def test_render_results_hides_prediction_rows_in_paper_mode(tmp_path):
     assert "Trades Today" in text
     assert "Predictions" not in text
     assert "Pred Today" not in text
-    assert "Claimable" in text
     assert "Claims" in text
     assert "AutoClaim" not in text
+    assert "Daily Budget" in text
+    assert "lost=$" in text
+    assert "won=$" in text
+    assert "left=$" in text
+    assert "Claim log" not in text
+
+
+def test_render_results_shows_real_claim_log_without_hiding_budget_rows(tmp_path):
+    bot = make_bot(tmp_path)
+    bot.state.balance_usdc = 0.73
+    bot.state.claimable_total = 5.5
+    bot.state.pending_claim_count = 1
+    bot.state.claimed_today_count = 2
+    bot.state.failed_today_count = 1
+    bot.state.claim_log.append("12:00:00 queued $5.50 (0xabc…)")
+
+    panel = tf.render_results(bot.state)
+    console = Console(record=True, width=120)
+    console.print(panel)
+    text = console.export_text()
+
+    assert "Claim log" in text
+    assert "queued $5.50" in text
+    assert "Daily Budget" in text
+    assert "left=$" in text
 
 
 def test_claim_scan_queues_redeemable_positions_in_discovery_mode(tmp_path, monkeypatch):

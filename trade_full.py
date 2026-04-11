@@ -7485,7 +7485,17 @@ class TradingBot:
         session.telegram_sent = True
         session.locked_gate = gate
 
-        if execution_block is not None and gate != "GATE_EXECUTION_WINDOW":
+        if execution_block is None:
+            self.notifier.notify_signal(
+                signal,
+                win,
+                snap,
+                btc_price=btc_price,
+                up_odds=up_odds,
+                down_odds=down_odds,
+                decision=decision,
+            )
+        else:
             self.notifier.notify_shadow_signal(
                 signal,
                 win,
@@ -7495,16 +7505,6 @@ class TradingBot:
                 btc_price=btc_price,
                 up_odds=up_odds,
                 down_odds=down_odds,
-            )
-        else:
-            self.notifier.notify_signal(
-                signal,
-                win,
-                snap,
-                btc_price=btc_price,
-                up_odds=up_odds,
-                down_odds=down_odds,
-                decision=decision,
             )
 
         row_id = session.locked_row_id
@@ -10038,21 +10038,51 @@ def render_results(state: BotState) -> Panel:
     last_claim = state.claim_log[-1] if state.claim_log else f"– nothing to claim"
     resolved_pending = len([p for p in state.positions if p.status == "open"])
     claim_mode = "[green]EXEC[/green]" if AUTO_CLAIM_ENABLED else "[yellow]DISCOVERY[/yellow]"
-    claimable_s = f"[white]${state.claimable_total:.2f}[/white]  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
     claim_summary = (
-        f"{claim_mode}  pending [white]{state.pending_claim_count}[/white]  "
-        f"claimed [green]{state.claimed_today_count}[/green]  "
-        f"failed [red]{state.failed_today_count}[/red]"
+        f"{claim_mode}  amt=[white]${state.claimable_total:.2f}[/white]"
+        f"  p=[white]{state.pending_claim_count}[/white]"
+        f"  ok=[green]{state.claimed_today_count}[/green]"
+        f"  fail=[red]{state.failed_today_count}[/red]"
+        f"  thr=${AUTO_CLAIM_THRESHOLD:.2f}"
     )
+    show_claim_log = bool(state.claim_log) and "nothing to claim" not in last_claim.lower()
 
     t = Table.grid(padding=(0, 1))
     t.add_column(style="cyan", width=12)
     t.add_column()
 
     t.add_row("Balance",   f"[bold white]$  {state.balance_usdc:.2f} USDC[/bold white]")
-    t.add_row("Claimable", claimable_s)
+    if DAILY_BUDGET_USDC > 0:
+        net_loss  = state.daily_loss - state.daily_profit
+        remaining = DAILY_BUDGET_USDC - net_loss   # can exceed limit when profits > losses
+        if state.daily_halted:
+            budget_s = f"[bold red]HALTED — net loss ${net_loss:.2f} hit limit ${DAILY_BUDGET_USDC:.2f}[/bold red]"
+        else:
+            bud_color = "green" if remaining >= DAILY_BUDGET_USDC else ("yellow" if remaining > 0 else "red")
+            budget_s = (
+                f"lost=[red]${state.daily_loss:.2f}[/red]  "
+                f"won=[green]${state.daily_profit:.2f}[/green]  "
+                f"left=[{bud_color}]${remaining:.2f}[/{bud_color}]  "
+                f"limit=${DAILY_BUDGET_USDC:.2f}"
+            )
+        t.add_row("Daily Budget", budget_s)
+
+    if DAILY_PROFIT_TARGET_USDC > 0:
+        if state.daily_profit_halted:
+            profit_s = f"[bold green]TARGET HIT — ${DAILY_PROFIT_TARGET_USDC:.2f} earned, trading stopped[/bold green]"
+        else:
+            to_go = max(0.0, DAILY_PROFIT_TARGET_USDC - state.daily_profit)
+            prog_color = "green" if to_go == 0 else ("yellow" if state.daily_profit > 0 else "white")
+            profit_s = (
+                f"earned=[{prog_color}]${state.daily_profit:.2f}[/{prog_color}]"
+                f"  to go=[white]${to_go:.2f}[/white]"
+                f"  target=${DAILY_PROFIT_TARGET_USDC:.2f}"
+            )
+        t.add_row("Daily Target", profit_s)
+
     t.add_row("Claims",    claim_summary)
-    t.add_row("Claim log", f"[dim]{last_claim[:50]}[/dim]")
+    if show_claim_log:
+        t.add_row("Claim log", f"[dim]{last_claim[:50]}[/dim]")
     t.add_row("Bets/hour", f"[white]{state.bets_this_hour}/{MAX_BETS_PER_HOUR}[/white]"
                            f"  │  Bet size: [white]${BET_SIZE_USDC:.2f}[/white]")
     t.add_row("Resolved",  f"[white]{state.resolved_count}[/white] "
@@ -10088,34 +10118,6 @@ def render_results(state: BotState) -> Panel:
     else:
         streak_s = f"[dim]W{state.consecutive_wins} / L{state.consecutive_losses}[/dim]"
     t.add_row("Streak", streak_s)
-
-    if DAILY_BUDGET_USDC > 0:
-        net_loss  = state.daily_loss - state.daily_profit
-        remaining = DAILY_BUDGET_USDC - net_loss   # can exceed limit when profits > losses
-        if state.daily_halted:
-            budget_s = f"[bold red]HALTED — net loss ${net_loss:.2f} hit limit ${DAILY_BUDGET_USDC:.2f}[/bold red]"
-        else:
-            bud_color = "green" if remaining >= DAILY_BUDGET_USDC else ("yellow" if remaining > 0 else "red")
-            budget_s = (
-                f"lost=[red]${state.daily_loss:.2f}[/red]  "
-                f"won=[green]${state.daily_profit:.2f}[/green]  "
-                f"left=[{bud_color}]${remaining:.2f}[/{bud_color}]  "
-                f"limit=${DAILY_BUDGET_USDC:.2f}"
-            )
-        t.add_row("Daily Budget", budget_s)
-
-    if DAILY_PROFIT_TARGET_USDC > 0:
-        if state.daily_profit_halted:
-            profit_s = f"[bold green]TARGET HIT — ${DAILY_PROFIT_TARGET_USDC:.2f} earned, trading stopped[/bold green]"
-        else:
-            to_go = max(0.0, DAILY_PROFIT_TARGET_USDC - state.daily_profit)
-            prog_color = "green" if to_go == 0 else ("yellow" if state.daily_profit > 0 else "white")
-            profit_s = (
-                f"earned=[{prog_color}]${state.daily_profit:.2f}[/{prog_color}]"
-                f"  to go=[white]${to_go:.2f}[/white]"
-                f"  target=${DAILY_PROFIT_TARGET_USDC:.2f}"
-            )
-        t.add_row("Daily Target", profit_s)
 
     return Panel(t, title="[bold cyan]RESULTS[/bold cyan]", border_style="blue")
 
