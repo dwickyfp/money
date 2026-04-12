@@ -822,3 +822,5 @@
 2026-04-12T19:05:26.275Z  [MKT] Beat price set retroactively: $71,188.13
 2026-04-12T19:05:26.478Z  [ML] Backfilled 14 pending label(s) from feature logs
 2026-04-12T19:05:34.898Z  [ML] Bootstrap trained 20260412T190533Z-s20 state=shadow ap=0.745 cv_ap=0.751 ev=+0.53
+2026-04-12T19:07:58.783Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+73.6%
+2026-04-12T19:08:01.804Z  [SIGNAL/RESERVE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
