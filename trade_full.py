@@ -11005,16 +11005,17 @@ class TradingBot:
                 self.state.balance_refresh_event.set()
 
         self._sync_claim_runtime_counts()
-        if candidates or trigger == "startup" or self.state.claim_last_scan_error:
-            mode = "enabled" if AUTO_CLAIM_ENABLED else "discovery"
-            error_s = f" error={self.state.claim_last_scan_error}" if self.state.claim_last_scan_error else ""
-            self.state.log_event(
-                f"[CLAIM] scan {trigger} candidates={len(candidates)} "
-                f"claimable=${self.state.claimable_total:.2f} "
-                f"pending=${self.state.expected_claimable_total:.2f} "
-                f"mode={mode} status={self.state.claim_last_scan_status}{error_s}"
-            )
-            self._refresh_performance_history()
+        # Always log scan result so the user can see the claim manager is running,
+        # even when no candidates are found (avoids "auto claim seems dead" confusion).
+        mode = "enabled" if AUTO_CLAIM_ENABLED else "discovery"
+        error_s = f" error={self.state.claim_last_scan_error}" if self.state.claim_last_scan_error else ""
+        self.state.log_event(
+            f"[CLAIM] scan {trigger} candidates={len(candidates)} "
+            f"claimable=${self.state.claimable_total:.2f} "
+            f"pending=${self.state.expected_claimable_total:.2f} "
+            f"mode={mode} status={self.state.claim_last_scan_status}{error_s}"
+        )
+        self._refresh_performance_history()
 
     async def _claim_manager_loop(self) -> None:
         await self._scan_and_process_claims(trigger="startup")

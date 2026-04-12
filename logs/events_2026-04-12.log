@@ -1,0 +1,132 @@
+2026-04-12T04:38:12.554Z  [BOT] Starting up…
+2026-04-12T04:38:13.077Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-12T04:38:13.078Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-12T04:38:13.436Z  [PAPER] Warmed 2873 resolved paper analytics entries
+2026-04-12T04:38:13.436Z  [PAPER] Restored 15281 pending paper prediction(s)
+2026-04-12T04:38:13.438Z  [CLAIM] Warmed 50 claim record(s)
+2026-04-12T04:38:13.444Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-12T04:38:15.032Z  [CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-12T04:38:15.032Z  [CONTINUITY] recent24 buy=100% exec=50% fail=8% reserve=29% | recent100 buy=100% exec=33% fail=13%
+2026-04-12T04:38:15.063Z  [ML] Starting background bootstrap
+2026-04-12T04:38:15.385Z  [HEARTBEAT] failed: PolyApiException[status_code=400, error_message={'heartbeat_id': 'bd151384-6cf2-46a8-b042-1e83eb9a3647', 'error_msg': 'Invalid Heartbeat ID'}]
+2026-04-12T04:38:15.402Z  [MKT] Window: Bitcoin Up or Down - April 12, 12:35AM-12:40AM ET | beat=$0.00 | ends 04:40:00 UTC
+2026-04-12T04:38:15.632Z  [HL] Hyperliquid WebSocket connected
+2026-04-12T04:38:15.730Z  [BTC] Binance WebSocket connected
+2026-04-12T04:38:16.099Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T04:38:20.018Z  [ML] Backfilled 1 pending label(s) from feature logs
+2026-04-12T04:38:20.995Z  [MKT] Beat price set retroactively: $71,573.46
+2026-04-12T04:38:21.349Z  [MKTWS] Market WebSocket connected
+2026-04-12T04:38:25.384Z  [SIGNAL/RESERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%
+2026-04-12T04:38:26.831Z  [ML] Bootstrap trained 20260412T043825Z-s20 state=shadow ap=0.750 cv_ap=0.766 ev=+0.69
+2026-04-12T04:38:30.856Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T04:38:45.951Z  [SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+46.6%
+2026-04-12T04:38:45.953Z  [EXECUTE] 225s | BTC 0.04% → DOWN @ 0.530 | align=0 CVD=NONE | placing live order…
+2026-04-12T04:38:46.224Z  [KELLY/MIN_ORDER] $1.00 -> $2.65 (5.00 shares @ 0.53)
+2026-04-12T04:38:46.224Z  [KELLY/GOLD] bankroll=$9.58 conf=0.78 implied=0.530 → bet=$2.65
+2026-04-12T04:38:47.141Z  [LIVE/GOLD] BET DOWN $2.65 @ 0.530 align=0 CVD=NONE | order=0xe13f3d1c2f3f338be50754e932dd59177c8c947cfdc4f7bdda7f0bc50075462e
+2026-04-12T04:38:56.155Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.70 src=ml U=29.9% D=70.1% | ml: candidate confidence 70% below 74%
+2026-04-12T04:39:06.172Z  [SIGNAL/LATE_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 78%
+2026-04-12T04:39:50.589Z  [SIGNAL/TOO_LATE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: edge +0.7% below 5%
+2026-04-12T04:40:03.476Z  [MKT] Window: Bitcoin Up or Down - April 12, 12:40AM-12:45AM ET | beat=$71,589.57 | ends 04:45:00 UTC
+2026-04-12T04:40:03.667Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: edge -38.9% below 5%
+2026-04-12T04:40:04.129Z  [MKTWS] Market WebSocket connected
+2026-04-12T04:40:05.677Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T04:40:10.697Z  [SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 70%
+2026-04-12T04:40:15.707Z  [SETTLE_POLL] No Chainlink settlement yet for 0xe4adf0 (15s post-expiry) — will retry
+2026-04-12T04:40:15.983Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:35
+2026-04-12T04:40:21.016Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%
+2026-04-12T04:41:16.492Z  [SETTLE_POLL] No Chainlink settlement yet for 0xe4adf0 (76s post-expiry) — will retry
+2026-04-12T04:41:45.674Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-12T04:42:17.098Z  [SETTLE_POLL] No Chainlink settlement yet for 0xe4adf0 (137s post-expiry) — will retry
+2026-04-12T04:42:33.002Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%
+2026-04-12T04:42:40.079Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T04:43:01.226Z  [SIGNAL/RESERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T04:43:06.281Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%
+2026-04-12T04:43:11.324Z  [SIGNAL/RESERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 74%
+2026-04-12T04:43:17.669Z  [SETTLE_POLL] No Chainlink settlement yet for 0xe4adf0 (197s post-expiry) — will retry
+2026-04-12T04:43:17.980Z  [CLAIM] queued $5.01 (0xe4adf0…)
+2026-04-12T04:43:18.964Z  [CLAIM] submitted $5.01 (0xe4adf0…)
+2026-04-12T04:43:27.544Z  [CLAIM] confirmed $5.01 (0xe4adf0…)
+2026-04-12T04:43:28.395Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T04:43:31.289Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 74%
+2026-04-12T04:43:46.404Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T04:43:51.444Z  [SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+60.7%
+2026-04-12T04:43:51.445Z  [EXECUTE] 231s | BTC 0.03% → DOWN @ 0.540 | align=4 CVD=NONE | placing live order…
+2026-04-12T04:43:51.634Z  [KELLY/MIN_ORDER] $1.00 -> $2.70 (5.00 shares @ 0.54)
+2026-04-12T04:43:51.634Z  [KELLY/GOLD] bankroll=$11.94 conf=0.87 implied=0.540 → bet=$2.70
+2026-04-12T04:43:52.547Z  [TRADE] Order failed (PLACEMENT_FAILED) retryable=True consumed=False attempt=1: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+2026-04-12T04:43:55.555Z  [EXECUTE] 235s | BTC 0.03% → DOWN @ 0.500 | align=3 CVD=NONE | placing live order…
+2026-04-12T04:43:55.743Z  [KELLY/MIN_ORDER] $1.00 -> $2.50 (5.00 shares @ 0.50)
+2026-04-12T04:43:55.743Z  [KELLY/GOLD] bankroll=$11.94 conf=0.87 implied=0.500 → bet=$2.50
+2026-04-12T04:43:56.585Z  [TRADE] Order failed (PLACEMENT_FAILED) retryable=True consumed=False attempt=2: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+2026-04-12T04:44:00.598Z  [SIGNAL/LATE_EXEC] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+73.6%
+2026-04-12T04:44:00.600Z  [EXECUTE] 240s | BTC 0.03% → DOWN @ 0.500 | align=3 CVD=NONE | placing live order…
+2026-04-12T04:44:00.809Z  [KELLY/MIN_ORDER] $1.00 -> $2.50 (5.00 shares @ 0.50)
+2026-04-12T04:44:00.809Z  [KELLY/GOLD] bankroll=$11.94 conf=0.87 implied=0.500 → bet=$2.50
+2026-04-12T04:44:01.681Z  [LIVE/GOLD] BET DOWN $2.50 @ 0.500 align=3 CVD=NONE | order=0x1b9bfbd6019dbf8accdc38620a97e774fcd4b5cb02aab412baffd2e25c59a35a
+2026-04-12T04:44:15.712Z  [SIGNAL/LATE_EXEC] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: candidate confidence 78% below 78%
+2026-04-12T04:44:18.248Z  [SETTLE_POLL] No Chainlink settlement yet for 0xe4adf0 (258s post-expiry) — will retry
+2026-04-12T04:44:31.835Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -1.2% below 5%
+2026-04-12T04:44:37.896Z  [SIGNAL/LATE_EXEC] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
+2026-04-12T04:44:37.896Z  [SHADOW] BUY_DOWN conf=83% — blocked by GATE_LATE_PROXIMITY_RISK
+2026-04-12T04:44:40.976Z  [SIGNAL/LATE_EXEC] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: candidate confidence 78% below 78%
+2026-04-12T04:44:53.073Z  [SIGNAL/TOO_LATE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -3.2% below 5%
+2026-04-12T04:44:56.105Z  [SIGNAL/TOO_LATE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
+2026-04-12T04:44:56.105Z  [SHADOW] BUY_DOWN conf=83% — blocked by GATE_TOO_LATE
+2026-04-12T04:45:03.471Z  [MKT] Window: Bitcoin Up or Down - April 12, 12:45AM-12:50AM ET | beat=$71,590.69 | ends 04:50:00 UTC
+2026-04-12T04:45:04.195Z  [MKTWS] Market WebSocket connected
+2026-04-12T04:45:04.197Z  [SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: candidate confidence 55% below 70%
+2026-04-12T04:45:06.218Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T04:45:11.252Z  [SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: candidate confidence 55% below 70%
+2026-04-12T04:45:16.296Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%
+2026-04-12T04:45:19.043Z  [SETTLE_POLL] No Chainlink settlement yet for 0x8aafd8 (19s post-expiry) — will retry
+2026-04-12T04:45:19.287Z  [RESULT] DOWN LOST PnL=-2.65 actual=UP
+2026-04-12T04:45:20.395Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:40
+2026-04-12T04:45:20.395Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:40
+2026-04-12T04:45:20.396Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:40
+2026-04-12T04:45:20.396Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:40
+2026-04-12T04:45:20.396Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:40
+2026-04-12T04:45:20.396Z  [PRED/LIVE] DOWN MISS | actual=UP gate=GATE_LATE_PROXIMITY_RISK window=04:40
+2026-04-12T04:45:20.396Z  [PRED/LIVE] DOWN MISS | actual=UP gate=GATE_TOO_LATE window=04:40
+2026-04-12T04:45:26.483Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.70 src=ml U=29.9% D=70.1% | ml: BUY_DOWN prob=70% edge=+23.0%
+2026-04-12T04:45:30.513Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T04:46:20.909Z  [SETTLE_POLL] No Chainlink settlement yet for 0x8aafd8 (80s post-expiry) — will retry
+2026-04-12T04:47:00.662Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+73.6%
+2026-04-12T04:47:07.734Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-12T04:47:12.778Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
+2026-04-12T04:47:15.820Z  [SIGNAL/OBSERVE] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge -2.5% below 5%
+2026-04-12T04:47:20.887Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%
+2026-04-12T04:47:21.660Z  [SETTLE_POLL] No Chainlink settlement yet for 0x8aafd8 (141s post-expiry) — will retry
+2026-04-12T04:47:28.024Z  [SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -18.0% below 5%
+2026-04-12T04:47:32.050Z  [SIGNAL/OBSERVE] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: edge -8.6% below 5%
+2026-04-12T04:47:40.107Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%
+2026-04-12T04:47:41.113Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T04:48:01.316Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: edge -21.0% below 4%
+2026-04-12T04:48:09.370Z  [SIGNAL/RESERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%
+2026-04-12T04:48:11.399Z  [SIGNAL/RESERVE] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: edge -27.1% below 4%
+2026-04-12T04:48:21.500Z  [SIGNAL/RESERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%
+2026-04-12T04:48:22.469Z  [SETTLE_POLL] No Chainlink settlement yet for 0x8aafd8 (202s post-expiry) — will retry
+2026-04-12T04:48:30.201Z  [CLAIM] queued $0.00 (0x8aafd8…)
+2026-04-12T04:48:31.093Z  [CLAIM] submitted $0.00 (0x8aafd8…)
+2026-04-12T04:48:31.965Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 74%
+2026-04-12T04:48:39.209Z  [CLAIM] confirmed $0.00 (0x8aafd8…)
+2026-04-12T04:48:40.078Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T04:49:05.227Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -5.1% below 5%
+2026-04-12T04:49:23.179Z  [SETTLE_POLL] No Chainlink settlement yet for 0x8aafd8 (263s post-expiry) — will retry
+2026-04-12T04:49:37.625Z  [SIGNAL/LATE_EXEC] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: candidate confidence 78% below 78%
+2026-04-12T04:49:47.722Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 78%
+2026-04-12T04:49:53.803Z  [SIGNAL/TOO_LATE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-12T04:49:53.804Z  [SHADOW] BUY_DOWN conf=72% — blocked by GATE_TOO_LATE
+2026-04-12T04:49:57.840Z  [SIGNAL/TOO_LATE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-12T04:50:04.512Z  [MKT] Window: Bitcoin Up or Down - April 12, 12:50AM-12:55AM ET | beat=$71,593.09 | ends 04:55:00 UTC
+2026-04-12T04:50:04.904Z  [SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -27.1% below 5%
+2026-04-12T04:50:09.980Z  [MKTWS] Market WebSocket connected
+2026-04-12T04:50:23.693Z  [RESULT] DOWN LOST PnL=-2.50 actual=UP
+2026-04-12T04:50:24.922Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.922Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.923Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.923Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.923Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.923Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
+2026-04-12T04:50:24.924Z  [PRED/LIVE] DOWN MISS | actual=UP gate=GATE_TOO_LATE window=04:45
+2026-04-12T04:51:47.776Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
