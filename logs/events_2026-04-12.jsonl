@@ -898,3 +898,5 @@
 {"ts": "2026-04-12T19:40:49.122Z", "msg": "[CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
 {"ts": "2026-04-12T19:40:50.690Z", "msg": "[MKTWS] Market WebSocket connected"}
 {"ts": "2026-04-12T19:40:53.634Z", "msg": "[ML] Backfilled 26 pending label(s) from feature logs"}
+{"ts": "2026-04-12T19:41:01.040Z", "msg": "[ML] Bootstrap trained 20260412T194100Z-s20 state=shadow ap=0.737 cv_ap=0.747 ev=+0.52"}
+{"ts": "2026-04-12T19:41:01.077Z", "msg": "[MKT] Beat price set retroactively: $71,141.45"}

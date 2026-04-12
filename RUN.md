@@ -16,3 +16,5 @@ command > tmux ls
 
 # Kill
 command > tmux kill-server
+
+git reset --hard origin/main
