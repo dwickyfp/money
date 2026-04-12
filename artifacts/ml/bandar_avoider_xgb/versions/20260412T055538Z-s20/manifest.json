@@ -1,0 +1,459 @@
+{
+  "model_name": "bandar_avoider_xgb",
+  "model_version": "20260412T055538Z-s20",
+  "trained_at": "2026-04-12T05:55:38.116Z",
+  "feature_list": [
+    "gap_signed_pct",
+    "seconds_remaining",
+    "signal_alignment",
+    "signed_alignment",
+    "odds_vel",
+    "odds_vel_accel",
+    "cvd_divergence",
+    "macd_histogram",
+    "bb_pct_b",
+    "rsi",
+    "momentum_pct",
+    "is_late_window",
+    "is_bandar_zone",
+    "is_proximity_risk",
+    "is_proximity_risk_above",
+    "is_proximity_risk_below",
+    "gap_crossed_zero",
+    "price_roc_15s",
+    "price_roc_30s",
+    "cvd_change_last_30s",
+    "odds_edge_strength",
+    "beat_above_ratio",
+    "elapsed_fraction",
+    "gap_alignment_interaction",
+    "realized_vol_30s",
+    "realized_vol_60s",
+    "gap_signed_pct_lag1",
+    "signal_alignment_lag1",
+    "odds_edge_strength_lag1",
+    "ob_imbalance"
+  ],
+  "training_range": {
+    "start": "2026-04-09T19:29:00.158Z",
+    "end": "2026-04-12T05:54:54.280Z"
+  },
+  "metrics": {
+    "rows_total": 21378,
+    "rows_train": 21378,
+    "rows_valid": 17846,
+    "distinct_windows_total": 444,
+    "class_balance": {
+      "BUY_UP": 10988,
+      "BUY_DOWN": 10390
+    },
+    "auc_pr": 0.746892036502347,
+    "cv_auc_pr_mean": 0.7646068729730222,
+    "cv_auc_pr_std": 0.043450738223102976,
+    "cv_average_precision_mean": 0.7646068729730222,
+    "brier": 0.20666209665390822,
+    "cv_brier_mean": 0.24722270785718664,
+    "positive_prevalence": 0.5125518323433823,
+    "accuracy": 0.6571780791213717,
+    "precision_up": 0.6719654820029523,
+    "recall_up": 0.6469880835246529,
+    "precision_down": 0.6427702179444629,
+    "recall_down": 0.6678928612484194,
+    "scale_pos_weight": 1.0,
+    "policy_metrics": {
+      "trade_rate": 0.1534237364115208,
+      "realized_ev_per_trade": 0.5862982604222388
+    },
+    "fallback_policy_metrics": {
+      "trade_rate": 0.52740109828533,
+      "realized_ev_per_trade": 0.4542800011415521
+    },
+    "runtime_thresholds": {
+      "observe": 0.7,
+      "reserve": 0.74,
+      "early_exec": 0.74,
+      "late_exec": 0.76,
+      "observe_seed": 0.78,
+      "late_risk_bump": 0.02,
+      "version": "rtp_v1",
+      "source": "default"
+    },
+    "threshold_mode": "auto",
+    "threshold_tuning_summary": {
+      "lookback_days": 14,
+      "window_count": 340,
+      "min_windows": 40,
+      "min_win_rate": 0.8,
+      "coverage_target": 0.6,
+      "counterfactual_recent24": {
+        "0.72": {
+          "total_windows": 24,
+          "executed_windows": 18,
+          "coverage": 0.75,
+          "win_rate": 0.7222,
+          "win_rate_by_phase": {
+            "RESERVE": 0.5,
+            "LATE_EXEC": 0.8,
+            "EARLY_EXEC": 0.6667
+          }
+        },
+        "0.74": {
+          "total_windows": 24,
+          "executed_windows": 18,
+          "coverage": 0.75,
+          "win_rate": 0.7222,
+          "win_rate_by_phase": {
+            "RESERVE": 0.5,
+            "LATE_EXEC": 0.8,
+            "EARLY_EXEC": 0.6667
+          }
+        },
+        "0.76": {
+          "total_windows": 24,
+          "executed_windows": 18,
+          "coverage": 0.75,
+          "win_rate": 0.7222,
+          "win_rate_by_phase": {
+            "RESERVE": 0.5,
+            "LATE_EXEC": 0.8,
+            "EARLY_EXEC": 0.6667
+          }
+        },
+        "0.78": {
+          "total_windows": 24,
+          "executed_windows": 17,
+          "coverage": 0.7083,
+          "win_rate": 0.7647,
+          "win_rate_by_phase": {
+            "RESERVE": 0.5,
+            "LATE_EXEC": 0.8,
+            "EARLY_EXEC": 0.8
+          }
+        }
+      },
+      "counterfactual_recent100": {
+        "0.72": {
+          "total_windows": 100,
+          "executed_windows": 73,
+          "coverage": 0.73,
+          "win_rate": 0.7534,
+          "win_rate_by_phase": {
+            "LATE_EXEC": 0.7647,
+            "RESERVE": 0.6364,
+            "EARLY_EXEC": 0.8182
+          }
+        },
+        "0.74": {
+          "total_windows": 100,
+          "executed_windows": 73,
+          "coverage": 0.73,
+          "win_rate": 0.7534,
+          "win_rate_by_phase": {
+            "LATE_EXEC": 0.7647,
+            "RESERVE": 0.6364,
+            "EARLY_EXEC": 0.8182
+          }
+        },
+        "0.76": {
+          "total_windows": 100,
+          "executed_windows": 73,
+          "coverage": 0.73,
+          "win_rate": 0.7534,
+          "win_rate_by_phase": {
+            "LATE_EXEC": 0.7647,
+            "RESERVE": 0.6364,
+            "EARLY_EXEC": 0.8182
+          }
+        },
+        "0.78": {
+          "total_windows": 100,
+          "executed_windows": 67,
+          "coverage": 0.67,
+          "win_rate": 0.7761,
+          "win_rate_by_phase": {
+            "LATE_EXEC": 0.78,
+            "RESERVE": 0.5714,
+            "EARLY_EXEC": 0.9
+          }
+        }
+      },
+      "evaluated_profiles": 2197,
+      "selected_profile": {
+        "observe": 0.7,
+        "reserve": 0.77,
+        "early_exec": 0.77,
+        "late_exec": 0.77,
+        "observe_seed": 0.78,
+        "late_risk_bump": 0.02,
+        "version": "auto_0.77_0.77_0.77",
+        "source": "auto_tuned"
+      },
+      "selected_metrics": {
+        "total_windows": 340,
+        "executed_windows": 185,
+        "coverage": 0.5441,
+        "win_rate": 0.8432,
+        "win_rate_by_phase": {
+          "RESERVE": 0.8,
+          "LATE_EXEC": 0.843,
+          "EARLY_EXEC": 0.8966
+        }
+      },
+      "selected_recent24": {
+        "total_windows": 24,
+        "executed_windows": 18,
+        "coverage": 0.75,
+        "win_rate": 0.7222,
+        "win_rate_by_phase": {
+          "RESERVE": 0.5,
+          "LATE_EXEC": 0.8,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "selected_recent100": {
+        "total_windows": 100,
+        "executed_windows": 73,
+        "coverage": 0.73,
+        "win_rate": 0.7534,
+        "win_rate_by_phase": {
+          "LATE_EXEC": 0.7647,
+          "RESERVE": 0.6364,
+          "EARLY_EXEC": 0.8182
+        }
+      },
+      "selected": "default_auto_reverted"
+    },
+    "coverage_target": 0.6,
+    "min_win_rate_target": 0.8,
+    "beats_fallback": true,
+    "ready_for_active": false,
+    "promotion_block_reason": "cv_brier_mean degraded 0.247 > 0.241",
+    "confusion_matrix": [
+      [
+        5810,
+        2889
+      ],
+      [
+        3229,
+        5918
+      ]
+    ],
+    "feature_importance": {
+      "gap_signed_pct": 0.12709257006645203,
+      "seconds_remaining": 0.028354736045002937,
+      "signal_alignment": 0.015330973081290722,
+      "signed_alignment": 0.024241555482149124,
+      "odds_vel": 0.0199750866740942,
+      "odds_vel_accel": 0.02321578375995159,
+      "cvd_divergence": 0.020304078236222267,
+      "macd_histogram": 0.027353104203939438,
+      "bb_pct_b": 0.025289375334978104,
+      "rsi": 0.026225542649626732,
+      "momentum_pct": 0.02532617561519146,
+      "is_late_window": 0.04344060644507408,
+      "is_bandar_zone": 0.026594381779432297,
+      "is_proximity_risk": 0.015184077434241772,
+      "is_proximity_risk_above": 0.06234971061348915,
+      "is_proximity_risk_below": 0.03341589495539665,
+      "gap_crossed_zero": 0.03720539063215256,
+      "price_roc_15s": 0.020420493558049202,
+      "price_roc_30s": 0.02242416702210903,
+      "cvd_change_last_30s": 0.024995138868689537,
+      "odds_edge_strength": 0.05472824349999428,
+      "beat_above_ratio": 0.0500679612159729,
+      "elapsed_fraction": 0.03036613203585148,
+      "gap_alignment_interaction": 0.021117260679602623,
+      "realized_vol_30s": 0.027069689705967903,
+      "realized_vol_60s": 0.03399842232465744,
+      "gap_signed_pct_lag1": 0.039278335869312286,
+      "signal_alignment_lag1": 0.018235966563224792,
+      "odds_edge_strength_lag1": 0.042846959084272385,
+      "ob_imbalance": 0.033552076667547226
+    },
+    "best_params": {
+      "n_estimators": 320,
+      "max_depth": 7,
+      "learning_rate": 0.1,
+      "subsample": 0.85,
+      "colsample_bytree": 0.8,
+      "random_state": 42,
+      "eval_metric": "logloss",
+      "objective": "binary:logistic",
+      "n_jobs": 1
+    },
+    "search_trials_completed": 0,
+    "training_range": {
+      "start": "2026-04-09T19:29:00.158Z",
+      "end": "2026-04-12T05:54:54.280Z"
+    },
+    "experimental_3class_status": "deferred_until_action_labels_exist"
+  },
+  "promotion_state": "shadow",
+  "artifact_paths": {
+    "model": "artifacts/ml/bandar_avoider_xgb/versions/20260412T055538Z-s20/model.joblib",
+    "calibrator": "artifacts/ml/bandar_avoider_xgb/versions/20260412T055538Z-s20/calibrator.joblib",
+    "feature_schema": "artifacts/ml/bandar_avoider_xgb/versions/20260412T055538Z-s20/feature_schema.json",
+    "metrics": "artifacts/ml/bandar_avoider_xgb/versions/20260412T055538Z-s20/metrics.json",
+    "manifest": "artifacts/ml/bandar_avoider_xgb/versions/20260412T055538Z-s20/manifest.json"
+  },
+  "applied_state": "shadow",
+  "activated_at": "2026-04-12T05:55:38.116Z",
+  "activation_reason": "train_outcome_model",
+  "runtime_thresholds": {
+    "observe": 0.7,
+    "reserve": 0.74,
+    "early_exec": 0.74,
+    "late_exec": 0.76,
+    "observe_seed": 0.78,
+    "late_risk_bump": 0.02,
+    "version": "rtp_v1",
+    "source": "default"
+  },
+  "threshold_mode": "auto",
+  "threshold_tuning_summary": {
+    "lookback_days": 14,
+    "window_count": 340,
+    "min_windows": 40,
+    "min_win_rate": 0.8,
+    "coverage_target": 0.6,
+    "counterfactual_recent24": {
+      "0.72": {
+        "total_windows": 24,
+        "executed_windows": 18,
+        "coverage": 0.75,
+        "win_rate": 0.7222,
+        "win_rate_by_phase": {
+          "RESERVE": 0.5,
+          "LATE_EXEC": 0.8,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.74": {
+        "total_windows": 24,
+        "executed_windows": 18,
+        "coverage": 0.75,
+        "win_rate": 0.7222,
+        "win_rate_by_phase": {
+          "RESERVE": 0.5,
+          "LATE_EXEC": 0.8,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.76": {
+        "total_windows": 24,
+        "executed_windows": 18,
+        "coverage": 0.75,
+        "win_rate": 0.7222,
+        "win_rate_by_phase": {
+          "RESERVE": 0.5,
+          "LATE_EXEC": 0.8,
+          "EARLY_EXEC": 0.6667
+        }
+      },
+      "0.78": {
+        "total_windows": 24,
+        "executed_windows": 17,
+        "coverage": 0.7083,
+        "win_rate": 0.7647,
+        "win_rate_by_phase": {
+          "RESERVE": 0.5,
+          "LATE_EXEC": 0.8,
+          "EARLY_EXEC": 0.8
+        }
+      }
+    },
+    "counterfactual_recent100": {
+      "0.72": {
+        "total_windows": 100,
+        "executed_windows": 73,
+        "coverage": 0.73,
+        "win_rate": 0.7534,
+        "win_rate_by_phase": {
+          "LATE_EXEC": 0.7647,
+          "RESERVE": 0.6364,
+          "EARLY_EXEC": 0.8182
+        }
+      },
+      "0.74": {
+        "total_windows": 100,
+        "executed_windows": 73,
+        "coverage": 0.73,
+        "win_rate": 0.7534,
+        "win_rate_by_phase": {
+          "LATE_EXEC": 0.7647,
+          "RESERVE": 0.6364,
+          "EARLY_EXEC": 0.8182
+        }
+      },
+      "0.76": {
+        "total_windows": 100,
+        "executed_windows": 73,
+        "coverage": 0.73,
+        "win_rate": 0.7534,
+        "win_rate_by_phase": {
+          "LATE_EXEC": 0.7647,
+          "RESERVE": 0.6364,
+          "EARLY_EXEC": 0.8182
+        }
+      },
+      "0.78": {
+        "total_windows": 100,
+        "executed_windows": 67,
+        "coverage": 0.67,
+        "win_rate": 0.7761,
+        "win_rate_by_phase": {
+          "LATE_EXEC": 0.78,
+          "RESERVE": 0.5714,
+          "EARLY_EXEC": 0.9
+        }
+      }
+    },
+    "evaluated_profiles": 2197,
+    "selected_profile": {
+      "observe": 0.7,
+      "reserve": 0.77,
+      "early_exec": 0.77,
+      "late_exec": 0.77,
+      "observe_seed": 0.78,
+      "late_risk_bump": 0.02,
+      "version": "auto_0.77_0.77_0.77",
+      "source": "auto_tuned"
+    },
+    "selected_metrics": {
+      "total_windows": 340,
+      "executed_windows": 185,
+      "coverage": 0.5441,
+      "win_rate": 0.8432,
+      "win_rate_by_phase": {
+        "RESERVE": 0.8,
+        "LATE_EXEC": 0.843,
+        "EARLY_EXEC": 0.8966
+      }
+    },
+    "selected_recent24": {
+      "total_windows": 24,
+      "executed_windows": 18,
+      "coverage": 0.75,
+      "win_rate": 0.7222,
+      "win_rate_by_phase": {
+        "RESERVE": 0.5,
+        "LATE_EXEC": 0.8,
+        "EARLY_EXEC": 0.6667
+      }
+    },
+    "selected_recent100": {
+      "total_windows": 100,
+      "executed_windows": 73,
+      "coverage": 0.73,
+      "win_rate": 0.7534,
+      "win_rate_by_phase": {
+        "LATE_EXEC": 0.7647,
+        "RESERVE": 0.6364,
+        "EARLY_EXEC": 0.8182
+      }
+    },
+    "selected": "default_auto_reverted"
+  },
+  "coverage_target": 0.6,
+  "min_win_rate_target": 0.8
+}

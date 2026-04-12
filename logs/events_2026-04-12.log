@@ -130,3 +130,231 @@
 2026-04-12T04:50:24.923Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=04:45
 2026-04-12T04:50:24.924Z  [PRED/LIVE] DOWN MISS | actual=UP gate=GATE_TOO_LATE window=04:45
 2026-04-12T04:51:47.776Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-12T05:47:34.025Z  [BOT] Starting up…
+2026-04-12T05:47:34.025Z  [BUDGET] Replayed 4 daily cashflow event(s) spent=$5.15 returned=$0.00 left=$1.85
+2026-04-12T05:47:34.341Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-12T05:47:34.342Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-12T05:47:34.681Z  [PAPER] Warmed 2890 resolved paper analytics entries
+2026-04-12T05:47:34.681Z  [PAPER] Restored 15380 pending paper prediction(s)
+2026-04-12T05:47:34.684Z  [CLAIM] Warmed 52 claim record(s)
+2026-04-12T05:47:34.690Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-12T05:47:36.321Z  [CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-12T05:47:36.321Z  [CONTINUITY] recent24 buy=100% exec=50% fail=12% reserve=25% | recent100 buy=100% exec=35% fail=14%
+2026-04-12T05:47:36.352Z  [ML] Starting background bootstrap
+2026-04-12T05:47:36.507Z  [MKT] Window: Bitcoin Up or Down - April 12, 1:45AM-1:50AM ET | beat=$0.00 | ends 05:50:00 UTC
+2026-04-12T05:47:36.594Z  [HL] Hyperliquid WebSocket connected
+2026-04-12T05:47:36.857Z  [BTC] Binance WebSocket connected
+2026-04-12T05:47:37.123Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:47:38.817Z  [MKTWS] Market WebSocket connected
+2026-04-12T05:47:41.317Z  [ML] Backfilled 52 pending label(s) from feature logs
+2026-04-12T05:47:41.987Z  [MKT] Beat price set retroactively: $71,703.70
+2026-04-12T05:47:48.053Z  [ML] Bootstrap trained 20260412T054747Z-s20 state=shadow ap=0.746 cv_ap=0.762 ev=+0.58
+2026-04-12T05:47:48.062Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.70 src=ml U=29.9% D=70.1% | ml: BUY_DOWN prob=70% edge=+40.3%
+2026-04-12T05:48:00.155Z  [SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 74%
+2026-04-12T05:48:24.293Z  [SIGNAL/RESERVE] SKIP conf=0.55 src=ml U=54.9% D=45.1% | ml: candidate confidence 55% below 74%
+2026-04-12T05:48:27.318Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%
+2026-04-12T05:48:35.370Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.55 src=ml U=55.5% D=44.5% | ml: candidate confidence 55% below 74%
+2026-04-12T05:48:54.793Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T05:49:02.848Z  [SIGNAL/LATE_EXEC] SKIP conf=0.68 src=ml U=67.7% D=32.3% | ml: candidate confidence 68% below 78%
+2026-04-12T05:49:16.948Z  [SIGNAL/LATE_EXEC] BUY_UP conf=0.81 src=ml U=80.6% D=19.4% | ml: BUY_UP prob=81% edge=+61.1%
+2026-04-12T05:49:16.948Z  [SHADOW] BUY_UP conf=81% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:49:31.075Z  [SHADOW] BUY_UP conf=83% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:49:33.091Z  [SIGNAL/LATE_EXEC] SKIP conf=0.90 src=ml U=89.5% D=10.5% | ml: edge -9.6% below 5%
+2026-04-12T05:49:37.123Z  [SIGNAL/LATE_EXEC] SKIP conf=0.99 src=ml U=99.0% D=1.0% | ml: edge +0.0% below 5%
+2026-04-12T05:49:53.221Z  [SIGNAL/TOO_LATE] BUY_UP conf=0.90 src=ml U=89.5% D=10.5% | ml: BUY_UP prob=90% edge=+79.0%
+2026-04-12T05:49:53.221Z  [SHADOW] BUY_UP conf=90% — blocked by GATE_TOO_LATE
+2026-04-12T05:50:02.375Z  [MKT] Window: Bitcoin Up or Down - April 12, 1:50AM-1:55AM ET | beat=$71,779.51 | ends 05:55:00 UTC
+2026-04-12T05:50:03.014Z  [MKTWS] Market WebSocket connected
+2026-04-12T05:50:07.338Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%
+2026-04-12T05:50:12.363Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-12T05:50:17.396Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-12T05:50:22.430Z  [SIGNAL/OBSERVE] SKIP conf=0.70 src=ml U=30.4% D=69.6% | ml: candidate confidence 70% below 70%
+2026-04-12T05:50:32.521Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+19.5%
+2026-04-12T05:50:37.285Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=05:45
+2026-04-12T05:50:37.285Z  [PRED/LIVE] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=05:45
+2026-04-12T05:50:37.285Z  [PRED/LIVE] UP HIT | actual=UP gate=GATE_BANDAR_PUSH window=05:45
+2026-04-12T05:50:37.285Z  [PRED/LIVE] UP HIT | actual=UP gate=GATE_TOO_LATE window=05:45
+2026-04-12T05:50:37.558Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-12T05:50:47.645Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
+2026-04-12T05:51:07.855Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+33.6%
+2026-04-12T05:51:17.958Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-12T05:51:38.135Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T05:51:43.177Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%
+2026-04-12T05:52:12.476Z  [SIGNAL/OBSERVE] SKIP conf=0.57 src=ml U=56.8% D=43.2% | ml: edge -25.2% below 5%
+2026-04-12T05:52:38.829Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:52:59.891Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%
+2026-04-12T05:53:02.924Z  [SIGNAL/RESERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 74%
+2026-04-12T05:53:08.035Z  [SIGNAL/RESERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T05:53:23.182Z  [SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 74%
+2026-04-12T05:53:33.299Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T05:53:43.421Z  [SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+38.7%
+2026-04-12T05:53:43.422Z  [EXECUTE] 223s | BTC 0.05% → DOWN @ 0.560 | align=3 CVD=BULLISH | placing live order…
+2026-04-12T05:53:43.613Z  [KELLY/MIN_ORDER] $1.00 -> $2.80 (5.00 shares @ 0.56)
+2026-04-12T05:53:43.613Z  [TRADE] Held — daily budget left $1.85 below target bet $2.80
+2026-04-12T05:53:48.627Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T05:53:53.637Z  [SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%
+2026-04-12T05:54:03.694Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 78%
+2026-04-12T05:54:10.710Z  [SIGNAL/LATE_EXEC] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+9.9%
+2026-04-12T05:54:14.717Z  [SHADOW] BUY_DOWN conf=87% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:54:18.746Z  [SHADOW] BUY_DOWN conf=87% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:54:24.801Z  [SHADOW] BUY_DOWN conf=87% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:54:28.842Z  [SIGNAL/LATE_EXEC] BUY_DOWN conf=0.92 src=ml U=7.9% D=92.1% | ml: BUY_DOWN prob=92% edge=+84.2%
+2026-04-12T05:54:28.843Z  [SHADOW] BUY_DOWN conf=92% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:54:39.002Z  [SIGNAL/LATE_EXEC] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge -8.6% below 5%
+2026-04-12T05:54:44.151Z  [SIGNAL/LATE_EXEC] SKIP conf=0.93 src=ml U=6.9% D=93.1% | ml: edge -6.0% below 5%
+2026-04-12T05:54:49.222Z  [SIGNAL/TOO_LATE] SKIP conf=0.96 src=ml U=4.1% D=95.9% | ml: edge -3.1% below 5%
+2026-04-12T05:55:02.346Z  [MKT] Window: Bitcoin Up or Down - April 12, 1:55AM-2:00AM ET | beat=$71,739.68 | ends 06:00:00 UTC
+2026-04-12T05:55:02.363Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: edge -38.9% below 5%
+2026-04-12T05:55:03.100Z  [MKTWS] Market WebSocket connected
+2026-04-12T05:55:25.000Z  [BOT] Starting up…
+2026-04-12T05:55:25.000Z  [BUDGET] Replayed 4 daily cashflow event(s) spent=$5.15 returned=$0.00 left=$9.85
+2026-04-12T05:55:25.351Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-12T05:55:25.352Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-12T05:55:25.711Z  [PAPER] Warmed 2894 resolved paper analytics entries
+2026-04-12T05:55:25.711Z  [PAPER] Restored 15446 pending paper prediction(s)
+2026-04-12T05:55:25.713Z  [CLAIM] Warmed 52 claim record(s)
+2026-04-12T05:55:25.718Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-12T05:55:27.318Z  [CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-12T05:55:27.318Z  [CONTINUITY] recent24 buy=100% exec=46% fail=8% reserve=25% | recent100 buy=100% exec=35% fail=14%
+2026-04-12T05:55:27.348Z  [ML] Starting background bootstrap
+2026-04-12T05:55:27.467Z  [MKT] Window: Bitcoin Up or Down - April 12, 1:55AM-2:00AM ET | beat=$0.00 | ends 06:00:00 UTC
+2026-04-12T05:55:27.659Z  [HL] Hyperliquid WebSocket connected
+2026-04-12T05:55:27.756Z  [BTC] Binance WebSocket connected
+2026-04-12T05:55:28.144Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:55:29.812Z  [MKTWS] Market WebSocket connected
+2026-04-12T05:55:32.365Z  [ML] Backfilled 67 pending label(s) from feature logs
+2026-04-12T05:55:33.011Z  [MKT] Beat price set retroactively: $71,747.11
+2026-04-12T05:55:39.009Z  [ML] Bootstrap trained 20260412T055538Z-s20 state=shadow ap=0.747 cv_ap=0.765 ev=+0.59
+2026-04-12T05:55:43.025Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T05:56:27.670Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.671Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.671Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.671Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.672Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.673Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.673Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:50
+2026-04-12T05:56:27.673Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=05:50
+2026-04-12T05:56:27.673Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=05:50
+2026-04-12T05:56:27.673Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=05:50
+2026-04-12T05:56:27.674Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=05:50
+2026-04-12T05:56:29.957Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:57:31.604Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:57:47.942Z  [BOT] Starting up…
+2026-04-12T05:57:47.942Z  [BUDGET] Replayed 4 daily cashflow event(s) spent=$5.15 returned=$0.00 left=$inf
+2026-04-12T05:57:48.257Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-12T05:57:48.258Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-12T05:57:48.597Z  [PAPER] Warmed 2912 resolved paper analytics entries
+2026-04-12T05:57:48.598Z  [PAPER] Restored 15430 pending paper prediction(s)
+2026-04-12T05:57:48.601Z  [CLAIM] Warmed 52 claim record(s)
+2026-04-12T05:57:48.606Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-12T05:57:50.224Z  [CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-12T05:57:50.224Z  [CONTINUITY] recent24 buy=100% exec=46% fail=12% reserve=25% | recent100 buy=100% exec=35% fail=15%
+2026-04-12T05:57:50.255Z  [ML] Starting background bootstrap
+2026-04-12T05:57:50.392Z  [MKT] Window: Bitcoin Up or Down - April 12, 1:55AM-2:00AM ET | beat=$0.00 | ends 06:00:00 UTC
+2026-04-12T05:57:50.536Z  [HL] Hyperliquid WebSocket connected
+2026-04-12T05:57:50.776Z  [BTC] Binance WebSocket connected
+2026-04-12T05:57:51.032Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:57:52.985Z  [MKTWS] Market WebSocket connected
+2026-04-12T05:57:55.823Z  [MKT] Beat price set retroactively: $71,764.27
+2026-04-12T05:58:00.444Z  [SIGNAL/RESERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%
+2026-04-12T05:58:01.896Z  [ML] Bootstrap trained 20260412T055800Z-s20 state=shadow ap=0.747 cv_ap=0.765 ev=+0.59
+2026-04-12T05:58:26.075Z  [SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 74%
+2026-04-12T05:58:41.190Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%
+2026-04-12T05:58:52.830Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T05:59:00.768Z  [SIGNAL/LATE_EXEC] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 78%
+2026-04-12T05:59:10.817Z  [SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 78%
+2026-04-12T05:59:21.903Z  [SIGNAL/LATE_EXEC] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+39.1%
+2026-04-12T05:59:21.904Z  [SHADOW] BUY_DOWN conf=83% — blocked by GATE_BANDAR_PUSH
+2026-04-12T05:59:25.928Z  [EXECUTE] 265s | BTC 0.06% → DOWN @ 0.600 | align=1 CVD=NONE | placing live order…
+2026-04-12T05:59:26.121Z  [KELLY/MIN_ORDER] $1.00 -> $3.00 (5.00 shares @ 0.60)
+2026-04-12T05:59:26.121Z  [KELLY/GOLD] bankroll=$9.44 conf=0.83 implied=0.600 → bet=$3.00
+2026-04-12T05:59:27.075Z  [LIVE/GOLD] BET DOWN $3.00 @ 0.600 align=1 CVD=NONE | order=0x0cdf8cfbc02c92c8d4c4ee4874040344076d79152a2f40d26cce0d78854859fc
+2026-04-12T05:59:36.097Z  [SIGNAL/LATE_EXEC] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: candidate confidence 78% below 78%
+2026-04-12T05:59:54.451Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:00:00.715Z  [MKT] Window: Bitcoin Up or Down - April 12, 2:00AM-2:05AM ET | beat=$71,732.50 | ends 06:05:00 UTC
+2026-04-12T06:00:01.440Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%
+2026-04-12T06:00:06.002Z  [MKTWS] Market WebSocket connected
+2026-04-12T06:00:06.506Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%
+2026-04-12T06:00:41.801Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.70 src=ml U=29.9% D=70.1% | ml: BUY_DOWN prob=70% edge=+40.3%
+2026-04-12T06:00:51.285Z  [SETTLE_POLL] No Chainlink settlement yet for 0x494256 (51s post-expiry) — will retry
+2026-04-12T06:00:51.574Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=05:55
+2026-04-12T06:00:51.574Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:55
+2026-04-12T06:00:51.574Z  [PRED/LIVE] DOWN HIT | actual=DOWN gate=— window=05:55
+2026-04-12T06:00:51.861Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-12T06:00:56.177Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:00:57.057Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T06:01:21.279Z  [SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 70%
+2026-04-12T06:01:51.986Z  [SETTLE_POLL] No Chainlink settlement yet for 0x494256 (112s post-expiry) — will retry
+2026-04-12T06:01:57.927Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:02:11.922Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T06:02:26.036Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-12T06:02:36.173Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-12T06:02:41.219Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%
+2026-04-12T06:02:46.251Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
+2026-04-12T06:02:52.724Z  [SETTLE_POLL] No Chainlink settlement yet for 0x494256 (172s post-expiry) — will retry
+2026-04-12T06:02:59.574Z  [CLAIM] queued $0.00 (0x494256…)
+2026-04-12T06:03:00.586Z  [CLAIM] submitted $0.00 (0x494256…)
+2026-04-12T06:03:02.494Z  [SIGNAL/RESERVE] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: candidate confidence 55% below 74%
+2026-04-12T06:03:06.532Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%
+2026-04-12T06:03:09.068Z  [CLAIM] confirmed $0.00 (0x494256…)
+2026-04-12T06:03:09.959Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:03:32.041Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 74%
+2026-04-12T06:03:42.127Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 74%
+2026-04-12T06:03:47.170Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 74%
+2026-04-12T06:03:53.471Z  [SETTLE_POLL] No Chainlink settlement yet for 0x494256 (233s post-expiry) — will retry
+2026-04-12T06:03:57.284Z  [SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+21.4%
+2026-04-12T06:03:57.285Z  [EXECUTE] 237s | BTC 0.05% → DOWN @ 0.640 | align=3 CVD=NONE | placing live order…
+2026-04-12T06:03:57.478Z  [KELLY/MIN_ORDER] $1.00 -> $3.20 (5.00 shares @ 0.64)
+2026-04-12T06:03:57.478Z  [KELLY/GOLD] bankroll=$6.44 conf=0.78 implied=0.640 → bet=$3.20
+2026-04-12T06:03:58.430Z  [LIVE/GOLD] BET DOWN $3.20 @ 0.640 align=3 CVD=NONE | order=0x66e4ab4e02a6898ac7b12517a64f72a9a44cb24209e7f41df58fe0211217b17c
+2026-04-12T06:04:02.436Z  [SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 78%
+2026-04-12T06:04:07.449Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 78%
+2026-04-12T06:04:11.635Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:04:54.194Z  [SETTLE_POLL] No Chainlink settlement yet for 0x494256 (294s post-expiry) — will retry
+2026-04-12T06:04:57.962Z  [SIGNAL/TOO_LATE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-12T06:05:00.821Z  [MKT] Window: Bitcoin Up or Down - April 12, 2:05AM-2:10AM ET | beat=$71,746.62 | ends 06:10:00 UTC
+2026-04-12T06:05:00.988Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T06:05:06.315Z  [MKTWS] Market WebSocket connected
+2026-04-12T06:05:13.232Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:05:54.867Z  [SETTLE_POLL] No Chainlink settlement yet for 0x0b4b2c (54s post-expiry) — will retry
+2026-04-12T06:05:55.064Z  [RESULT] DOWN WON PnL=+1.90 actual=DOWN
+2026-04-12T06:05:56.228Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=06:00
+2026-04-12T06:05:56.228Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=06:00
+2026-04-12T06:05:56.228Z  [PRED/LIVE] DOWN MISS | actual=UP gate=— window=06:00
+2026-04-12T06:06:14.866Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:06:47.102Z  [SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 70%
+2026-04-12T06:06:52.145Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%
+2026-04-12T06:06:56.574Z  [SETTLE_POLL] No Chainlink settlement yet for 0x0b4b2c (116s post-expiry) — will retry
+2026-04-12T06:06:57.184Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%
+2026-04-12T06:07:12.320Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T06:07:16.529Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:07:57.536Z  [SETTLE_POLL] No Chainlink settlement yet for 0x0b4b2c (177s post-expiry) — will retry
+2026-04-12T06:08:03.094Z  [SIGNAL/RESERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: edge -11.3% below 4%
+2026-04-12T06:08:18.318Z  [CLAIM] queued $0.00 (0x0b4b2c…)
+2026-04-12T06:08:19.210Z  [CLAIM] submitted $0.00 (0x0b4b2c…)
+2026-04-12T06:08:26.755Z  [CLAIM] confirmed $0.00 (0x0b4b2c…)
+2026-04-12T06:08:27.745Z  [CLAIM] scan scheduled candidates=1 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:08:33.728Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.70 src=ml U=29.9% D=70.1% | ml: candidate confidence 70% below 74%
+2026-04-12T06:08:58.211Z  [SETTLE_POLL] No Chainlink settlement yet for 0x0b4b2c (238s post-expiry) — will retry
+2026-04-12T06:09:04.042Z  [SIGNAL/LATE_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 78%
+2026-04-12T06:09:09.092Z  [SIGNAL/LATE_EXEC] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 78%
+2026-04-12T06:09:19.187Z  [SIGNAL/LATE_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 78%
+2026-04-12T06:09:29.279Z  [SIGNAL/LATE_EXEC] SKIP conf=0.55 src=ml U=44.6% D=55.4% | ml: candidate confidence 55% below 78%
+2026-04-12T06:09:29.734Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:09:44.834Z  [SIGNAL/LATE_EXEC] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: edge -24.0% below 5%
+2026-04-12T06:09:55.972Z  [SIGNAL/TOO_LATE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%
+2026-04-12T06:09:58.886Z  [SETTLE_POLL] No Chainlink settlement yet for 0x0b4b2c (299s post-expiry) — will retry
+2026-04-12T06:10:05.206Z  [MKT] Window: Bitcoin Up or Down - April 12, 2:10AM-2:15AM ET | beat=$71,741.28 | ends 06:15:00 UTC
+2026-04-12T06:10:05.316Z  [SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -27.1% below 5%
+2026-04-12T06:10:06.042Z  [MKTWS] Market WebSocket connected
+2026-04-12T06:10:29.596Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+38.7%
+2026-04-12T06:10:31.437Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T06:10:39.498Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-12T06:10:44.526Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%
