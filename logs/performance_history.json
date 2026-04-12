@@ -52,10 +52,10 @@
   },
   "2026-04-12": {
     "live": {
-      "losses": 2,
-      "pnl": -3.25,
-      "total": 3,
-      "win_rate": 33.33,
+      "losses": 3,
+      "pnl": -6.45,
+      "total": 4,
+      "win_rate": 25.0,
       "wins": 1
     },
     "paper": {
@@ -71,8 +71,8 @@
       "active_signal_source": "ml",
       "applied_state": "active",
       "balance_usdc": 3.24005,
-      "bets_this_hour": 2,
-      "claim_last_scan_at": 1775974230.6884952,
+      "bets_this_hour": 0,
+      "claim_last_scan_at": 1775975727.58919,
       "claim_last_scan_candidates": 0,
       "claim_last_scan_error": "",
       "claim_last_scan_identities": [
@@ -88,84 +88,84 @@
       "daily_budget_spent_usdc": 11.35,
       "daily_halted": false,
       "daily_loss": 0.0,
-      "daily_profit": 1.9,
+      "daily_profit": 0.0,
       "daily_profit_halted": false,
       "expected_claim_pending_count": 10,
       "expected_claimable_total": 50.0,
       "failed_today_count": 0,
       "last_claim_error": "",
-      "last_claim_success_at": "2026-04-12T06:08:18.317Z",
+      "last_claim_success_at": "2026-04-12T06:08:26.754Z",
       "mode": "live",
-      "open_positions": 1,
+      "open_positions": 0,
       "participation_recent100": {
         "blocked_profitable_rate": {
           "GATE_BANDAR_PUSH": 0.8154,
           "GATE_CHOPPY_BEAT": 1.0,
-          "GATE_LATE_PROXIMITY_RISK": 0.6,
-          "GATE_LOW_CONF": 1.0,
+          "GATE_LATE_PROXIMITY_RISK": 0.619,
+          "GATE_LOW_CONF": 0.8571,
           "GATE_NO_MOVE": 1.0,
           "GATE_TOO_LATE": 0.75,
           "GATE_TOO_SURE": 0.8
         },
         "buy_prediction_rate": 1.0,
         "executed_bet_rate": 0.35,
-        "placement_failed_rate": 0.15,
+        "placement_failed_rate": 0.16,
         "placement_failure_by_code": {
           "DAILY_BUDGET_PRECHECK": 1,
-          "INSUFFICIENT_BALANCE_MIN_ORDER": 8,
+          "INSUFFICIENT_BALANCE_MIN_ORDER": 9,
           "PLACEMENT_FAILED": 7
         },
-        "reserved_signal_rate": 0.2,
+        "reserved_signal_rate": 0.19,
         "retryable_failure_rate": 0.06,
         "threshold_counterfactuals": {
           "0.72": {
-            "coverage": 0.74,
-            "executed_windows": 74,
+            "coverage": 0.75,
+            "executed_windows": 75,
             "total_windows": 100,
-            "win_rate": 0.7568,
+            "win_rate": 0.76,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.75,
-              "LATE_EXEC": 0.7843,
-              "RESERVE": 0.6364
+              "LATE_EXEC": 0.7736,
+              "RESERVE": 0.7
             }
           },
           "0.74": {
-            "coverage": 0.74,
-            "executed_windows": 74,
+            "coverage": 0.75,
+            "executed_windows": 75,
             "total_windows": 100,
-            "win_rate": 0.7568,
+            "win_rate": 0.76,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.75,
-              "LATE_EXEC": 0.7843,
-              "RESERVE": 0.6364
+              "LATE_EXEC": 0.7736,
+              "RESERVE": 0.7
             }
           },
           "0.76": {
-            "coverage": 0.74,
-            "executed_windows": 74,
+            "coverage": 0.75,
+            "executed_windows": 75,
             "total_windows": 100,
-            "win_rate": 0.7568,
+            "win_rate": 0.76,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.75,
-              "LATE_EXEC": 0.7843,
-              "RESERVE": 0.6364
+              "LATE_EXEC": 0.7736,
+              "RESERVE": 0.7
             }
           },
           "0.78": {
-            "coverage": 0.67,
-            "executed_windows": 67,
+            "coverage": 0.68,
+            "executed_windows": 68,
             "total_windows": 100,
-            "win_rate": 0.791,
+            "win_rate": 0.7941,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.9,
-              "LATE_EXEC": 0.8,
-              "RESERVE": 0.5714
+              "LATE_EXEC": 0.7885,
+              "RESERVE": 0.6667
             }
           }
         },
         "win_rate_by_execution_bucket": {
-          "EARLY_EXEC": 0.8571,
-          "LATE_EXEC": 0.95,
+          "EARLY_EXEC": 0.75,
+          "LATE_EXEC": 0.9474,
           "TOO_LATE": 0.5
         },
         "window_count": 100
@@ -173,9 +173,10 @@
       "participation_recent24": {
         "blocked_profitable_rate": {
           "GATE_BANDAR_PUSH": 1.0,
-          "GATE_LATE_PROXIMITY_RISK": 0.6667,
+          "GATE_LATE_PROXIMITY_RISK": 0.8,
+          "GATE_LOW_CONF": 0.0,
           "GATE_NO_MOVE": 1.0,
-          "GATE_TOO_LATE": 0.625,
+          "GATE_TOO_LATE": 0.75,
           "GATE_TOO_SURE": 0.6
         },
         "buy_prediction_rate": 1.0,
@@ -183,59 +184,60 @@
         "placement_failed_rate": 0.125,
         "placement_failure_by_code": {
           "DAILY_BUDGET_PRECHECK": 1,
-          "PLACEMENT_FAILED": 3
+          "INSUFFICIENT_BALANCE_MIN_ORDER": 1,
+          "PLACEMENT_FAILED": 2
         },
         "reserved_signal_rate": 0.2083,
-        "retryable_failure_rate": 0.0833,
+        "retryable_failure_rate": 0.0417,
         "threshold_counterfactuals": {
           "0.72": {
-            "coverage": 0.8333,
-            "executed_windows": 20,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.75,
+            "win_rate": 0.7368,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.5714,
-              "LATE_EXEC": 0.8333,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 1.0
             }
           },
           "0.74": {
-            "coverage": 0.8333,
-            "executed_windows": 20,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.75,
+            "win_rate": 0.7368,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.5714,
-              "LATE_EXEC": 0.8333,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 1.0
             }
           },
           "0.76": {
-            "coverage": 0.8333,
-            "executed_windows": 20,
+            "coverage": 0.7917,
+            "executed_windows": 19,
             "total_windows": 24,
-            "win_rate": 0.75,
+            "win_rate": 0.7368,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.5714,
-              "LATE_EXEC": 0.8333,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 1.0
             }
           },
           "0.78": {
-            "coverage": 0.75,
-            "executed_windows": 18,
+            "coverage": 0.7083,
+            "executed_windows": 17,
             "total_windows": 24,
-            "win_rate": 0.8333,
+            "win_rate": 0.8235,
             "win_rate_by_phase": {
               "EARLY_EXEC": 0.8,
-              "LATE_EXEC": 0.8333,
+              "LATE_EXEC": 0.8182,
               "RESERVE": 1.0
             }
           }
         },
         "win_rate_by_execution_bucket": {
-          "EARLY_EXEC": 0.75,
-          "LATE_EXEC": 0.8571,
+          "EARLY_EXEC": 0.6,
+          "LATE_EXEC": 0.8333,
           "TOO_LATE": 1.0
         },
         "window_count": 24
@@ -244,24 +246,24 @@
       "polymarket_session": {
         "can_refresh_credentials": true,
         "consecutive_auth_failures": 0,
-        "creds_refreshed_at": "2026-04-12T05:57:47.912Z",
+        "creds_refreshed_at": "2026-04-12T06:30:23.275Z",
         "generation": 0,
         "has_l2_credentials": true,
         "last_auth_error": "",
         "last_auth_failure_at": "",
-        "last_auth_success_at": "2026-04-12T06:10:29.052Z",
-        "last_heartbeat_ok_at": "2026-04-12T06:10:26.887Z",
-        "last_positions_checked_at": "2026-04-12T06:10:31.110Z",
+        "last_auth_success_at": "2026-04-12T06:35:28.227Z",
+        "last_heartbeat_ok_at": "2026-04-12T06:35:28.227Z",
+        "last_positions_checked_at": "2026-04-12T06:35:28.014Z",
         "last_positions_error": "",
         "last_positions_status": "ok",
         "last_positions_user": "0x6B41\u2026578a",
         "market_ws_connected": true,
-        "market_ws_last_message_at": "2026-04-12T06:10:31.429Z",
+        "market_ws_last_message_at": "2026-04-12T06:35:28.380Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
       "threshold_profile_version": "rtp_v1",
-      "updated_at": "2026-04-12T06:10:32.416Z"
+      "updated_at": "2026-04-12T06:35:29.392Z"
     }
   }
 }

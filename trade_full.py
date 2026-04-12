@@ -7969,9 +7969,9 @@ class TradingBot:
     def _classify_window_outcome(beat_price: float, settlement_btc: float | None) -> str:
         if settlement_btc is None or beat_price <= 0:
             return "UNKNOWN"
-        if math.isclose(settlement_btc, beat_price, rel_tol=0.0, abs_tol=1e-9):
-            return "TIE"
-        return "UP" if settlement_btc > beat_price else "DOWN"
+        # Polymarket rule: "Up" if settlement price >= opening price (inclusive).
+        # Equal price resolves as UP, not TIE.
+        return "UP" if settlement_btc >= beat_price else "DOWN"
 
     @staticmethod
     def _did_trade_win(direction: str, actual_winner: str) -> bool | None:
@@ -8765,7 +8765,12 @@ class TradingBot:
         if math.isclose(resolved_btc_price, beat_price, rel_tol=0.0, abs_tol=1e-9):
             return
 
-        label = "BUY_UP" if resolved_btc_price > beat_price else "BUY_DOWN"
+        # Prefer Chainlink settlement price for label accuracy.
+        # Polymarket resolves via Chainlink BTC/USD (data.chain.link/streams/btc-usd).
+        # Rule: P_end >= P_open → UP (inclusive — equal price also resolves as UP).
+        _cl_price = (settlement_info.chainlink_settlement_price or 0.0) if settlement_info else 0.0
+        _resolve_price = _cl_price if _cl_price > 0 else resolved_btc_price
+        label = "BUY_UP" if _resolve_price >= beat_price else "BUY_DOWN"
         resolution_ts = (resolved_at or datetime.now(_UTC)).astimezone(_UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
         # AUDIT_ML_LABELS: log side-by-side Binance vs Chainlink outcome comparison.
@@ -8773,8 +8778,8 @@ class TradingBot:
         if AUDIT_ML_LABELS and settlement_info is not None:
             chainlink_price = settlement_info.chainlink_settlement_price or 0.0
             if chainlink_price > 0.0:
-                binance_outcome = label
-                chainlink_outcome = "BUY_UP" if chainlink_price > beat_price else "BUY_DOWN"
+                binance_outcome = "BUY_UP" if resolved_btc_price >= beat_price else "BUY_DOWN"
+                chainlink_outcome = "BUY_UP" if chainlink_price >= beat_price else "BUY_DOWN"
                 diverged = binance_outcome != chainlink_outcome
                 self.state.log_event(
                     f"[LABEL_AUDIT] cid={condition_id[:8]} beat={beat_price:,.2f} "

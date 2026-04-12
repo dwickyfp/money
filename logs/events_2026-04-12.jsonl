@@ -358,3 +358,163 @@
 {"ts": "2026-04-12T06:10:31.437Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
 {"ts": "2026-04-12T06:10:39.498Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
 {"ts": "2026-04-12T06:10:44.526Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%"}
+{"ts": "2026-04-12T06:10:59.483Z", "msg": "[RESULT] DOWN LOST PnL=-3.20 actual=UP"}
+{"ts": "2026-04-12T06:11:08.941Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: candidate confidence 53% below 70%"}
+{"ts": "2026-04-12T06:11:13.997Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:11:33.172Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:11:39.181Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:11:54.401Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.57 src=ml U=56.8% D=43.2% | ml: edge -18.8% below 5%"}
+{"ts": "2026-04-12T06:12:11.628Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.70 src=ml U=69.9% D=30.1% | ml: edge +2.8% below 5%"}
+{"ts": "2026-04-12T06:12:14.642Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.57 src=ml U=56.8% D=43.2% | ml: candidate confidence 57% below 70%"}
+{"ts": "2026-04-12T06:12:34.857Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:13:08.517Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.59 src=ml U=58.9% D=41.1% | ml: candidate confidence 59% below 74%"}
+{"ts": "2026-04-12T06:13:29.738Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 74%"}
+{"ts": "2026-04-12T06:13:34.780Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.55 src=ml U=55.5% D=44.5% | ml: edge -25.0% below 3%"}
+{"ts": "2026-04-12T06:13:36.576Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:14:25.187Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.81 src=ml U=80.6% D=19.4% | ml: edge -18.6% below 5%"}
+{"ts": "2026-04-12T06:14:38.345Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:14:54.564Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.86 src=ml U=85.7% D=14.3% | ml: edge -13.9% below 5%"}
+{"ts": "2026-04-12T06:15:02.025Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:10"}
+{"ts": "2026-04-12T06:15:02.025Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:10"}
+{"ts": "2026-04-12T06:15:02.025Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:10"}
+{"ts": "2026-04-12T06:15:04.889Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:15AM-2:20AM ET | beat=$71,776.18 | ends 06:20:00 UTC"}
+{"ts": "2026-04-12T06:15:05.711Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: edge +0.6% below 5%"}
+{"ts": "2026-04-12T06:15:05.719Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:15:09.742Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
+{"ts": "2026-04-12T06:15:24.872Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:15:34.967Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
+{"ts": "2026-04-12T06:15:40.190Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:16:04.603Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: edge -0.3% below 5%"}
+{"ts": "2026-04-12T06:16:14.719Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:16:26.840Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge +3.0% below 5%"}
+{"ts": "2026-04-12T06:16:41.973Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:16:52.219Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:16:57.270Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%"}
+{"ts": "2026-04-12T06:17:02.323Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:17:05.341Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%"}
+{"ts": "2026-04-12T06:17:18.471Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge +4.6% below 5%"}
+{"ts": "2026-04-12T06:17:21.488Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+66.9%"}
+{"ts": "2026-04-12T06:17:36.599Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -8.7% below 5%"}
+{"ts": "2026-04-12T06:17:40.627Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: edge -7.5% below 5%"}
+{"ts": "2026-04-12T06:17:43.812Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:17:47.938Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -12.0% below 5%"}
+{"ts": "2026-04-12T06:18:45.630Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:19:47.478Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:20:02.786Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:20AM-2:25AM ET | beat=$71,730.18 | ends 06:25:00 UTC"}
+{"ts": "2026-04-12T06:20:03.964Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.964Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.965Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.965Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.965Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.965Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.966Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:03.966Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:15"}
+{"ts": "2026-04-12T06:20:08.227Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:20:49.315Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:21:06.534Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -8.7% below 5%"}
+{"ts": "2026-04-12T06:21:11.582Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+73.6%"}
+{"ts": "2026-04-12T06:21:51.112Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:22:46.773Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -2.5% below 5%"}
+{"ts": "2026-04-12T06:22:52.830Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:23:02.959Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: edge +2.2% below 4%"}
+{"ts": "2026-04-12T06:23:16.109Z", "msg": "[SIGNAL/RESERVE] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+5.8%"}
+{"ts": "2026-04-12T06:23:41.333Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.78 src=ml U=22.3% D=77.7% | ml: edge -5.2% below 3%"}
+{"ts": "2026-04-12T06:23:54.565Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:23:57.697Z", "msg": "[SIGNAL/EARLY_EXEC] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+3.3%"}
+{"ts": "2026-04-12T06:23:57.697Z", "msg": "[SHADOW] BUY_DOWN conf=87% \u2014 blocked by GATE_LOW_CONF"}
+{"ts": "2026-04-12T06:24:00.715Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge -1.4% below 5%"}
+{"ts": "2026-04-12T06:24:05.747Z", "msg": "[SIGNAL/LATE_EXEC] BUY_DOWN conf=0.92 src=ml U=7.9% D=92.1% | ml: BUY_DOWN prob=92% edge=+8.3%"}
+{"ts": "2026-04-12T06:24:05.748Z", "msg": "[EXECUTE] 245s | BTC 0.09% \u2192 DOWN @ 0.850 | align=1 CVD=NONE | placing live order\u2026"}
+{"ts": "2026-04-12T06:24:05.936Z", "msg": "[TRADE] Aborted \u2014 live balance $3.24 below market minimum $4.25 (5.00 shares @ 0.85)"}
+{"ts": "2026-04-12T06:24:47.157Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 78%"}
+{"ts": "2026-04-12T06:24:56.326Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:25:04.563Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:25AM-2:30AM ET | beat=$71,744.39 | ends 06:30:00 UTC"}
+{"ts": "2026-04-12T06:25:05.348Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:25:05.425Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-12T06:25:05.763Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:20"}
+{"ts": "2026-04-12T06:25:05.763Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:20"}
+{"ts": "2026-04-12T06:25:05.764Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=GATE_LOW_CONF window=06:20"}
+{"ts": "2026-04-12T06:25:05.764Z", "msg": "[PRED/LIVE] DOWN MISS | actual=UP gate=\u2014 window=06:20"}
+{"ts": "2026-04-12T06:25:16.562Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+47.2%"}
+{"ts": "2026-04-12T06:25:26.640Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.83 src=ml U=16.5% D=83.5% | ml: BUY_DOWN prob=83% edge=+60.5%"}
+{"ts": "2026-04-12T06:25:31.708Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-12T06:25:36.745Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:25:50.929Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:25:58.088Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:26:59.853Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:27:11.972Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%"}
+{"ts": "2026-04-12T06:27:32.125Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:27:42.201Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:27:57.326Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:28:01.715Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:28:02.649Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%"}
+{"ts": "2026-04-12T06:28:21.889Z", "msg": "[SIGNAL/RESERVE] BUY_DOWN conf=0.78 src=ml U=22.3% D=77.7% | ml: BUY_DOWN prob=78% edge=+55.4%"}
+{"ts": "2026-04-12T06:28:26.936Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 74%"}
+{"ts": "2026-04-12T06:28:31.988Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: candidate confidence 72% below 74%"}
+{"ts": "2026-04-12T06:28:42.069Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 74%"}
+{"ts": "2026-04-12T06:29:02.237Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 78%"}
+{"ts": "2026-04-12T06:29:03.496Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:29:33.775Z", "msg": "[SIGNAL/LATE_EXEC] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+9.9%"}
+{"ts": "2026-04-12T06:29:33.776Z", "msg": "[SHADOW] BUY_DOWN conf=87% \u2014 blocked by GATE_BANDAR_PUSH"}
+{"ts": "2026-04-12T06:29:39.850Z", "msg": "[SHADOW] BUY_DOWN conf=87% \u2014 blocked by GATE_LATE_PROXIMITY_RISK"}
+{"ts": "2026-04-12T06:29:52.955Z", "msg": "[SIGNAL/TOO_LATE] BUY_DOWN conf=0.87 src=ml U=13.2% D=86.8% | ml: BUY_DOWN prob=87% edge=+141.1%"}
+{"ts": "2026-04-12T06:29:52.957Z", "msg": "[SHADOW] BUY_DOWN conf=87% \u2014 blocked by GATE_TOO_LATE"}
+{"ts": "2026-04-12T06:30:01.184Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:30AM-2:35AM ET | beat=$71,741.69 | ends 06:35:00 UTC"}
+{"ts": "2026-04-12T06:30:02.028Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=56.4% D=43.6% | ml: candidate confidence 56% below 70%"}
+{"ts": "2026-04-12T06:30:03.037Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=67.7% D=32.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-12T06:30:05.389Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:30:06.810Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:30:07.319Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.319Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.320Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.320Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.320Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.321Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.321Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.321Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.322Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.322Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=\u2014 window=06:25"}
+{"ts": "2026-04-12T06:30:07.322Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_BANDAR_PUSH window=06:25"}
+{"ts": "2026-04-12T06:30:07.322Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_LATE_PROXIMITY_RISK window=06:25"}
+{"ts": "2026-04-12T06:30:07.323Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_TOO_LATE window=06:25"}
+{"ts": "2026-04-12T06:30:09.405Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.59 src=ml U=59.5% D=40.5% | ml: candidate confidence 59% below 70%"}
+{"ts": "2026-04-12T06:30:17.491Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=67.7% D=32.3% | ml: edge +4.2% below 5%"}
+{"ts": "2026-04-12T06:30:23.301Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-12T06:30:23.302Z", "msg": "[BUDGET] Replayed 8 daily cashflow event(s) spent=$11.35 returned=$4.90 left=$inf"}
+{"ts": "2026-04-12T06:30:23.593Z", "msg": "[HISTORY] Warmed 50 settled outcomes for calibration/context"}
+{"ts": "2026-04-12T06:30:23.594Z", "msg": "[HISTORY] Warmed 20 settled bets for UI history"}
+{"ts": "2026-04-12T06:30:24.053Z", "msg": "[PAPER] Warmed 2948 resolved paper analytics entries"}
+{"ts": "2026-04-12T06:30:24.053Z", "msg": "[PAPER] Restored 15608 pending paper prediction(s)"}
+{"ts": "2026-04-12T06:30:24.056Z", "msg": "[CLAIM] Warmed 54 claim record(s)"}
+{"ts": "2026-04-12T06:30:24.061Z", "msg": "[ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1"}
+{"ts": "2026-04-12T06:30:25.716Z", "msg": "[CONTINUITY] mode=live model=20260411T120821Z-s20 state=active thresholds=rtp_v1"}
+{"ts": "2026-04-12T06:30:25.717Z", "msg": "[CONTINUITY] recent24 buy=100% exec=50% fail=17% reserve=21% | recent100 buy=100% exec=35% fail=16%"}
+{"ts": "2026-04-12T06:30:25.749Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-12T06:30:25.859Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:30AM-2:35AM ET | beat=$0.00 | ends 06:35:00 UTC"}
+{"ts": "2026-04-12T06:30:26.006Z", "msg": "[HL] Hyperliquid WebSocket connected"}
+{"ts": "2026-04-12T06:30:26.154Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-12T06:30:26.547Z", "msg": "[CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:30:28.154Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:30:30.929Z", "msg": "[ML] Backfilled 113 pending label(s) from feature logs"}
+{"ts": "2026-04-12T06:30:31.400Z", "msg": "[MKT] Beat price set retroactively: $71,711.08"}
+{"ts": "2026-04-12T06:30:37.720Z", "msg": "[ML] Bootstrap trained 20260412T063036Z-s20 state=shadow ap=0.748 cv_ap=0.762 ev=+0.65"}
+{"ts": "2026-04-12T06:30:46.745Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:31:18.842Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=47.1% D=52.9% | ml: edge -38.5% below 5%"}
+{"ts": "2026-04-12T06:31:24.853Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: edge -24.7% below 5%"}
+{"ts": "2026-04-12T06:32:15.212Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.83 src=ml U=16.5% D=83.5% | ml: edge -11.2% below 5%"}
+{"ts": "2026-04-12T06:33:08.560Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.83 src=ml U=16.5% D=83.5% | ml: edge -12.6% below 4%"}
+{"ts": "2026-04-12T06:34:35.087Z", "msg": "[SIGNAL/LATE_EXEC] BUY_DOWN conf=0.92 src=ml U=7.9% D=92.1% | ml: BUY_DOWN prob=92% edge=+84.2%"}
+{"ts": "2026-04-12T06:34:35.090Z", "msg": "[SHADOW] BUY_DOWN conf=92% \u2014 blocked by GATE_LATE_PROXIMITY_RISK"}
+{"ts": "2026-04-12T06:34:37.096Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge -12.3% below 5%"}
+{"ts": "2026-04-12T06:34:52.257Z", "msg": "[SIGNAL/TOO_LATE] SKIP conf=0.87 src=ml U=13.2% D=86.8% | ml: edge -12.8% below 5%"}
+{"ts": "2026-04-12T06:35:00.759Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 2:35AM-2:40AM ET | beat=$71,690.35 | ends 06:40:00 UTC"}
+{"ts": "2026-04-12T06:35:01.449Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T06:35:27.418Z", "msg": "[PRED/LIVE] DOWN HIT | actual=DOWN gate=GATE_LATE_PROXIMITY_RISK window=06:30"}
+{"ts": "2026-04-12T06:35:27.426Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
+{"ts": "2026-04-12T06:35:28.382Z", "msg": "[CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T06:35:42.589Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=39.2% D=60.8% | ml: candidate confidence 61% below 70%"}
+{"ts": "2026-04-12T06:36:08.809Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-12T06:36:17.894Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-12T06:36:27.942Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
+{"ts": "2026-04-12T06:36:38.107Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-12T06:36:43.130Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small"}
