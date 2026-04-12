@@ -1089,7 +1089,86 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatc
     asyncio.run(run_case())
 
 
-def test_place_trade_lifts_live_bet_to_market_minimum(tmp_path, monkeypatch):
+def test_place_trade_skips_when_midpoint_edge_disappears_at_best_ask(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            est = tf.estimate_buy_net_shares(amount_usdc, 0.70, 0.072)
+            return tf.ExecutionQuote(
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                mid_price=0.55,
+                best_bid=0.68,
+                best_ask=0.70,
+                avg_price=0.70,
+                spread=0.02,
+                gross_shares=est["gross_shares"],
+                net_shares=est["net_shares"],
+                fee_usdc=est["fee_usdc"],
+                fee_shares=est["fee_shares"],
+                fee_rate=0.072,
+                fee_rate_source="fee-rate",
+                min_order_size=1.0,
+                enough_liquidity=True,
+                liquidity_source="orderbook",
+            )
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("place_bet should not run when ask-level net EV is below the gate")
+
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xask-edge", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.75,
+            raw_confidence=0.75,
+            reason="ask edge",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-ask-edge",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="paper",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert len(bot.state.positions) == 0
+        assert updated.blocked_gate == tf.GATE_NET_EDGE
+        assert updated.mid_odds == pytest.approx(0.55)
+        assert updated.best_ask == pytest.approx(0.70)
+        assert updated.net_edge < tf.MIN_NET_EDGE
+
+    asyncio.run(run_case())
+
+
+def test_place_trade_skips_when_market_minimum_exceeds_risk_cap(tmp_path, monkeypatch):
     class StubMarket:
         def __init__(self):
             self.bet_calls = []
@@ -1098,15 +1177,7 @@ def test_place_trade_lifts_live_bet_to_market_minimum(tmp_path, monkeypatch):
             return 5.0
 
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
-            self.bet_calls.append((direction, token_id, amount_usdc, current_odds))
-            return tf.TradeResult(
-                success=True,
-                order_id="LIVE-123",
-                simulated=False,
-                size=5.0,
-                price=current_odds,
-                amount_usdc=amount_usdc,
-            )
+            raise AssertionError("place_bet should not run when market minimum exceeds risk cap")
 
     async def run_case():
         bot = make_bot(tmp_path)
@@ -1125,6 +1196,22 @@ def test_place_trade_lifts_live_bet_to_market_minimum(tmp_path, monkeypatch):
         )
         bot.state.up_odds = 0.50
         bot.state.down_odds = 0.50
+        record = tf.WindowPredictionRecord(
+            row_id="row-live-min",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="live",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
 
         monkeypatch.setattr(tf, "LIVE_TRADING", True)
 
@@ -1137,10 +1224,11 @@ def test_place_trade_lifts_live_bet_to_market_minimum(tmp_path, monkeypatch):
             prediction_row_id="row-live-min",
         )
 
-        assert bot.market.bet_calls == [("UP", "up-token", 2.5, 0.5)]
-        assert len(bot.state.positions) == 1
-        assert bot.state.positions[0].simulated is False
-        assert bot.state.positions[0].amount_usdc == 2.5
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert bot.market.bet_calls == []
+        assert len(bot.state.positions) == 0
+        assert updated.blocked_gate == tf.GATE_MIN_ORDER_RISK
+        assert bot.state.engine_gate == tf.GATE_MIN_ORDER_RISK
 
     asyncio.run(run_case())
 
@@ -1569,7 +1657,11 @@ def test_check_positions_does_not_cancel_filled_live_order_when_exchange_status_
             prediction_row_id="row-live-canceled",
         )
         bot.state.positions.append(pos)
-        bot.state.price_history_ts = deque([(pos.window_end_at.timestamp(), 100.3)], maxlen=10)
+        bot.state.settlement_registry_cache[pos.condition_id] = {
+            "settlement_price": 100.3,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
 
         await bot._check_positions()
 
@@ -1579,7 +1671,7 @@ def test_check_positions_does_not_cancel_filled_live_order_when_exchange_status_
     asyncio.run(run_case())
 
 
-def test_tie_settlement_is_void_not_down_win(tmp_path):
+def test_equal_settlement_resolves_up_not_void(tmp_path):
     async def run_case():
         bot = make_bot(tmp_path)
         now = datetime.now(timezone.utc)
@@ -1590,15 +1682,19 @@ def test_tie_settlement_is_void_not_down_win(tmp_path):
             now=now,
         )
         bot.state.positions.append(pos)
-        bot.state.price_history_ts = deque([(pos.window_end_at.timestamp(), pos.window_beat)], maxlen=10)
+        bot.state.settlement_registry_cache[pos.condition_id] = {
+            "settlement_price": pos.window_beat,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
 
         await bot._check_positions()
 
-        assert pos.status == "void"
-        assert pos.pnl == 0.0
+        assert pos.status == "lost"
+        assert pos.pnl == pytest.approx(-2.0)
         assert bot.state.win_count == 0
-        assert bot.state.loss_count == 0
-        assert bot.state.paper_stats.paper_trade_total == 0
+        assert bot.state.loss_count == 1
+        assert bot.state.paper_stats.paper_trade_total == 1
 
     asyncio.run(run_case())
 

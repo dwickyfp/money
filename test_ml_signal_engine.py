@@ -468,6 +468,46 @@ def test_threshold_tuner_prefers_highest_coverage_profile_above_guardrail(tmp_pa
     assert tuned["runtime_thresholds"]["early_exec"] == pytest.approx(0.76)
 
 
+def test_threshold_tuner_degrades_when_recent_validation_misses_guardrail(tmp_path):
+    log_dir = tmp_path / "logs"
+    ts = datetime(2026, 4, 12, 0, 0, tzinfo=UTC)
+    records = []
+    for idx in range(30):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * idx)),
+                "event": "prediction_resolved",
+                "row_id": f"row-{idx}",
+                "condition_id": f"cond-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "EARLY_EXEC",
+                "phase_bucket": "EARLY_EXEC",
+                "confidence": 0.80,
+                "prediction_correct": idx < 20,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * idx, seconds=1)),
+            }
+        )
+    _write_jsonl(log_dir / "prediction_analytics_2026-04-12.jsonl", records)
+
+    tuned = ml.tune_runtime_thresholds_from_shadow_data(
+        log_dir,
+        min_windows=10,
+        min_win_rate=0.60,
+    )
+
+    assert tuned["threshold_source"] == "degraded_auto_guard"
+    assert tuned["threshold_tuning_summary"]["selected"] == "degraded_auto_guard"
+    assert tuned["runtime_thresholds"]["early_exec"] > 0.80
+    assert tuned["runtime_thresholds"]["source"] == "degraded_auto_guard"
+
+
+def test_strategy_audit_returns_no_data_for_missing_logs(tmp_path):
+    report = ml.audit_strategy_decisions(tmp_path / "logs")
+
+    assert report["rows"] == 0
+    assert report["message"] == "no data"
+
+
 def test_market_client_refresh_session_rotates_bundle_and_requests_ws_reconnect(monkeypatch):
     class FakeCreds:
         def __init__(self, suffix: str):
@@ -605,7 +645,7 @@ def test_market_client_heartbeat_supports_legacy_noarg_clients(monkeypatch):
     assert snapshot["last_heartbeat_ok_at"]
 
 
-def test_market_client_place_bet_floors_to_live_min_order_size(monkeypatch):
+def test_market_client_place_bet_skips_when_below_live_min_order_size(monkeypatch):
     class FakeClient:
         def __init__(self):
             self.order_args = None
@@ -635,18 +675,90 @@ def test_market_client_place_bet_floors_to_live_min_order_size(monkeypatch):
     async def _run():
         market = ml.MarketClient()
         result = await market.place_bet("UP", "token-up", 2.0, 0.50)
-        placed_amount = market._client.order_args.amount
+        placed_order = market._client.order_args
         order_type = market._client.order_type
         await market.close()
-        return result, placed_amount, order_type
+        return result, placed_order, order_type
 
-    result, placed_amount, order_type = asyncio.run(_run())
+    result, placed_order, order_type = asyncio.run(_run())
+
+    assert result.success is False
+    assert result.failure_code == "MIN_ORDER_SIZE"
+    assert result.attempt_consumed is True
+    assert placed_order is None
+    assert order_type is None
+
+
+def test_dynamic_fee_math_uses_net_redeemable_shares():
+    fee = ml.compute_taker_fee_usdc(shares=4.0, price=0.5, fee_rate=0.072)
+    est = ml.estimate_buy_net_shares(amount_usdc=2.0, price=0.5, fee_rate=0.072)
+
+    assert fee == pytest.approx(0.072)
+    assert est["gross_shares"] == pytest.approx(4.0)
+    assert est["fee_usdc"] == pytest.approx(0.072)
+    assert est["fee_shares"] == pytest.approx(0.144)
+    assert est["net_shares"] == pytest.approx(3.856)
+    assert est["payout_per_dollar"] == pytest.approx(1.928)
+
+
+def test_market_client_paper_place_bet_uses_live_like_quote_without_clob_order(monkeypatch):
+    class FakeClient:
+        def __init__(self):
+            self.create_calls = 0
+            self.post_calls = 0
+
+        def get_order_book(self, token_id):
+            return {
+                "bids": [{"price": "0.49", "size": "10"}],
+                "asks": [{"price": "0.50", "size": "10"}],
+                "min_order_size": "1",
+            }
+
+        def create_market_order(self, order_args):
+            self.create_calls += 1
+            raise AssertionError("paper mode must not create CLOB orders")
+
+        def post_order(self, signed, order_type):
+            self.post_calls += 1
+            raise AssertionError("paper mode must not post CLOB orders")
+
+    class FakeResponse:
+        is_success = True
+
+        def json(self):
+            return {"fee_rate": 0.072}
+
+    class FakeHttp:
+        async def get(self, *args, **kwargs):
+            return FakeResponse()
+
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(ml, "LIVE_TRADING", False)
+    monkeypatch.setattr(ml.MarketClient, "_build_client", lambda self: FakeClient())
+    monkeypatch.setattr(ml.MarketClient, "_build_http_client", lambda self: FakeHttp())
+
+    async def _run():
+        market = ml.MarketClient()
+        result = await market.place_bet("UP", "token-up", 2.0, 0.50)
+        create_calls = market._client.create_calls
+        post_calls = market._client.post_calls
+        await market.close()
+        return result, create_calls, post_calls
+
+    result, create_calls, post_calls = asyncio.run(_run())
 
     assert result.success is True
-    assert placed_amount == pytest.approx(2.5)
-    assert order_type == ml.OrderType.FOK if hasattr(ml, "OrderType") else "FOK"
-    assert result.size == pytest.approx(5.0)
-    assert result.amount_usdc == pytest.approx(2.5)
+    assert result.simulated is True
+    assert result.price == pytest.approx(0.5)
+    assert result.gross_size == pytest.approx(4.0)
+    assert result.fee_usdc == pytest.approx(0.072)
+    assert result.size == pytest.approx(3.856)
+    assert result.payout_per_dollar == pytest.approx(1.928)
+    assert result.fee_rate_source == "fee-rate"
+    assert create_calls == 0
+    assert post_calls == 0
 
 
 def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch):

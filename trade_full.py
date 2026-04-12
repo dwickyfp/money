@@ -43,7 +43,11 @@ USER_WS    = "wss://ws-subscriptions-clob.polymarket.com/ws/user"
 BTC_HISTORY_SIZE = 300   # rolling ticks kept in memory
 
 # ── Trading parameters ───────────────────────────────────────────────────────
-POLYMARKET_TAKER_FEE_RATE = 0.02   # 2% fee deducted from payout on winning taker orders
+# Polymarket crypto taker fees use: fee = shares * fee_rate * price * (1 - price).
+# The SDK fetches/signs live fee rates, but paper/risk math needs a conservative
+# fallback when the public fee-rate endpoint is unavailable.
+POLYMARKET_CRYPTO_TAKER_FEE_RATE = float(os.getenv("POLYMARKET_CRYPTO_TAKER_FEE_RATE", "0.072"))
+POLYMARKET_TAKER_FEE_RATE = POLYMARKET_CRYPTO_TAKER_FEE_RATE
 BET_SIZE_USDC             = float(os.getenv("BET_SIZE_USDC", "2.00"))
 DAILY_BUDGET_USDC         = float(os.getenv("DAILY_BUDGET_USDC", "0"))          # 0 = disabled
 DAILY_PROFIT_TARGET_USDC  = float(os.getenv("DAILY_PROFIT_TARGET_USDC", "0"))   # 0 = disabled
@@ -159,6 +163,12 @@ STREAK_PAUSE_MIN  = 30    # minutes to pause after a streak halt
 # EV = fair_prob × (1 / market_odds) − 1
 # Override via env to tune without restarting.
 MINIMUM_EDGE_THRESHOLD = float(os.getenv("MINIMUM_EDGE_THRESHOLD", "0.05"))  # 5% min EV
+MIN_NET_EDGE           = float(os.getenv("MIN_NET_EDGE", "0.05"))
+LATE_MIN_NET_EDGE      = float(os.getenv("LATE_MIN_NET_EDGE", "0.08"))
+MAX_EXECUTION_SPREAD   = float(os.getenv("MAX_EXECUTION_SPREAD", "0.03"))
+DEGRADED_MODE_CONF_BUMP = float(os.getenv("DEGRADED_MODE_CONF_BUMP", "0.04"))
+DEGRADED_MODE_EDGE_BUMP = float(os.getenv("DEGRADED_MODE_EDGE_BUMP", "0.03"))
+DEGRADED_MIN_RECENT_WIN_RATE = float(os.getenv("DEGRADED_MIN_RECENT_WIN_RATE", "0.80"))
 
 # ── Telegram notifications ────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN       = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -214,7 +224,7 @@ SETTLEMENT_POLL_MIN_PRIORITY = int(os.getenv("SETTLEMENT_POLL_MIN_PRIORITY", "30
 AUDIT_ML_LABELS = os.getenv("AUDIT_ML_LABELS", "false").lower() == "true"
 ORACLE_DIVERGENCE_ALERT_USD = float(os.getenv("ORACLE_DIVERGENCE_ALERT_USD", "15.0"))
 SKIP_ON_HIGH_DIVERGENCE = os.getenv("SKIP_ON_HIGH_DIVERGENCE", "false").lower() == "true"
-MAX_BET_FRACTION = float(os.getenv("MAX_BET_FRACTION", "0.05"))  # 5% of bankroll per trade cap
+MAX_BET_FRACTION = float(os.getenv("MAX_BET_FRACTION", "0.02"))  # 2% of bankroll per trade cap
 
 # ── Startup validation ────────────────────────────────────────────────────────
 _BASE_REQUIRED = [
@@ -249,7 +259,7 @@ Files written to logs/ (rotated daily at UTC midnight):
   claims_YYYY-MM-DD.jsonl — claim discovery/queue/execution lifecycle
 """
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -415,6 +425,7 @@ class BotLogger:
             "ai_raw_confidence": position.ai_raw_confidence,
             "signal_alignment": position.signal_alignment,
             "window_question":  window_question,
+            **self._position_audit_fields(position),
         })
 
     def log_trade_close(self, position) -> None:
@@ -440,7 +451,44 @@ class BotLogger:
             "ai_confidence": position.ai_confidence,
             "ai_raw_confidence": position.ai_raw_confidence,
             "signal_alignment": position.signal_alignment,
+            **self._position_audit_fields(position),
         })
+
+    @staticmethod
+    def _position_audit_fields(position) -> dict[str, Any]:
+        return {
+            "gross_size": getattr(position, "gross_size", 0.0),
+            "fee_usdc": getattr(position, "fee_usdc", 0.0),
+            "fee_rate": getattr(position, "fee_rate", 0.0),
+            "fee_rate_source": getattr(position, "fee_rate_source", ""),
+            "mid_odds": getattr(position, "mid_price", 0.0),
+            "best_bid": getattr(position, "best_bid", 0.0),
+            "best_ask": getattr(position, "best_ask", 0.0),
+            "execution_spread": getattr(position, "spread", 0.0),
+            "net_edge": getattr(position, "net_edge", 0.0),
+            "payout_per_dollar": getattr(position, "payout_per_dollar", 0.0),
+            "execution_mode": "paper" if getattr(position, "simulated", False) else "live",
+            "liquidity_source": getattr(position, "liquidity_source", ""),
+        }
+
+    @staticmethod
+    def _prediction_audit_fields(record) -> dict[str, Any]:
+        return {
+            "mid_odds": getattr(record, "mid_odds", 0.0),
+            "execution_price": getattr(record, "execution_price", 0.0),
+            "best_bid": getattr(record, "best_bid", 0.0),
+            "best_ask": getattr(record, "best_ask", 0.0),
+            "execution_spread": getattr(record, "execution_spread", 0.0),
+            "fee_rate": getattr(record, "fee_rate", 0.0),
+            "fee_rate_source": getattr(record, "fee_rate_source", ""),
+            "fee_usdc": getattr(record, "fee_usdc", 0.0),
+            "gross_size": getattr(record, "gross_size", 0.0),
+            "net_size": getattr(record, "net_size", 0.0),
+            "net_edge": getattr(record, "net_edge", 0.0),
+            "payout_per_dollar": getattr(record, "payout_per_dollar", 0.0),
+            "execution_mode": getattr(record, "execution_mode", ""),
+            "settlement_source": getattr(record, "settlement_source", ""),
+        }
 
     def log_prediction_state(self, record) -> None:
         """Persist the latest prediction snapshot for a feature row."""
@@ -505,6 +553,7 @@ class BotLogger:
             "paper_trade_won":     record.paper_trade_won,
             "live_trade_won":      record.live_trade_won,
             "last_updated_at":     record.last_updated_at.isoformat() if record.last_updated_at else "",
+            **self._prediction_audit_fields(record),
         })
 
     def log_prediction_blocked(self, record) -> None:
@@ -565,6 +614,7 @@ class BotLogger:
             "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
             "sample_seq":          record.sample_seq,
             "last_updated_at":     record.last_updated_at.isoformat() if record.last_updated_at else "",
+            **self._prediction_audit_fields(record),
         })
 
     def log_prediction_resolved(self, record) -> None:
@@ -632,6 +682,7 @@ class BotLogger:
             "paper_trade_won":     record.paper_trade_won,
             "live_trade_won":      record.live_trade_won,
             "resolved_at":         record.resolved_at.isoformat() if record.resolved_at else "",
+            **self._prediction_audit_fields(record),
         })
 
     def log_prediction_trade_failed(self, record) -> None:
@@ -672,6 +723,7 @@ class BotLogger:
             "placement_attempt_count": record.placement_attempt_count,
             "last_attempted_at":   record.last_attempted_at.isoformat() if record.last_attempted_at else "",
             "last_updated_at":     record.last_updated_at.isoformat() if record.last_updated_at else "",
+            **self._prediction_audit_fields(record),
         })
 
     def log_trade_execution_resolved(self, position, won: bool | None) -> None:
@@ -697,6 +749,7 @@ class BotLogger:
             "alignment":          position.signal_alignment,
             "execution_bucket":   getattr(position, "execution_bucket", ""),
             "resolved_at":        self._ts(),
+            **self._position_audit_fields(position),
         })
 
     def log_paper_prediction_state(self, record) -> None:
@@ -1635,6 +1688,7 @@ def compute_kelly_size(
     min_bet: float = MIN_BET_USDC,
     max_bet: float = MAX_BET_USDC,
     consecutive_losses: int = 0,
+    payout_per_dollar: float | None = None,
 ) -> float:
     """Fractional Kelly position size in USDC.
 
@@ -1649,11 +1703,22 @@ def compute_kelly_size(
 
     Reference: share_1.md — f = bankroll × kelly_quarter, kelly_quarter = ((p·b − q)/b)/4
     """
-    if implied_odds <= 0 or implied_odds >= 1 or bankroll <= 0:
-        return min_bet
-    if confidence <= implied_odds:
-        return min_bet   # no edge
-    full_kelly = (confidence - implied_odds) / (1.0 - implied_odds)
+    if bankroll <= 0:
+        return 0.0
+
+    if payout_per_dollar is not None and payout_per_dollar > 1.0:
+        b = payout_per_dollar - 1.0
+        q = 1.0 - confidence
+        full_kelly = (confidence * b - q) / b
+    else:
+        if implied_odds <= 0 or implied_odds >= 1:
+            return 0.0
+        if confidence <= implied_odds:
+            return 0.0   # no edge
+        full_kelly = (confidence - implied_odds) / (1.0 - implied_odds)
+
+    if full_kelly <= 0.0:
+        return 0.0
     bet = bankroll * full_kelly * kelly_fraction
 
     # Reduce size during a losing streak
@@ -1667,7 +1732,57 @@ def compute_kelly_size(
     # still acts as an absolute floor guard (whichever is lower wins).
     pct_cap = bankroll * MAX_BET_FRACTION
     effective_max = min(max_bet, pct_cap)
+    if effective_max <= 0.0:
+        return 0.0
+    if effective_max < min_bet:
+        return round(effective_max, 2)
     return max(min_bet, min(effective_max, round(bet, 2)))
+
+
+def normalize_fee_rate(raw: Any, default: float = POLYMARKET_CRYPTO_TAKER_FEE_RATE) -> float:
+    """Normalize Polymarket fee-rate payloads into the formula rate."""
+    value = _safe_float(raw, 0.0)
+    if value <= 0.0:
+        return default
+    # REST/SDK payloads may report basis points while docs express the formula
+    # rate as a decimal, e.g. crypto 0.072.
+    if value > 1.0:
+        return value / 10000.0
+    return value
+
+
+def compute_taker_fee_usdc(shares: float, price: float, fee_rate: float) -> float:
+    if shares <= 0.0 or price <= 0.0 or price >= 1.0 or fee_rate <= 0.0:
+        return 0.0
+    return round(max(0.0, shares * fee_rate * price * (1.0 - price)), 5)
+
+
+def estimate_buy_net_shares(amount_usdc: float, price: float, fee_rate: float) -> dict[str, float]:
+    if amount_usdc <= 0.0 or price <= 0.0 or price >= 1.0:
+        return {
+            "gross_shares": 0.0,
+            "fee_usdc": 0.0,
+            "fee_shares": 0.0,
+            "net_shares": 0.0,
+            "payout_per_dollar": 0.0,
+        }
+    gross_shares = amount_usdc / price
+    fee_usdc = compute_taker_fee_usdc(gross_shares, price, fee_rate)
+    fee_shares = fee_usdc / price if price > 0.0 else 0.0
+    net_shares = max(0.0, gross_shares - fee_shares)
+    return {
+        "gross_shares": gross_shares,
+        "fee_usdc": fee_usdc,
+        "fee_shares": fee_shares,
+        "net_shares": net_shares,
+        "payout_per_dollar": net_shares / amount_usdc if amount_usdc > 0.0 else 0.0,
+    }
+
+
+def compute_net_edge(probability: float, payout_per_dollar: float) -> float:
+    if probability <= 0.0 or payout_per_dollar <= 0.0:
+        return -1.0
+    return probability * payout_per_dollar - 1.0
 
 
 # ── Individual filter checks ──────────────────────────────────────────────────
@@ -2162,6 +2277,9 @@ GATE_ALREADY_ATTEMPTED    = "GATE_ALREADY_ATTEMPTED"    # window consumed by a s
 GATE_RETRY_COOLDOWN       = "GATE_RETRY_COOLDOWN"       # waiting before retrying a retryable placement failure
 GATE_RETRY_WINDOW_CLOSED  = "GATE_RETRY_WINDOW_CLOSED"  # retry window closed due to remaining time
 GATE_RETRY_LIMIT          = "GATE_RETRY_LIMIT"          # retry budget exhausted for this window
+GATE_NET_EDGE             = "GATE_NET_EDGE"             # execution price/fee makes the bet insufficiently +EV
+GATE_WIDE_SPREAD          = "GATE_WIDE_SPREAD"          # best bid/ask spread is too wide for safe entry
+GATE_MIN_ORDER_RISK       = "GATE_MIN_ORDER_RISK"       # exchange minimum exceeds Kelly/risk-sized order
 
 
 # ── Data classes ─────────────────────────────────────────────────────────────
@@ -2752,17 +2870,62 @@ class WindowInfo:
 
 
 @dataclass
+class ExecutionQuote:
+    token_id: str
+    amount_usdc: float
+    mid_price: float = 0.0
+    best_bid: float = 0.0
+    best_ask: float = 0.0
+    avg_price: float = 0.0
+    spread: float = 0.0
+    gross_shares: float = 0.0
+    net_shares: float = 0.0
+    fee_usdc: float = 0.0
+    fee_shares: float = 0.0
+    fee_rate: float = POLYMARKET_CRYPTO_TAKER_FEE_RATE
+    fee_rate_source: str = "fallback_crypto"
+    min_order_size: float = 0.0
+    enough_liquidity: bool = True
+    liquidity_source: str = "odds_fallback"
+
+    @property
+    def execution_price(self) -> float:
+        return self.avg_price or self.best_ask or self.mid_price
+
+    @property
+    def payout_per_dollar(self) -> float:
+        return self.net_shares / self.amount_usdc if self.amount_usdc > 0.0 else 0.0
+
+    @property
+    def min_notional(self) -> float:
+        price = self.execution_price
+        if self.min_order_size <= 0.0 or price <= 0.0:
+            return 0.0
+        return round(self.min_order_size * price, 4)
+
+
+@dataclass
 class TradeResult:
     success: bool
     order_id: str | None = None
     error: str | None = None
     simulated: bool = False
     size: float | None = None
+    gross_size: float | None = None
     price: float | None = None
     amount_usdc: float | None = None
     failure_code: str = ""
     retryable: bool = False
     attempt_consumed: bool = True
+    fee_usdc: float = 0.0
+    fee_rate: float = 0.0
+    fee_rate_source: str = ""
+    best_bid: float = 0.0
+    best_ask: float = 0.0
+    mid_price: float = 0.0
+    spread: float = 0.0
+    payout_per_dollar: float = 0.0
+    liquidity_source: str = ""
 
 
 @dataclass
@@ -2798,6 +2961,7 @@ class MarketClient:
         self._last_positions_error = ""
         self._last_positions_user = ""
         self._last_positions_checked_at = 0.0
+        self._fee_rate_cache: dict[str, tuple[float, float, str]] = {}
 
     # ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -3152,6 +3316,156 @@ class MarketClient:
             return 0.0
 
     @staticmethod
+    def _extract_fee_rate_payload(payload: Any) -> tuple[float, str]:
+        if not isinstance(payload, dict):
+            return POLYMARKET_CRYPTO_TAKER_FEE_RATE, "fallback_crypto"
+        for key in ("fee_rate", "feeRate", "fee_rate_bps", "feeRateBps", "rate", "takerFeeRate"):
+            if key in payload:
+                return normalize_fee_rate(payload.get(key)), "fee-rate"
+        return POLYMARKET_CRYPTO_TAKER_FEE_RATE, "fallback_crypto"
+
+    async def get_fee_rate(self, token_id: str) -> tuple[float, str]:
+        """Return fee-rate formula input for paper/risk math."""
+        token_id = str(token_id or "").strip()
+        if not token_id:
+            return POLYMARKET_CRYPTO_TAKER_FEE_RATE, "fallback_crypto_missing_token"
+        cache = getattr(self, "_fee_rate_cache", None)
+        if cache is None:
+            self._fee_rate_cache = {}
+            cache = self._fee_rate_cache
+        cached = cache.get(token_id)
+        if cached and time.time() - cached[1] < 3600:
+            return cached[0], cached[2]
+        try:
+            _, http_client, _ = await self._get_client_snapshot()
+            response = await http_client.get(f"{CLOB_HOST}/fee-rate", params={"token_id": token_id}, timeout=2.0)
+            if response.is_success:
+                fee_rate, source = self._extract_fee_rate_payload(response.json())
+                cache[token_id] = (fee_rate, time.time(), source)
+                return fee_rate, source
+        except Exception:
+            pass
+        fee_rate = POLYMARKET_CRYPTO_TAKER_FEE_RATE
+        source = "fallback_crypto"
+        cache[token_id] = (fee_rate, time.time(), source)
+        return fee_rate, source
+
+    @staticmethod
+    def _book_best_prices(bids: list[tuple[float, float]], asks: list[tuple[float, float]]) -> tuple[float, float, float]:
+        best_bid = max((price for price, _ in bids), default=0.0)
+        best_ask = min((price for price, _ in asks), default=0.0)
+        spread = max(0.0, best_ask - best_bid) if best_bid > 0.0 and best_ask > 0.0 else 0.0
+        return best_bid, best_ask, spread
+
+    @staticmethod
+    def _simulate_buy_from_asks(
+        *,
+        token_id: str,
+        amount_usdc: float,
+        mid_price: float,
+        bids: list[tuple[float, float]],
+        asks: list[tuple[float, float]],
+        fee_rate: float,
+        fee_rate_source: str,
+        min_order_size: float,
+    ) -> ExecutionQuote:
+        best_bid, best_ask, spread = MarketClient._book_best_prices(bids, asks)
+        amount_left = max(0.0, float(amount_usdc or 0.0))
+        spent = 0.0
+        gross_shares = 0.0
+        fee_usdc = 0.0
+
+        for price, size in sorted(asks, key=lambda item: item[0]):
+            if amount_left <= 1e-9:
+                break
+            if price <= 0.0 or size <= 0.0:
+                continue
+            spend_here = min(amount_left, size * price)
+            shares_here = spend_here / price
+            gross_shares += shares_here
+            fee_usdc += compute_taker_fee_usdc(shares_here, price, fee_rate)
+            spent += spend_here
+            amount_left -= spend_here
+
+        if gross_shares > 0.0:
+            avg_price = spent / gross_shares
+            fee_shares = fee_usdc / avg_price if avg_price > 0.0 else 0.0
+            return ExecutionQuote(
+                token_id=token_id,
+                amount_usdc=spent,
+                mid_price=mid_price,
+                best_bid=best_bid,
+                best_ask=best_ask,
+                avg_price=avg_price,
+                spread=spread,
+                gross_shares=gross_shares,
+                net_shares=max(0.0, gross_shares - fee_shares),
+                fee_usdc=fee_usdc,
+                fee_shares=fee_shares,
+                fee_rate=fee_rate,
+                fee_rate_source=fee_rate_source,
+                min_order_size=min_order_size,
+                enough_liquidity=amount_left <= 1e-9,
+                liquidity_source="orderbook",
+            )
+
+        fallback_price = max(0.01, min(0.99, best_ask or mid_price or 0.5))
+        est = estimate_buy_net_shares(max(0.0, amount_usdc), fallback_price, fee_rate)
+        return ExecutionQuote(
+            token_id=token_id,
+            amount_usdc=max(0.0, amount_usdc),
+            mid_price=mid_price or fallback_price,
+            best_bid=best_bid,
+            best_ask=best_ask or fallback_price,
+            avg_price=fallback_price,
+            spread=spread,
+            gross_shares=est["gross_shares"],
+            net_shares=est["net_shares"],
+            fee_usdc=est["fee_usdc"],
+            fee_shares=est["fee_shares"],
+            fee_rate=fee_rate,
+            fee_rate_source=fee_rate_source,
+            min_order_size=min_order_size,
+            enough_liquidity=bool(best_ask or mid_price),
+            liquidity_source="odds_fallback" if not best_ask else "best_ask_fallback",
+        )
+
+    async def get_execution_quote(
+        self,
+        direction: str,
+        token_id: str,
+        amount_usdc: float,
+        current_odds: float,
+    ) -> ExecutionQuote:
+        """Build a live-like BUY quote for both paper simulation and live risk checks."""
+        fee_rate, fee_source = await self.get_fee_rate(token_id)
+        try:
+            min_order_size = await self.get_min_order_size(token_id)
+        except Exception:
+            min_order_size = 0.0
+        raw_book = await self.get_order_book_snapshot(token_id)
+        bids: list[tuple[float, float]] = []
+        asks: list[tuple[float, float]] = []
+        if isinstance(raw_book, dict):
+            bids = _normalize_book_levels(raw_book.get("bids", []), depth=50)
+            asks = _normalize_book_levels(raw_book.get("asks", []), depth=50)
+        mid_price = max(0.0, min(0.99, float(current_odds or 0.0)))
+        if bids and asks:
+            best_bid, best_ask, _ = self._book_best_prices(bids, asks)
+            if best_bid > 0.0 and best_ask > 0.0:
+                mid_price = (best_bid + best_ask) / 2.0
+        return self._simulate_buy_from_asks(
+            token_id=token_id,
+            amount_usdc=amount_usdc,
+            mid_price=mid_price,
+            bids=bids,
+            asks=asks,
+            fee_rate=fee_rate,
+            fee_rate_source=fee_source,
+            min_order_size=min_order_size,
+        )
+
+    @staticmethod
     def _classify_trade_failure(error_msg: str) -> tuple[str, bool, bool]:
         text = str(error_msg or "").strip()
         lowered = text.lower()
@@ -3221,17 +3535,72 @@ class MarketClient:
         current_odds: float,
     ) -> TradeResult:
         """Place an order. In live mode use an immediate marketable BUY order."""
+        quote = await self.get_execution_quote(direction, token_id, amount_usdc, current_odds)
+        price_hint = round(max(0.01, min(0.99, quote.execution_price or current_odds)), 4)
+        quote_result_fields = {
+            "fee_usdc": quote.fee_usdc,
+            "fee_rate": quote.fee_rate,
+            "fee_rate_source": quote.fee_rate_source,
+            "best_bid": quote.best_bid,
+            "best_ask": quote.best_ask,
+            "mid_price": quote.mid_price,
+            "spread": quote.spread,
+            "payout_per_dollar": quote.payout_per_dollar,
+            "liquidity_source": quote.liquidity_source,
+        }
+        if quote.min_notional > 0.0 and amount_usdc + 1e-9 < quote.min_notional:
+            return TradeResult(
+                success=False,
+                error=(
+                    f"order amount ${amount_usdc:.2f} below market minimum "
+                    f"${quote.min_notional:.2f} ({quote.min_order_size:.2f} shares @ {price_hint:.2f})"
+                ),
+                failure_code="MIN_ORDER_SIZE",
+                retryable=False,
+                attempt_consumed=True,
+                fee_rate=quote.fee_rate,
+                fee_rate_source=quote.fee_rate_source,
+                best_bid=quote.best_bid,
+                best_ask=quote.best_ask,
+                mid_price=quote.mid_price,
+                spread=quote.spread,
+                liquidity_source=quote.liquidity_source,
+            )
+        if not quote.enough_liquidity:
+            return TradeResult(
+                success=False,
+                error="no immediate liquidity for full FOK-sized buy in quote",
+                failure_code="NO_IMMEDIATE_LIQUIDITY",
+                retryable=True,
+                attempt_consumed=False,
+                fee_rate=quote.fee_rate,
+                fee_rate_source=quote.fee_rate_source,
+                best_bid=quote.best_bid,
+                best_ask=quote.best_ask,
+                mid_price=quote.mid_price,
+                spread=quote.spread,
+                liquidity_source=quote.liquidity_source,
+            )
+
         if not LIVE_TRADING:
             sim_id = f"SIM-{int(time.time())}"
-            price = round(max(0.01, min(0.99, current_odds)), 2)
-            size = math.floor((amount_usdc / price) * 100) / 100 if price > 0 else 0.0
             return TradeResult(
                 success=True,
                 order_id=sim_id,
                 simulated=True,
-                size=size,
-                price=price,
-                amount_usdc=amount_usdc,
+                size=quote.net_shares,
+                gross_size=quote.gross_shares,
+                price=price_hint,
+                amount_usdc=quote.amount_usdc,
+                fee_usdc=quote.fee_usdc,
+                fee_rate=quote.fee_rate,
+                fee_rate_source=quote.fee_rate_source,
+                best_bid=quote.best_bid,
+                best_ask=quote.best_ask,
+                mid_price=quote.mid_price,
+                spread=quote.spread,
+                payout_per_dollar=quote.payout_per_dollar,
+                liquidity_source=quote.liquidity_source,
             )
 
         if not POLY_ETH_PRIVATE_KEY:
@@ -3242,6 +3611,7 @@ class MarketClient:
                 failure_code="AUTH_MISSING_KEY",
                 retryable=False,
                 attempt_consumed=True,
+                **quote_result_fields,
             )
 
         client, _, _ = await self._get_client_snapshot()
@@ -3249,13 +3619,7 @@ class MarketClient:
             from py_clob_client.clob_types import MarketOrderArgs, OrderType
 
             order_type = OrderType.FOK
-            price_hint = round(max(0.01, min(0.99, current_odds)), 2)
-            min_order_size = await self.get_min_order_size(token_id)
             actual_amount_usdc = round(amount_usdc, 4)
-            if min_order_size > 0 and price_hint > 0:
-                min_notional = round(min_order_size * price_hint, 4)
-                if actual_amount_usdc + 1e-9 < min_notional:
-                    actual_amount_usdc = min_notional
 
             order_args = MarketOrderArgs(
                 token_id=token_id,
@@ -3273,8 +3637,18 @@ class MarketClient:
                 signed_price = _safe_float(signed.get("price"), 0.0)
             else:
                 signed_price = _safe_float(getattr(signed, "price", 0.0), 0.0)
-            effective_price = round(max(0.01, min(0.99, signed_price or price_hint)), 2)
-            filled_size = math.floor((actual_amount_usdc / effective_price) * 100) / 100 if effective_price > 0 else 0.0
+            effective_price = round(max(0.01, min(0.99, signed_price or price_hint)), 4)
+            if quote.gross_shares > 0.0 and math.isclose(quote.amount_usdc, actual_amount_usdc, rel_tol=0.0, abs_tol=0.01):
+                gross_size = quote.gross_shares
+                filled_size = quote.net_shares
+                fee_usdc = quote.fee_usdc
+                payout_per_dollar = quote.payout_per_dollar
+            else:
+                est = estimate_buy_net_shares(actual_amount_usdc, effective_price, quote.fee_rate)
+                gross_size = est["gross_shares"]
+                filled_size = est["net_shares"]
+                fee_usdc = est["fee_usdc"]
+                payout_per_dollar = est["payout_per_dollar"]
 
             if resp and resp.get("success"):
                 if status_upper == "LIVE":
@@ -3284,6 +3658,7 @@ class MarketClient:
                         failure_code="UNEXPECTED_RESTING_ORDER",
                         retryable=False,
                         attempt_consumed=True,
+                        **quote_result_fields,
                     )
                 if status_upper == "UNMATCHED":
                     return TradeResult(
@@ -3292,14 +3667,25 @@ class MarketClient:
                         failure_code="NO_IMMEDIATE_LIQUIDITY",
                         retryable=True,
                         attempt_consumed=False,
+                        **quote_result_fields,
                     )
                 self._mark_auth_success("place_bet")
                 return TradeResult(
                     success=True,
                     order_id=resp.get("orderID"),
                     size=filled_size,
+                    gross_size=gross_size,
                     price=effective_price,
                     amount_usdc=actual_amount_usdc,
+                    fee_usdc=fee_usdc,
+                    fee_rate=quote.fee_rate,
+                    fee_rate_source=quote.fee_rate_source,
+                    best_bid=quote.best_bid,
+                    best_ask=quote.best_ask,
+                    mid_price=quote.mid_price,
+                    spread=quote.spread,
+                    payout_per_dollar=payout_per_dollar,
+                    liquidity_source=quote.liquidity_source,
                 )
             error_msg = str(resp.get("errorMsg", "unknown")) if isinstance(resp, dict) else "unknown"
             self._mark_auth_failure(error_msg, source="place_bet")
@@ -3310,6 +3696,7 @@ class MarketClient:
                 failure_code=failure_code,
                 retryable=retryable,
                 attempt_consumed=attempt_consumed,
+                **quote_result_fields,
             )
         except Exception as exc:
             error_msg = str(exc)
@@ -3321,6 +3708,7 @@ class MarketClient:
                 failure_code=failure_code,
                 retryable=retryable,
                 attempt_consumed=attempt_consumed,
+                **quote_result_fields,
             )
 
     async def get_min_order_size(self, token_id: str) -> float:
@@ -3935,6 +4323,16 @@ def _normalize_book_levels(levels: Any, depth: int = 5) -> list[tuple[float, flo
                 or raw.get("quantity")
                 or raw.get("qty")
                 or raw.get("amount"),
+                0.0,
+            )
+        elif hasattr(raw, "price") or hasattr(raw, "size"):
+            price = _safe_float(getattr(raw, "price", getattr(raw, "rate", 0.0)), 0.0)
+            size = _safe_float(
+                getattr(
+                    raw,
+                    "size",
+                    getattr(raw, "quantity", getattr(raw, "qty", getattr(raw, "amount", 0.0))),
+                ),
                 0.0,
             )
         elif isinstance(raw, (list, tuple)) and len(raw) >= 2:
@@ -4825,6 +5223,20 @@ def tune_runtime_thresholds_from_shadow_data(
             "threshold_source": "default",
         }
 
+    def degraded_profile(base_profile: dict[str, Any]) -> dict[str, Any]:
+        base = _normalize_runtime_thresholds(base_profile)
+        bump = max(0.0, DEGRADED_MODE_CONF_BUMP)
+        degraded = {
+            **base,
+            "observe": min(0.95, max(_safe_float(base.get("observe"), 0.70), _safe_float(default_profile.get("observe"), 0.70)) + bump),
+            "reserve": min(0.95, max(_safe_float(base.get("reserve"), 0.74), _safe_float(default_profile.get("reserve"), 0.74)) + bump),
+            "early_exec": min(0.95, max(_safe_float(base.get("early_exec"), 0.74), _safe_float(default_profile.get("early_exec"), 0.74)) + bump),
+            "late_exec": min(0.97, max(_safe_float(base.get("late_exec"), 0.76), _safe_float(default_profile.get("late_exec"), 0.76)) + bump),
+            "source": "degraded_auto_guard",
+            "version": f"degraded_{base.get('version', DEFAULT_RUNTIME_THRESHOLD_PROFILE_VERSION)}",
+        }
+        return _normalize_runtime_thresholds(degraded)
+
     values = [round(0.70 + step * 0.01, 2) for step in range(13)]
     best_profile: dict[str, Any] | None = None
     best_eval: dict[str, Any] | None = None
@@ -4864,12 +5276,12 @@ def tune_runtime_thresholds_from_shadow_data(
 
     summary["evaluated_profiles"] = evaluated_profiles
     if best_profile is None or best_eval is None:
-        default_profile["source"] = "default"
+        degraded = degraded_profile(default_profile)
         return {
-            "runtime_thresholds": default_profile,
+            "runtime_thresholds": degraded,
             "threshold_mode": "auto",
-            "threshold_tuning_summary": {**summary, "selected": "default_guardrail_no_profile"},
-            "threshold_source": "default",
+            "threshold_tuning_summary": {**summary, "selected": "degraded_guardrail_no_profile"},
+            "threshold_source": "degraded_auto_guard",
         }
 
     recent24 = _evaluate_threshold_profile(windows[-24:], best_profile)
@@ -4878,16 +5290,17 @@ def tune_runtime_thresholds_from_shadow_data(
     summary["selected_metrics"] = dict(best_eval)
     summary["selected_recent24"] = recent24
     summary["selected_recent100"] = recent100
+    recent_guardrail = max(float(min_win_rate or 0.0), DEGRADED_MIN_RECENT_WIN_RATE)
     if (
-        (recent24["executed_windows"] >= 8 and recent24["win_rate"] < min_win_rate)
-        or (recent100["executed_windows"] >= 20 and recent100["win_rate"] < min_win_rate)
+        (recent24["executed_windows"] >= 8 and recent24["win_rate"] < recent_guardrail)
+        or (recent100["executed_windows"] >= 20 and recent100["win_rate"] < recent_guardrail)
     ):
-        default_profile["source"] = "default"
+        degraded = degraded_profile(best_profile)
         return {
-            "runtime_thresholds": default_profile,
+            "runtime_thresholds": degraded,
             "threshold_mode": "auto",
-            "threshold_tuning_summary": {**summary, "selected": "default_auto_reverted"},
-            "threshold_source": "default",
+            "threshold_tuning_summary": {**summary, "selected": "degraded_auto_guard"},
+            "threshold_source": "degraded_auto_guard",
         }
 
     return {
@@ -6769,6 +7182,17 @@ class Position:
     signal_alignment: int = 0
     prediction_row_id: str = ""
     execution_bucket: str = ""
+    gross_size: float = 0.0
+    fee_usdc: float = 0.0
+    fee_rate: float = 0.0
+    fee_rate_source: str = ""
+    mid_price: float = 0.0
+    best_bid: float = 0.0
+    best_ask: float = 0.0
+    spread: float = 0.0
+    net_edge: float = 0.0
+    payout_per_dollar: float = 0.0
+    liquidity_source: str = ""
 
 
 @dataclass
@@ -6863,6 +7287,20 @@ class WindowPredictionRecord:
     sample_seq: int = 0
     resolved_at: datetime | None = None
     last_updated_at: datetime | None = None
+    mid_odds: float = 0.0
+    execution_price: float = 0.0
+    best_bid: float = 0.0
+    best_ask: float = 0.0
+    execution_spread: float = 0.0
+    fee_rate: float = 0.0
+    fee_rate_source: str = ""
+    fee_usdc: float = 0.0
+    gross_size: float = 0.0
+    net_size: float = 0.0
+    net_edge: float = 0.0
+    payout_per_dollar: float = 0.0
+    execution_mode: str = ""
+    settlement_source: str = ""
 
 
 @dataclass
@@ -8300,6 +8738,119 @@ class TradingBot:
         if log_event:
             self.state.logger.log_prediction_state(record)
 
+    async def _get_execution_quote(
+        self,
+        *,
+        direction: str,
+        token_id: str,
+        amount_usdc: float,
+        current_odds: float,
+    ) -> ExecutionQuote:
+        getter = getattr(self.market, "get_execution_quote", None)
+        if callable(getter):
+            try:
+                return await getter(direction, token_id, amount_usdc, current_odds)
+            except Exception:
+                pass
+
+        price = max(0.01, min(0.99, float(current_odds or 0.5)))
+        min_order_size = 0.0
+        get_min = getattr(self.market, "get_min_order_size", None)
+        if callable(get_min):
+            try:
+                min_order_size = max(0.0, float(await get_min(token_id) or 0.0))
+            except Exception:
+                min_order_size = 0.0
+        est = estimate_buy_net_shares(amount_usdc, price, POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+        return ExecutionQuote(
+            token_id=token_id,
+            amount_usdc=max(0.0, amount_usdc),
+            mid_price=price,
+            best_ask=price,
+            avg_price=price,
+            gross_shares=est["gross_shares"],
+            net_shares=est["net_shares"],
+            fee_usdc=est["fee_usdc"],
+            fee_shares=est["fee_shares"],
+            fee_rate=POLYMARKET_CRYPTO_TAKER_FEE_RATE,
+            fee_rate_source="fallback_legacy_market",
+            min_order_size=min_order_size,
+            enough_liquidity=True,
+            liquidity_source="legacy_odds_fallback",
+        )
+
+    @staticmethod
+    def _quote_audit_fields(quote: ExecutionQuote | None, *, net_edge: float = 0.0) -> dict[str, float | str]:
+        if quote is None:
+            return {
+                "mid_odds": 0.0,
+                "execution_price": 0.0,
+                "best_bid": 0.0,
+                "best_ask": 0.0,
+                "execution_spread": 0.0,
+                "fee_rate": 0.0,
+                "fee_rate_source": "",
+                "fee_usdc": 0.0,
+                "gross_size": 0.0,
+                "net_size": 0.0,
+                "net_edge": net_edge,
+                "payout_per_dollar": 0.0,
+                "liquidity_source": "",
+            }
+        return {
+            "mid_odds": quote.mid_price,
+            "execution_price": quote.execution_price,
+            "best_bid": quote.best_bid,
+            "best_ask": quote.best_ask,
+            "execution_spread": quote.spread,
+            "fee_rate": quote.fee_rate,
+            "fee_rate_source": quote.fee_rate_source,
+            "fee_usdc": quote.fee_usdc,
+            "gross_size": quote.gross_shares,
+            "net_size": quote.net_shares,
+            "net_edge": net_edge,
+            "payout_per_dollar": quote.payout_per_dollar,
+            "liquidity_source": quote.liquidity_source,
+        }
+
+    async def _annotate_prediction_execution(
+        self,
+        row_id: str,
+        *,
+        quote: ExecutionQuote | None,
+        net_edge: float = 0.0,
+        required_confidence: float | None = None,
+        execution_mode: str | None = None,
+    ) -> WindowPredictionRecord | None:
+        if not row_id:
+            return None
+        fields = self._quote_audit_fields(quote, net_edge=net_edge)
+        async with self.state._lock:
+            record = self.state.prediction_records.get(row_id)
+            if record is None:
+                return None
+            record.mid_odds = float(fields["mid_odds"] or 0.0)
+            record.execution_price = float(fields["execution_price"] or 0.0)
+            record.best_bid = float(fields["best_bid"] or 0.0)
+            record.best_ask = float(fields["best_ask"] or 0.0)
+            record.execution_spread = float(fields["execution_spread"] or 0.0)
+            record.fee_rate = float(fields["fee_rate"] or 0.0)
+            record.fee_rate_source = str(fields["fee_rate_source"] or "")
+            record.fee_usdc = float(fields["fee_usdc"] or 0.0)
+            record.gross_size = float(fields["gross_size"] or 0.0)
+            record.net_size = float(fields["net_size"] or 0.0)
+            record.net_edge = float(fields["net_edge"] or 0.0)
+            record.payout_per_dollar = float(fields["payout_per_dollar"] or 0.0)
+            if required_confidence is not None and math.isfinite(required_confidence):
+                record.execution_required_confidence = max(
+                    float(record.execution_required_confidence or 0.0),
+                    float(required_confidence),
+                )
+            record.execution_mode = execution_mode or ("live" if LIVE_TRADING else "paper")
+            record.last_updated_at = datetime.now(_UTC)
+            self.state.paper_prediction_records[record.condition_id] = record
+            return record
+
     async def _mark_prediction_blocked(self, row_id: str, *, gate: str, reason: str, decision_action: str = "blocked") -> WindowPredictionRecord | None:
         async with self.state._lock:
             record = self.state.prediction_records.get(row_id)
@@ -8340,6 +8891,18 @@ class TradingBot:
             record.placement_attempt_consumed = bool(result.attempt_consumed)
             record.placement_attempt_count = max(int(attempt_count or 0), int(record.placement_attempt_count or 0))
             record.last_attempted_at = attempted_at or datetime.now(_UTC)
+            record.execution_price = float(result.price or record.execution_price or 0.0)
+            record.mid_odds = float(result.mid_price or record.mid_odds or 0.0)
+            record.best_bid = float(result.best_bid or record.best_bid or 0.0)
+            record.best_ask = float(result.best_ask or record.best_ask or 0.0)
+            record.execution_spread = float(result.spread or record.execution_spread or 0.0)
+            record.fee_rate = float(result.fee_rate or record.fee_rate or 0.0)
+            record.fee_rate_source = str(result.fee_rate_source or record.fee_rate_source or "")
+            record.fee_usdc = float(result.fee_usdc or record.fee_usdc or 0.0)
+            record.gross_size = float(result.gross_size or record.gross_size or 0.0)
+            record.net_size = float(result.size or record.net_size or 0.0)
+            record.payout_per_dollar = float(result.payout_per_dollar or record.payout_per_dollar or 0.0)
+            record.execution_mode = "paper" if (result.simulated or not LIVE_TRADING) else "live"
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
 
@@ -8367,6 +8930,19 @@ class TradingBot:
             record.placement_retryable = False
             record.placement_attempt_consumed = True
             record.last_attempted_at = datetime.now(_UTC)
+            record.mid_odds = pos.mid_price or record.mid_odds
+            record.execution_price = pos.entry_price or record.execution_price
+            record.best_bid = pos.best_bid or record.best_bid
+            record.best_ask = pos.best_ask or record.best_ask
+            record.execution_spread = pos.spread or record.execution_spread
+            record.fee_rate = pos.fee_rate or record.fee_rate
+            record.fee_rate_source = pos.fee_rate_source or record.fee_rate_source
+            record.fee_usdc = pos.fee_usdc or record.fee_usdc
+            record.gross_size = pos.gross_size or record.gross_size
+            record.net_size = pos.size or record.net_size
+            record.net_edge = pos.net_edge or record.net_edge
+            record.payout_per_dollar = pos.payout_per_dollar or record.payout_per_dollar
+            record.execution_mode = "paper" if pos.simulated else "live"
             execution_state = self.state.window_execution_states.get(pos.condition_id)
             if execution_state is not None:
                 record.placement_attempt_count = max(
@@ -9492,22 +10068,110 @@ class TradingBot:
             self.state.log_event(f"[TRADE] Aborted — entry_odds unavailable ({entry_odds})")
             return
 
-        # ── Fractional Kelly position sizing (share_1.md insight) ────────────
+        now_for_quote = datetime.now(_UTC)
+        elapsed_for_quote = int((now_for_quote - win.start_time).total_seconds())
+        seconds_remaining_for_quote = max(0, int((win.end_time - now_for_quote).total_seconds()))
+        phase_bucket = self._phase_bucket(elapsed_for_quote, seconds_remaining_for_quote)
+        min_net_edge_required = LATE_MIN_NET_EDGE if phase_bucket == "LATE_EXEC" else MIN_NET_EDGE
+        if str(getattr(signal, "threshold_source", "") or "").startswith("degraded"):
+            min_net_edge_required += max(0.0, DEGRADED_MODE_EDGE_BUMP)
+
+        async def block_for_execution(
+            gate: str,
+            reason: str,
+            *,
+            quote: ExecutionQuote | None = None,
+            net_edge: float = 0.0,
+            required_confidence: float | None = None,
+        ) -> None:
+            await self._annotate_prediction_execution(
+                prediction_row_id,
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
+                execution_mode="live" if LIVE_TRADING else "paper",
+            )
+            blocked = await self._mark_prediction_blocked(
+                prediction_row_id,
+                gate=gate,
+                reason=reason,
+            )
+            if blocked is not None and self._should_record_shadow_block(gate):
+                await self._record_shadow_block(blocked)
+            self.state.set_engine_status("DECISION_SKIP", gate, reason)
+            self.state.log_event(f"[TRADE] Skipped {gate}: {reason}")
+
         # In live mode use real balance; in paper mode use simulated bankroll.
         bankroll = (
             self.state.balance_usdc
             if (LIVE_TRADING and self.state.balance_usdc > 1.0)
             else PAPER_BANKROLL_USDC
         )
+        risk_cap = min(BET_SIZE_USDC, bankroll * MAX_BET_FRACTION)
+        if risk_cap <= 0.0:
+            await block_for_execution(
+                GATE_NET_EDGE,
+                f"risk cap is ${risk_cap:.2f} with bankroll ${bankroll:.2f}",
+            )
+            return
+
+        quote_amount = max(0.01, min(BET_SIZE_USDC, risk_cap))
+        quote = await self._get_execution_quote(
+            direction=direction,
+            token_id=token_id,
+            amount_usdc=quote_amount,
+            current_odds=entry_odds,
+        )
+        if quote.fee_rate_source.startswith("fallback"):
+            self.state.log_event(
+                f"[FEE] using {quote.fee_rate_source} fee_rate={quote.fee_rate:.4f} token={token_id[:12]}"
+            )
+        if quote.spread > MAX_EXECUTION_SPREAD:
+            await block_for_execution(
+                GATE_WIDE_SPREAD,
+                f"spread={quote.spread:.3f} > max={MAX_EXECUTION_SPREAD:.3f} "
+                f"(bid={quote.best_bid:.3f} ask={quote.best_ask:.3f})",
+                quote=quote,
+            )
+            return
+        if not quote.enough_liquidity:
+            await block_for_execution(
+                GATE_WIDE_SPREAD,
+                f"quote lacks enough immediate ask depth for ${quote.amount_usdc:.2f} FOK buy",
+                quote=quote,
+            )
+            return
+
+        payout_per_dollar = quote.payout_per_dollar
+        net_edge = compute_net_edge(signal.confidence, payout_per_dollar)
+        required_confidence = (
+            (1.0 + min_net_edge_required) / payout_per_dollar
+            if payout_per_dollar > 0.0 else float("inf")
+        )
+        if net_edge < min_net_edge_required:
+            await block_for_execution(
+                GATE_NET_EDGE,
+                f"net_ev={net_edge:+.1%} < required={min_net_edge_required:+.1%} "
+                f"(p={signal.confidence:.1%}, ask={quote.execution_price:.3f}, "
+                f"fee={quote.fee_rate:.4f})",
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
+            )
+            return
+
         bet_size = compute_kelly_size(
             confidence=signal.confidence,
-            implied_odds=entry_odds,
+            implied_odds=quote.execution_price,
             bankroll=bankroll,
             max_bet=BET_SIZE_USDC,
             consecutive_losses=self.state.consecutive_losses,
+            payout_per_dollar=payout_per_dollar,
         )
         if signal.soft_penalties_applied:
-            penalized_bet = max(MIN_BET_USDC, round(bet_size * SOFT_PENALTY_KELLY_MULTIPLIER, 2))
+            penalized_bet = round(bet_size * SOFT_PENALTY_KELLY_MULTIPLIER, 2)
+            if bet_size >= MIN_BET_USDC:
+                penalized_bet = max(MIN_BET_USDC, penalized_bet)
             if penalized_bet < bet_size:
                 self.state.log_event(
                     f"[KELLY/PENALTY] soft={','.join(signal.soft_penalties_applied)} "
@@ -9515,6 +10179,78 @@ class TradingBot:
                 )
                 bet_size = penalized_bet
         zone_tag = "GOLD" if is_gold_zone else "NORM"
+
+        if bet_size <= 0.0:
+            await block_for_execution(
+                GATE_NET_EDGE,
+                f"Kelly size is ${bet_size:.2f} after net-edge sizing",
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
+            )
+            return
+
+        if abs(bet_size - quote.amount_usdc) >= 0.01:
+            quote = await self._get_execution_quote(
+                direction=direction,
+                token_id=token_id,
+                amount_usdc=bet_size,
+                current_odds=entry_odds,
+            )
+            payout_per_dollar = quote.payout_per_dollar
+            net_edge = compute_net_edge(signal.confidence, payout_per_dollar)
+            required_confidence = (
+                (1.0 + min_net_edge_required) / payout_per_dollar
+                if payout_per_dollar > 0.0 else float("inf")
+            )
+            if quote.spread > MAX_EXECUTION_SPREAD:
+                await block_for_execution(
+                    GATE_WIDE_SPREAD,
+                    f"spread={quote.spread:.3f} > max={MAX_EXECUTION_SPREAD:.3f} "
+                    f"(bid={quote.best_bid:.3f} ask={quote.best_ask:.3f})",
+                    quote=quote,
+                    net_edge=net_edge,
+                    required_confidence=required_confidence,
+                )
+                return
+            if not quote.enough_liquidity:
+                await block_for_execution(
+                    GATE_WIDE_SPREAD,
+                    f"quote lacks enough immediate ask depth for ${bet_size:.2f} FOK buy",
+                    quote=quote,
+                    net_edge=net_edge,
+                    required_confidence=required_confidence,
+                )
+                return
+            if net_edge < min_net_edge_required:
+                await block_for_execution(
+                    GATE_NET_EDGE,
+                    f"net_ev={net_edge:+.1%} < required={min_net_edge_required:+.1%} "
+                    f"(p={signal.confidence:.1%}, ask={quote.execution_price:.3f}, "
+                    f"fee={quote.fee_rate:.4f})",
+                    quote=quote,
+                    net_edge=net_edge,
+                    required_confidence=required_confidence,
+                )
+                return
+
+        if quote.min_notional > 0.0 and bet_size + 1e-9 < quote.min_notional:
+            await block_for_execution(
+                GATE_MIN_ORDER_RISK,
+                f"market minimum ${quote.min_notional:.2f} exceeds risk-sized bet ${bet_size:.2f}",
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
+            )
+            return
+
+        await self._annotate_prediction_execution(
+            prediction_row_id,
+            quote=quote,
+            net_edge=net_edge,
+            required_confidence=required_confidence,
+            execution_mode="live" if LIVE_TRADING else "paper",
+        )
 
         # ── Oracle divergence check ───────────────────────────────────────────
         # Compare Binance USDC spot (used for trading) against the Pyth
@@ -9543,46 +10279,6 @@ class TradingBot:
         )
         if LIVE_TRADING:
             available_balance = max(0.0, self.state.balance_usdc)
-            try:
-                min_order_size = await self.market.get_min_order_size(token_id)
-            except Exception:
-                min_order_size = 0.0
-            if min_order_size > 0:
-                min_notional = round(min_order_size * entry_odds, 4)
-                if bet_size + 1e-9 < min_notional:
-                    if available_balance + 1e-9 < min_notional:
-                        error_msg = (
-                            f"live balance ${available_balance:.2f} below market minimum "
-                            f"${min_notional:.2f} ({min_order_size:.2f} shares @ {entry_odds:.2f})"
-                        )
-                        result = TradeResult(
-                            success=False,
-                            error=error_msg,
-                            failure_code="INSUFFICIENT_BALANCE_MIN_ORDER",
-                            retryable=False,
-                            attempt_consumed=True,
-                        )
-                        execution_state = self._complete_window_execution_attempt(
-                            condition_id=win.condition_id,
-                            row_id=prediction_row_id,
-                            result=result,
-                            attempted_at=attempt_started_at_ts,
-                        )
-                        await self._mark_prediction_trade_failed(
-                            prediction_row_id,
-                            condition_id=win.condition_id,
-                            result=result,
-                            attempt_count=execution_state.attempt_count,
-                            attempted_at=attempt_started_at,
-                        )
-                        self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
-                        self.state.log_event(f"[TRADE] Aborted — {error_msg}")
-                        return
-                    self.state.log_event(
-                        f"[KELLY/MIN_ORDER] ${bet_size:.2f} -> ${min_notional:.2f} "
-                        f"({min_order_size:.2f} shares @ {entry_odds:.2f})"
-                    )
-                    bet_size = min_notional
             if available_balance + 1e-9 < bet_size:
                 error_msg = (
                     f"live balance ${available_balance:.2f} below target bet "
@@ -9644,7 +10340,7 @@ class TradingBot:
                 return
         self.state.log_event(
             f"[KELLY/{zone_tag}] bankroll=${bankroll:.2f} conf={signal.confidence:.2f} "
-            f"implied={entry_odds:.3f} → bet=${bet_size:.2f}"
+            f"ask={quote.execution_price:.3f} net_ev={net_edge:+.1%} -> bet=${bet_size:.2f}"
         )
 
         result: TradeResult = await self.market.place_bet(
@@ -9659,9 +10355,17 @@ class TradingBot:
 
         if result.success:
             now_utc     = datetime.now(_UTC)
-            actual_price = result.price if result.price and result.price > 0 else entry_odds
+            actual_price = result.price if result.price and result.price > 0 else quote.execution_price or entry_odds
             actual_amount = result.amount_usdc if result.amount_usdc and result.amount_usdc > 0 else bet_size
-            actual_size = result.size if result.size and result.size > 0 else (actual_amount / actual_price)
+            if result.size and result.size > 0:
+                actual_size = result.size
+            else:
+                est = estimate_buy_net_shares(
+                    actual_amount,
+                    actual_price,
+                    result.fee_rate or quote.fee_rate or POLYMARKET_CRYPTO_TAKER_FEE_RATE,
+                )
+                actual_size = est["net_shares"]
             elapsed_bet = int((now_utc - win.start_time).total_seconds())
             gap_pct_bet = (
                 abs(self.state.btc_price - win.beat_price) / win.beat_price * 100
@@ -9686,6 +10390,17 @@ class TradingBot:
                 signal_alignment=snap.signal_alignment,
                 prediction_row_id=prediction_row_id,
                 execution_bucket=self._phase_bucket(elapsed_bet, max(0, int((win.end_time - now_utc).total_seconds()))),
+                gross_size=result.gross_size or quote.gross_shares,
+                fee_usdc=result.fee_usdc or quote.fee_usdc,
+                fee_rate=result.fee_rate or quote.fee_rate,
+                fee_rate_source=result.fee_rate_source or quote.fee_rate_source,
+                mid_price=result.mid_price or quote.mid_price,
+                best_bid=result.best_bid or quote.best_bid,
+                best_ask=result.best_ask or quote.best_ask,
+                spread=result.spread or quote.spread,
+                net_edge=net_edge,
+                payout_per_dollar=result.payout_per_dollar or quote.payout_per_dollar,
+                liquidity_source=result.liquidity_source or quote.liquidity_source,
             )
             async with self.state._lock:
                 self.state.positions.append(pos)
@@ -9697,11 +10412,12 @@ class TradingBot:
             mode = "PAPER" if result.simulated else "LIVE"
             if abs(actual_amount - bet_size) >= 0.01:
                 self.state.log_event(
-                    f"[ORDER] Exchange minimum size adjusted spend from ${bet_size:.2f} "
+                    f"[ORDER] Execution spend adjusted from target ${bet_size:.2f} "
                     f"to ${actual_amount:.2f}"
                 )
             self.state.log_event(
                 f"[{mode}/{zone_tag}] BET {direction} ${actual_amount:.2f} @ {actual_price:.3f} "
+                f"net_ev={net_edge:+.1%} fee={pos.fee_usdc:.4f} "
                 f"align={snap.signal_alignment} CVD={snap.cvd_divergence} "
                 f"| order={result.order_id}"
             )
@@ -9946,9 +10662,10 @@ class TradingBot:
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
             if won is True:
-                fee_rate = POLYMARKET_TAKER_FEE_RATE if not pos.simulated else 0.0
-                payout   = amount / pos.entry_price
-                pos.pnl  = payout * (1.0 - fee_rate) - amount
+                redeemable_size = max(0.0, float(pos.size or 0.0))
+                if redeemable_size <= 0.0 and pos.entry_price > 0.0:
+                    redeemable_size = amount / pos.entry_price
+                pos.pnl = redeemable_size - amount
             elif won is False:
                 pos.pnl  = -amount
             else:
@@ -10012,11 +10729,15 @@ class TradingBot:
                     prediction_record.paper_trade_won = won
                     prediction_record.simulated_order_id = pos.order_id or prediction_record.simulated_order_id
                     prediction_record.executed_order_id = pos.order_id or prediction_record.executed_order_id
+                    if settlement_info is not None:
+                        prediction_record.settlement_source = settlement_info.settlement_source
                     prediction_record.last_updated_at = datetime.now(_UTC)
                     self.state.paper_prediction_records[pos.condition_id] = prediction_record
             elif prediction_record is not None:
                 prediction_record.live_trade_won = won
                 prediction_record.executed_order_id = pos.order_id or prediction_record.executed_order_id
+                if settlement_info is not None:
+                    prediction_record.settlement_source = settlement_info.settlement_source
                 prediction_record.last_updated_at = datetime.now(_UTC)
                 self.state.paper_prediction_records[pos.condition_id] = prediction_record
             self.state.resolved_count += 1
@@ -10068,10 +10789,11 @@ class TradingBot:
             if record.window_end_at is None or now_utc < record.window_end_at:
                 continue
 
-            settlement_btc = self._get_settlement_btc_for_window(
+            settlement_info = self._get_window_settlement_info(
                 condition_id=record.condition_id,
                 window_end_at=record.window_end_at,
             )
+            settlement_btc = settlement_info.settlement_price if settlement_info is not None else None
             if settlement_btc is None or record.beat_price <= 0:
                 continue
 
@@ -10097,6 +10819,8 @@ class TradingBot:
                 current.actual_winner = actual_winner
                 current.prediction_correct = correct
                 current.counterfactual_pnl = counterfactual_pnl
+                if settlement_info is not None:
+                    current.settlement_source = settlement_info.settlement_source
                 current.resolved_at = resolved_at
                 current.last_updated_at = resolved_at
                 self.state.paper_prediction_records[current.condition_id] = current
@@ -10265,6 +10989,17 @@ class TradingBot:
                 ai_raw_confidence=float(record.get("ai_raw_confidence", 0.0) or 0.0),
                 signal_alignment=int(record.get("signal_alignment", 0) or 0),
                 prediction_row_id=str(record.get("prediction_row_id", "")).strip(),
+                gross_size=float(record.get("gross_size", 0.0) or 0.0),
+                fee_usdc=float(record.get("fee_usdc", 0.0) or 0.0),
+                fee_rate=float(record.get("fee_rate", 0.0) or 0.0),
+                fee_rate_source=str(record.get("fee_rate_source", "")),
+                mid_price=float(record.get("mid_odds", record.get("mid_price", 0.0)) or 0.0),
+                best_bid=float(record.get("best_bid", 0.0) or 0.0),
+                best_ask=float(record.get("best_ask", 0.0) or 0.0),
+                spread=float(record.get("execution_spread", record.get("spread", 0.0)) or 0.0),
+                net_edge=float(record.get("net_edge", 0.0) or 0.0),
+                payout_per_dollar=float(record.get("payout_per_dollar", 0.0) or 0.0),
+                liquidity_source=str(record.get("liquidity_source", "")),
             )
             self.state.positions.append(pos)
             if pos.condition_id:
@@ -10415,6 +11150,20 @@ class TradingBot:
                 sample_seq=int(raw.get("sample_seq", 0) or 0),
                 resolved_at=self._parse_logged_datetime(raw.get("resolved_at")),
                 last_updated_at=self._parse_logged_datetime(raw.get("last_updated_at")),
+                mid_odds=float(raw.get("mid_odds", 0.0) or 0.0),
+                execution_price=float(raw.get("execution_price", 0.0) or 0.0),
+                best_bid=float(raw.get("best_bid", 0.0) or 0.0),
+                best_ask=float(raw.get("best_ask", 0.0) or 0.0),
+                execution_spread=float(raw.get("execution_spread", 0.0) or 0.0),
+                fee_rate=float(raw.get("fee_rate", 0.0) or 0.0),
+                fee_rate_source=str(raw.get("fee_rate_source", "")),
+                fee_usdc=float(raw.get("fee_usdc", 0.0) or 0.0),
+                gross_size=float(raw.get("gross_size", 0.0) or 0.0),
+                net_size=float(raw.get("net_size", 0.0) or 0.0),
+                net_edge=float(raw.get("net_edge", 0.0) or 0.0),
+                payout_per_dollar=float(raw.get("payout_per_dollar", 0.0) or 0.0),
+                execution_mode=str(raw.get("execution_mode", "")),
+                settlement_source=str(raw.get("settlement_source", "")),
             )
             self.state.prediction_records[row_id] = record
             self.state.prediction_rows_by_condition[condition_id].add(row_id)
@@ -10725,12 +11474,14 @@ class TradingBot:
         condition_id = str(pos.condition_id or "").strip()
         if not condition_id:
             return None
-        expected_amount = self._daily_budget_return_amount(
-            status="won",
-            amount=pos.amount_usdc,
-            entry_price=pos.entry_price,
-            pnl=pos.pnl,
-        )
+        expected_amount = max(0.0, float(pos.size or 0.0))
+        if expected_amount <= 0.0:
+            expected_amount = self._daily_budget_return_amount(
+                status="won",
+                amount=pos.amount_usdc,
+                entry_price=pos.entry_price,
+                pnl=pos.pnl,
+            )
         if expected_amount <= 0.0:
             return None
         return ClaimRecord(
@@ -11224,6 +11975,9 @@ def _short_gate_label(gate: str | None) -> str:
         "TOO_SURE": "TOO_SURE",
         "NO_MOVE": "NO_MOVE",
         "NO_EDGE": "NO_EDGE",
+        "NET_EDGE": "NET_EDGE",
+        "WIDE_SPREAD": "WIDE_SPREAD",
+        "MIN_ORDER_RISK": "MIN_ORDER",
         "50_50": "FIFTY",
     }.get(short, short)
 
@@ -11816,6 +12570,41 @@ def refresh_trade_history_from_logs(state: BotState, *, force: bool = False) -> 
     return len(loaded)
 
 
+def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int = 14) -> dict[str, Any]:
+    records = _iter_prediction_analytics_records(log_dir, lookback_days=lookback_days)
+    latest_by_row: dict[str, dict[str, Any]] = {}
+    for record in records:
+        row_id = str(record.get("row_id") or record.get("condition_id") or "").strip()
+        if not row_id:
+            continue
+        latest_by_row[row_id] = record
+
+    latest = list(latest_by_row.values())
+    if not latest:
+        return {"rows": 0, "message": "no data"}
+
+    actions = Counter(str(record.get("decision_action", "") or "unknown") for record in latest)
+    gates = Counter(
+        str(record.get("blocked_gate") or record.get("decision_skip_reason_code") or record.get("placement_failure_code") or "OK")
+        for record in latest
+    )
+    trades = [
+        record for record in latest
+        if str(record.get("decision_action", "")).lower() in ("paper_trade", "live_trade")
+    ]
+    net_edges = [_safe_float(record.get("net_edge"), 0.0) for record in latest if record.get("net_edge") is not None]
+    spreads = [_safe_float(record.get("execution_spread"), 0.0) for record in latest if record.get("execution_spread") is not None]
+    return {
+        "rows": len(latest),
+        "events": len(records),
+        "trades": len(trades),
+        "actions": dict(actions.most_common()),
+        "top_gates": dict(gates.most_common(10)),
+        "avg_net_edge": round(sum(net_edges) / len(net_edges), 6) if net_edges else 0.0,
+        "avg_spread": round(sum(spreads) / len(spreads), 6) if spreads else 0.0,
+    }
+
+
 def render_price_log(state: BotState) -> Panel:
     """Stream the last N 5-second BTC price snapshots."""
     entries = list(state.price_tick_log)[-80:]  # fills flexible full-height panel
@@ -11920,6 +12709,10 @@ if __name__ == "__main__":
     label_parser = subparsers.add_parser("label-ml", help="Backfill missing ML label files from price logs")
     label_parser.add_argument("--log-dir", default="logs")
 
+    audit_parser = subparsers.add_parser("audit-strategy", help="Summarize recent strategy decisions from logs")
+    audit_parser.add_argument("--log-dir", default="logs")
+    audit_parser.add_argument("--lookback-days", type=int, default=14)
+
     promote_parser = subparsers.add_parser("promote-ml", help="Switch the active model version or promotion stage")
     promote_parser.add_argument("--version", default="latest")
     promote_parser.add_argument(
@@ -11967,6 +12760,19 @@ if __name__ == "__main__":
         elif args.command == "label-ml":
             appended = backfill_ml_labels(args.log_dir)
             Console().print(f"[green]labels_backfilled[/green] {appended}")
+        elif args.command == "audit-strategy":
+            report = audit_strategy_decisions(args.log_dir, lookback_days=args.lookback_days)
+            if report.get("rows", 0) <= 0:
+                Console().print("no data")
+            else:
+                Console().print(
+                    f"[green]strategy_audit[/green] rows={report['rows']} "
+                    f"events={report['events']} trades={report['trades']} "
+                    f"avg_net_edge={report['avg_net_edge']:+.3f} "
+                    f"avg_spread={report['avg_spread']:.3f}"
+                )
+                Console().print(f"actions={report['actions']}")
+                Console().print(f"top_gates={report['top_gates']}")
         elif args.command == "promote-ml":
             registry = ModelRegistry(ML_MODELS_DIR)
             manifest = registry.set_active_version(
