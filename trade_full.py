@@ -4453,13 +4453,15 @@ class TelegramNotifier:
         order_id: str,
         simulated: bool,
         snap: "IndicatorSnapshot",
+        *,
+        expected_payout: float | None = None,
     ) -> None:
         """Bet successfully placed."""
         if not self._enabled:
             return
         emoji = "⬆️" if direction == "UP" else "⬇️"
         mode_tag = "PAPER" if simulated else "LIVE"
-        payout = bet_size / entry_odds if entry_odds > 0 else 0
+        payout = expected_payout if expected_payout is not None else (bet_size / entry_odds if entry_odds > 0 else 0)
         text = (
             f"🎯 <b>BET {direction}</b> {emoji}  [{mode_tag}]\n"
             f"Amount: <code>${bet_size:.2f}</code> @ {entry_odds:.3f}  "
@@ -4532,8 +4534,9 @@ class TelegramNotifier:
             pnl_s = f"${pos.pnl:.2f}" if pos.pnl is not None else "$0.00"
             status_label = "VOID"
         wr = state.win_rate
+        mode_tag = "PAPER" if pos.simulated else "LIVE"
         text = (
-            f"{emoji} <b>{status_label}</b>  {pnl_s}\n"
+            f"{emoji} <b>{status_label}</b>  [{mode_tag}]  {pnl_s}\n"
             f"Direction: {pos.direction}  Entry: {pos.entry_price:.3f}\n"
             f"Beat was: <code>${pos.window_beat:,.2f}</code>\n"
             f"Record: {state.win_count}W / {state.loss_count}L  "
@@ -10425,6 +10428,7 @@ class TradingBot:
             self.notifier.notify_bet(
                 direction, actual_amount, actual_price, win,
                 result.order_id or "—", result.simulated, snap,
+                expected_payout=actual_size,
             )
         else:
             failure_code = result.failure_code or "PLACEMENT_FAILED"

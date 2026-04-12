@@ -15,6 +15,7 @@ class DummyNotifier:
         self.signal_calls = []
         self.shadow_calls = []
         self.bet_calls = []
+        self.result_calls = []
 
     def notify_signal(self, signal, win, snap, **kwargs) -> None:
         self.signal_calls.append((signal.signal, win.condition_id, kwargs))
@@ -24,11 +25,12 @@ class DummyNotifier:
         self.shadow_calls.append((signal.signal, win.condition_id, kwargs))
         return None
 
-    def notify_bet(self, direction, bet_size, entry_odds, win, order_id, simulated, snap) -> None:
-        self.bet_calls.append((direction, bet_size, entry_odds, simulated))
+    def notify_bet(self, direction, bet_size, entry_odds, win, order_id, simulated, snap, **kwargs) -> None:
+        self.bet_calls.append((direction, bet_size, entry_odds, simulated, kwargs))
         return None
 
     def notify_result(self, pos, state) -> None:
+        self.result_calls.append((pos.direction, pos.status, pos.pnl, pos.simulated))
         return None
 
 
@@ -829,6 +831,44 @@ def test_live_win_creates_local_expected_pending_claim(tmp_path):
     asyncio.run(run_case())
 
 
+def test_paper_settlement_notifies_clean_win_and_loss(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win_pos = make_position(
+            condition_id="0xpaperwin",
+            direction="UP",
+            order_id="SIM-WIN",
+            now=now,
+        )
+        win_pos.size = 3.856
+        win_pos.amount_usdc = 2.0
+        win_pos.fee_usdc = 0.072
+
+        loss_pos = make_position(
+            condition_id="0xpaperloss",
+            direction="DOWN",
+            order_id="SIM-LOSS",
+            now=now,
+        )
+        loss_pos.size = 3.856
+        loss_pos.amount_usdc = 2.0
+
+        await bot._settle_position(win_pos, "UP", win_pos.amount_usdc)
+        await bot._settle_position(loss_pos, "UP", loss_pos.amount_usdc)
+
+        assert win_pos.status == "won"
+        assert win_pos.pnl == pytest.approx(1.856)
+        assert loss_pos.status == "lost"
+        assert loss_pos.pnl == pytest.approx(-2.0)
+        assert bot.notifier.result_calls == [
+            ("UP", "won", pytest.approx(1.856), True),
+            ("DOWN", "lost", pytest.approx(-2.0), True),
+        ]
+
+    asyncio.run(run_case())
+
+
 def test_server_claim_candidate_moves_expected_pending_to_claimable(tmp_path, monkeypatch):
     async def run_case():
         bot = make_bot(tmp_path)
@@ -1042,6 +1082,59 @@ def test_stable_buy_sends_single_shadow_notification(tmp_path):
     asyncio.run(run_case())
 
 
+def test_paper_buy_signal_sends_signal_notification(tmp_path):
+    async def run_case():
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xsignal-paper", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.88,
+            raw_confidence=0.89,
+            reason="paper buy signal",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        decision = tf.TradeDecision(
+            action="BUY",
+            direction="UP",
+            confidence=signal.confidence,
+            reason="ok",
+            gate=tf.GATE_OK,
+        )
+
+        emitted = await bot._emit_locked_signal_notification(
+            locked_now=True,
+            signal=signal,
+            win=win,
+            snap=snap,
+            decision=decision,
+            execution_block=None,
+            btc_price=100.4,
+            up_odds=0.58,
+            down_odds=0.42,
+        )
+
+        assert emitted is True
+        assert bot.notifier.signal_calls == [
+            (
+                "BUY_UP",
+                win.condition_id,
+                {
+                    "btc_price": 100.4,
+                    "up_odds": 0.58,
+                    "down_odds": 0.42,
+                    "decision": decision,
+                },
+            )
+        ]
+        assert bot.notifier.shadow_calls == []
+        assert bot.state.session_signal_state.telegram_sent is True
+
+    asyncio.run(run_case())
+
+
 def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatch):
     class StubMarket:
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
@@ -1085,6 +1178,12 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatc
         assert bot.state.positions[0].simulated is True
         assert bot.state.positions[0].prediction_row_id == "row-paper"
         assert len(bot.notifier.bet_calls) == 1
+        direction, bet_size, entry_odds, simulated, kwargs = bot.notifier.bet_calls[0]
+        assert direction == "UP"
+        assert bet_size > 0
+        assert entry_odds == pytest.approx(0.56)
+        assert simulated is True
+        assert kwargs["expected_payout"] == pytest.approx(bot.state.positions[0].size)
 
     asyncio.run(run_case())
 
