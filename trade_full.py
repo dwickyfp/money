@@ -166,9 +166,14 @@ MINIMUM_EDGE_THRESHOLD = float(os.getenv("MINIMUM_EDGE_THRESHOLD", "0.05"))  # 5
 MIN_NET_EDGE           = float(os.getenv("MIN_NET_EDGE", "0.05"))
 LATE_MIN_NET_EDGE      = float(os.getenv("LATE_MIN_NET_EDGE", "0.08"))
 MAX_EXECUTION_SPREAD   = float(os.getenv("MAX_EXECUTION_SPREAD", "0.03"))
+MAX_EXECUTION_QUOTE_AGE_S = float(os.getenv("MAX_EXECUTION_QUOTE_AGE_S", "2.0"))
+ALLOW_FALLBACK_EXECUTION_QUOTES = os.getenv("ALLOW_FALLBACK_EXECUTION_QUOTES", "false").lower() == "true"
 DEGRADED_MODE_CONF_BUMP = float(os.getenv("DEGRADED_MODE_CONF_BUMP", "0.04"))
 DEGRADED_MODE_EDGE_BUMP = float(os.getenv("DEGRADED_MODE_EDGE_BUMP", "0.03"))
 DEGRADED_MIN_RECENT_WIN_RATE = float(os.getenv("DEGRADED_MIN_RECENT_WIN_RATE", "0.80"))
+ML_THRESHOLD_MIN_REALIZED_EV = float(os.getenv("ML_THRESHOLD_MIN_REALIZED_EV", "0.00"))
+ML_THRESHOLD_MAX_BRIER = float(os.getenv("ML_THRESHOLD_MAX_BRIER", "0.28"))
+ML_THRESHOLD_MIN_EV_SAMPLES = int(os.getenv("ML_THRESHOLD_MIN_EV_SAMPLES", "8"))
 
 # ── Telegram notifications ────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN       = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -466,6 +471,11 @@ class BotLogger:
             "best_ask": getattr(position, "best_ask", 0.0),
             "execution_spread": getattr(position, "spread", 0.0),
             "net_edge": getattr(position, "net_edge", 0.0),
+            "expected_ev_usdc": round(
+                float(getattr(position, "amount_usdc", 0.0) or 0.0)
+                * float(getattr(position, "net_edge", 0.0) or 0.0),
+                6,
+            ),
             "payout_per_dollar": getattr(position, "payout_per_dollar", 0.0),
             "execution_mode": "paper" if getattr(position, "simulated", False) else "live",
             "liquidity_source": getattr(position, "liquidity_source", ""),
@@ -485,9 +495,15 @@ class BotLogger:
             "gross_size": getattr(record, "gross_size", 0.0),
             "net_size": getattr(record, "net_size", 0.0),
             "net_edge": getattr(record, "net_edge", 0.0),
+            "expected_ev_usdc": getattr(record, "expected_ev_usdc", 0.0),
+            "realized_pnl_usdc": getattr(record, "realized_pnl_usdc", 0.0),
+            "realized_roi": getattr(record, "realized_roi", 0.0),
             "payout_per_dollar": getattr(record, "payout_per_dollar", 0.0),
             "execution_mode": getattr(record, "execution_mode", ""),
+            "liquidity_source": getattr(record, "liquidity_source", ""),
+            "quote_age_s": getattr(record, "quote_age_s", 0.0),
             "settlement_source": getattr(record, "settlement_source", ""),
+            "settlement_low_confidence": getattr(record, "settlement_low_confidence", False),
         }
 
     def log_prediction_state(self, record) -> None:
@@ -1745,9 +1761,12 @@ def normalize_fee_rate(raw: Any, default: float = POLYMARKET_CRYPTO_TAKER_FEE_RA
     if value <= 0.0:
         return default
     # REST/SDK payloads may report basis points while docs express the formula
-    # rate as a decimal, e.g. crypto 0.072.
-    if value > 1.0:
+    # rate as a decimal, e.g. crypto 0.072. Values like 720 are bps; values like
+    # 7.2 are percent-like payloads seen in some API wrappers.
+    if value > 100.0:
         return value / 10000.0
+    if value > 1.0:
+        return value / 100.0
     return value
 
 
@@ -1783,6 +1802,26 @@ def compute_net_edge(probability: float, payout_per_dollar: float) -> float:
     if probability <= 0.0 or payout_per_dollar <= 0.0:
         return -1.0
     return probability * payout_per_dollar - 1.0
+
+
+def execution_quote_block_reason(quote: ExecutionQuote | None) -> str | None:
+    if quote is None:
+        return "execution quote unavailable"
+    if quote.execution_price <= 0.0 or quote.amount_usdc <= 0.0:
+        return (
+            f"invalid execution quote price={quote.execution_price:.4f} "
+            f"amount=${quote.amount_usdc:.2f}"
+        )
+    if MAX_EXECUTION_QUOTE_AGE_S > 0.0 and quote.quote_age_s > MAX_EXECUTION_QUOTE_AGE_S:
+        return f"execution quote age {quote.quote_age_s:.2f}s > max {MAX_EXECUTION_QUOTE_AGE_S:.2f}s"
+    if (
+        not ALLOW_FALLBACK_EXECUTION_QUOTES
+        and str(quote.liquidity_source or "").lower() != "orderbook"
+    ):
+        return (
+            f"execution quote source={quote.liquidity_source or 'unknown'} is not live orderbook depth"
+        )
+    return None
 
 
 # ── Individual filter checks ──────────────────────────────────────────────────
@@ -2280,6 +2319,8 @@ GATE_RETRY_LIMIT          = "GATE_RETRY_LIMIT"          # retry budget exhausted
 GATE_NET_EDGE             = "GATE_NET_EDGE"             # execution price/fee makes the bet insufficiently +EV
 GATE_WIDE_SPREAD          = "GATE_WIDE_SPREAD"          # best bid/ask spread is too wide for safe entry
 GATE_MIN_ORDER_RISK       = "GATE_MIN_ORDER_RISK"       # exchange minimum exceeds Kelly/risk-sized order
+GATE_EXECUTION_QUOTE      = "GATE_EXECUTION_QUOTE"      # quote is stale or not backed by live orderbook depth
+GATE_ORACLE_DIVERGENCE    = "GATE_ORACLE_DIVERGENCE"    # Chainlink-proxy/Binance divergence is too high
 
 
 # ── Data classes ─────────────────────────────────────────────────────────────
@@ -2497,14 +2538,21 @@ class DecisionMaker:
 
         # GATE_TOO_SURE: market already fully priced — payout too small
         if leading_odds > ctx.max_odds_threshold:
-            return TradeDecision(
-                action="SKIP", direction=direction, confidence=0.0,
-                reason=(
-                    f"odds {leading_odds:.3f} > {ctx.max_odds_threshold:.3f} — "
-                    f"market too sure, edge gone"
-                ),
-                gate=GATE_TOO_SURE,
-            )
+            side_edge = 0.0
+            if ctx.fair_prob:
+                side_edge = _safe_float(
+                    ctx.fair_prob.get("edge_up" if direction == "UP" else "edge_down"),
+                    0.0,
+                )
+            if side_edge < MINIMUM_EDGE_THRESHOLD:
+                return TradeDecision(
+                    action="SKIP", direction=direction, confidence=0.0,
+                    reason=(
+                        f"odds {leading_odds:.3f} > {ctx.max_odds_threshold:.3f} and "
+                        f"fair edge {side_edge:+.1%} < {MINIMUM_EDGE_THRESHOLD:+.1%}"
+                    ),
+                    gate=GATE_TOO_SURE,
+                )
 
         # Keep only clearly negative-EV windows out of the signal path. Small or modest
         # positive EV is advisory now; the runtime still receives the full fair-value section.
@@ -2887,6 +2935,7 @@ class ExecutionQuote:
     min_order_size: float = 0.0
     enough_liquidity: bool = True
     liquidity_source: str = "odds_fallback"
+    quoted_at_ts: float = field(default_factory=time.time)
 
     @property
     def execution_price(self) -> float:
@@ -2902,6 +2951,12 @@ class ExecutionQuote:
         if self.min_order_size <= 0.0 or price <= 0.0:
             return 0.0
         return round(self.min_order_size * price, 4)
+
+    @property
+    def quote_age_s(self) -> float:
+        if self.quoted_at_ts <= 0.0:
+            return 0.0
+        return max(0.0, time.time() - self.quoted_at_ts)
 
 
 @dataclass
@@ -3548,6 +3603,16 @@ class MarketClient:
             "payout_per_dollar": quote.payout_per_dollar,
             "liquidity_source": quote.liquidity_source,
         }
+        quote_block_reason = execution_quote_block_reason(quote)
+        if quote_block_reason:
+            return TradeResult(
+                success=False,
+                error=quote_block_reason,
+                failure_code="UNSAFE_EXECUTION_QUOTE",
+                retryable=True,
+                attempt_consumed=False,
+                **quote_result_fields,
+            )
         if quote.min_notional > 0.0 and amount_usdc + 1e-9 < quote.min_notional:
             return TradeResult(
                 success=False,
@@ -5114,6 +5179,12 @@ def _load_threshold_tuning_windows(log_dir: str | Path, lookback_days: int = ML_
             "phase": phase,
             "confidence": _safe_float(record.get("confidence"), 0.0),
             "correct": correct,
+            "net_edge": _safe_float(record.get("net_edge"), 0.0),
+            "payout_per_dollar": _safe_float(record.get("payout_per_dollar"), 0.0),
+            "execution_price": _safe_float(record.get("execution_price"), 0.0),
+            "up_odds": _safe_float(record.get("up_odds"), 0.0),
+            "down_odds": _safe_float(record.get("down_odds"), 0.0),
+            "settlement_low_confidence": bool(record.get("settlement_low_confidence", False)),
             "blocked_gate": str(record.get("blocked_gate", "") or ""),
             "threshold_source": str(record.get("threshold_source", "") or ""),
             "threshold_profile_version": str(record.get("threshold_profile_version", "") or ""),
@@ -5132,6 +5203,36 @@ def _load_threshold_tuning_windows(log_dir: str | Path, lookback_days: int = ML_
     return rows
 
 
+def _candidate_realized_ev(candidate: dict[str, Any]) -> float | None:
+    payout_per_dollar = _safe_float(candidate.get("payout_per_dollar"), 0.0)
+    if payout_per_dollar > 0.0:
+        return (payout_per_dollar - 1.0) if bool(candidate.get("correct")) else -1.0
+
+    execution_price = _safe_float(candidate.get("execution_price"), 0.0)
+    if execution_price > 0.0:
+        return (1.0 / execution_price - 1.0) if bool(candidate.get("correct")) else -1.0
+
+    signal = str(candidate.get("signal", "") or "")
+    odds = (
+        _safe_float(candidate.get("up_odds"), 0.0)
+        if signal == LABEL_BUY_UP
+        else _safe_float(candidate.get("down_odds"), 0.0)
+    )
+    if odds > 0.0:
+        return (1.0 / odds - 1.0) if bool(candidate.get("correct")) else -1.0
+    return None
+
+
+def _candidate_expected_ev(candidate: dict[str, Any]) -> float | None:
+    net_edge = _safe_float(candidate.get("net_edge"), 0.0)
+    if not math.isclose(net_edge, 0.0, rel_tol=0.0, abs_tol=1e-12):
+        return net_edge
+    payout_per_dollar = _safe_float(candidate.get("payout_per_dollar"), 0.0)
+    if payout_per_dollar > 0.0:
+        return compute_net_edge(_safe_float(candidate.get("confidence"), 0.0), payout_per_dollar)
+    return None
+
+
 def _evaluate_threshold_profile(
     windows: list[dict[str, Any]],
     profile: dict[str, Any] | None = None,
@@ -5140,6 +5241,12 @@ def _evaluate_threshold_profile(
     total_windows = len(windows)
     executed = 0
     hits = 0
+    brier_sum = 0.0
+    expected_ev_sum = 0.0
+    expected_ev_count = 0
+    realized_ev_sum = 0.0
+    realized_ev_count = 0
+    low_confidence_settlements = 0
     phase_hits: dict[str, int] = defaultdict(int)
     phase_totals: dict[str, int] = defaultdict(int)
     for window in windows:
@@ -5153,7 +5260,20 @@ def _evaluate_threshold_profile(
         phase = str(candidate.get("phase", "") or "")
         if phase:
             phase_totals[phase] += 1
-        if bool(candidate.get("correct")):
+        confidence = max(0.0, min(1.0, _safe_float(candidate.get("confidence"), 0.0)))
+        correct = bool(candidate.get("correct"))
+        brier_sum += (1.0 - confidence) ** 2 if correct else confidence ** 2
+        realized_ev = _candidate_realized_ev(candidate)
+        if realized_ev is not None:
+            realized_ev_sum += realized_ev
+            realized_ev_count += 1
+        expected_ev = _candidate_expected_ev(candidate)
+        if expected_ev is not None:
+            expected_ev_sum += expected_ev
+            expected_ev_count += 1
+        if bool(candidate.get("settlement_low_confidence", False)):
+            low_confidence_settlements += 1
+        if correct:
             hits += 1
             if phase:
                 phase_hits[phase] += 1
@@ -5164,6 +5284,12 @@ def _evaluate_threshold_profile(
         "executed_windows": executed,
         "coverage": round(coverage, 4),
         "win_rate": round(win_rate, 4),
+        "brier_score": round(brier_sum / executed, 6) if executed else 0.0,
+        "expected_ev_sample_count": expected_ev_count,
+        "avg_expected_ev": round(expected_ev_sum / expected_ev_count, 6) if expected_ev_count else 0.0,
+        "ev_sample_count": realized_ev_count,
+        "avg_realized_ev_per_trade": round(realized_ev_sum / realized_ev_count, 6) if realized_ev_count else 0.0,
+        "low_confidence_settlements": low_confidence_settlements,
         "win_rate_by_phase": {
             phase: round(phase_hits[phase] / total, 4)
             for phase, total in phase_totals.items()
@@ -5261,14 +5387,41 @@ def tune_runtime_thresholds_from_shadow_data(
                     continue
                 if evaluation["win_rate"] < min_win_rate:
                     continue
+                if evaluation["brier_score"] > ML_THRESHOLD_MAX_BRIER:
+                    continue
+                if (
+                    evaluation["ev_sample_count"] >= ML_THRESHOLD_MIN_EV_SAMPLES
+                    and evaluation["avg_realized_ev_per_trade"] < ML_THRESHOLD_MIN_REALIZED_EV
+                ):
+                    continue
                 if best_eval is None:
                     best_profile = profile
                     best_eval = evaluation
                     continue
-                current_rank = (evaluation["coverage"], evaluation["win_rate"], late_exec, early_exec, reserve)
+                ev_rank = (
+                    evaluation["avg_realized_ev_per_trade"]
+                    if evaluation["ev_sample_count"] >= ML_THRESHOLD_MIN_EV_SAMPLES
+                    else 0.0
+                )
+                best_ev_rank = (
+                    best_eval["avg_realized_ev_per_trade"]
+                    if best_eval["ev_sample_count"] >= ML_THRESHOLD_MIN_EV_SAMPLES
+                    else 0.0
+                )
+                current_rank = (
+                    ev_rank,
+                    evaluation["coverage"],
+                    evaluation["win_rate"],
+                    -evaluation["brier_score"],
+                    late_exec,
+                    early_exec,
+                    reserve,
+                )
                 best_rank = (
+                    best_ev_rank,
                     best_eval["coverage"],
                     best_eval["win_rate"],
+                    -best_eval["brier_score"],
                     _safe_float(best_profile["late_exec"]),
                     _safe_float(best_profile["early_exec"]),
                     _safe_float(best_profile["reserve"]),
@@ -5297,6 +5450,16 @@ def tune_runtime_thresholds_from_shadow_data(
     if (
         (recent24["executed_windows"] >= 8 and recent24["win_rate"] < recent_guardrail)
         or (recent100["executed_windows"] >= 20 and recent100["win_rate"] < recent_guardrail)
+        or (recent24["executed_windows"] >= 8 and recent24["brier_score"] > ML_THRESHOLD_MAX_BRIER)
+        or (recent100["executed_windows"] >= 20 and recent100["brier_score"] > ML_THRESHOLD_MAX_BRIER)
+        or (
+            recent24["ev_sample_count"] >= ML_THRESHOLD_MIN_EV_SAMPLES
+            and recent24["avg_realized_ev_per_trade"] < ML_THRESHOLD_MIN_REALIZED_EV
+        )
+        or (
+            recent100["ev_sample_count"] >= max(ML_THRESHOLD_MIN_EV_SAMPLES, 20)
+            and recent100["avg_realized_ev_per_trade"] < ML_THRESHOLD_MIN_REALIZED_EV
+        )
     ):
         degraded = degraded_profile(best_profile)
         return {
@@ -6511,10 +6674,11 @@ def resolve_label_for_row(
         resolution_ts, resolved_btc, binance_resolution_diff_s = resolution
         source_priority = _label_source_priority(source)
 
-    if resolved_btc <= 0.0 or math.isclose(resolved_btc, beat_price, rel_tol=0.0, abs_tol=1e-9):
+    if resolved_btc <= 0.0:
         return None
 
-    label = LABEL_BUY_UP if resolved_btc > beat_price else LABEL_BUY_DOWN
+    # Polymarket BTC Up/Down resolves equal final/opening Chainlink prices as UP.
+    label = LABEL_BUY_UP if resolved_btc >= beat_price else LABEL_BUY_DOWN
     return ResolvedLabelRecord(
         row_id=str(row.get("row_id", "")),
         condition_id=str(row.get("condition_id", "")),
@@ -7301,9 +7465,15 @@ class WindowPredictionRecord:
     gross_size: float = 0.0
     net_size: float = 0.0
     net_edge: float = 0.0
+    expected_ev_usdc: float = 0.0
+    realized_pnl_usdc: float = 0.0
+    realized_roi: float = 0.0
     payout_per_dollar: float = 0.0
     execution_mode: str = ""
+    liquidity_source: str = ""
+    quote_age_s: float = 0.0
     settlement_source: str = ""
+    settlement_low_confidence: bool = False
 
 
 @dataclass
@@ -8797,8 +8967,10 @@ class TradingBot:
                 "gross_size": 0.0,
                 "net_size": 0.0,
                 "net_edge": net_edge,
+                "expected_ev_usdc": 0.0,
                 "payout_per_dollar": 0.0,
                 "liquidity_source": "",
+                "quote_age_s": 0.0,
             }
         return {
             "mid_odds": quote.mid_price,
@@ -8812,8 +8984,10 @@ class TradingBot:
             "gross_size": quote.gross_shares,
             "net_size": quote.net_shares,
             "net_edge": net_edge,
+            "expected_ev_usdc": quote.amount_usdc * net_edge,
             "payout_per_dollar": quote.payout_per_dollar,
             "liquidity_source": quote.liquidity_source,
+            "quote_age_s": quote.quote_age_s,
         }
 
     async def _annotate_prediction_execution(
@@ -8843,7 +9017,10 @@ class TradingBot:
             record.gross_size = float(fields["gross_size"] or 0.0)
             record.net_size = float(fields["net_size"] or 0.0)
             record.net_edge = float(fields["net_edge"] or 0.0)
+            record.expected_ev_usdc = float(fields["expected_ev_usdc"] or 0.0)
             record.payout_per_dollar = float(fields["payout_per_dollar"] or 0.0)
+            record.liquidity_source = str(fields["liquidity_source"] or "")
+            record.quote_age_s = float(fields["quote_age_s"] or 0.0)
             if required_confidence is not None and math.isfinite(required_confidence):
                 record.execution_required_confidence = max(
                     float(record.execution_required_confidence or 0.0),
@@ -8905,6 +9082,9 @@ class TradingBot:
             record.gross_size = float(result.gross_size or record.gross_size or 0.0)
             record.net_size = float(result.size or record.net_size or 0.0)
             record.payout_per_dollar = float(result.payout_per_dollar or record.payout_per_dollar or 0.0)
+            if record.net_edge and result.amount_usdc:
+                record.expected_ev_usdc = float(record.net_edge) * float(result.amount_usdc)
+            record.liquidity_source = str(result.liquidity_source or record.liquidity_source or "")
             record.execution_mode = "paper" if (result.simulated or not LIVE_TRADING) else "live"
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
@@ -8944,8 +9124,10 @@ class TradingBot:
             record.gross_size = pos.gross_size or record.gross_size
             record.net_size = pos.size or record.net_size
             record.net_edge = pos.net_edge or record.net_edge
+            record.expected_ev_usdc = float(pos.amount_usdc or 0.0) * float(record.net_edge or 0.0)
             record.payout_per_dollar = pos.payout_per_dollar or record.payout_per_dollar
             record.execution_mode = "paper" if pos.simulated else "live"
+            record.liquidity_source = pos.liquidity_source or record.liquidity_source
             execution_state = self.state.window_execution_states.get(pos.condition_id)
             if execution_state is not None:
                 record.placement_attempt_count = max(
@@ -10129,6 +10311,14 @@ class TradingBot:
             self.state.log_event(
                 f"[FEE] using {quote.fee_rate_source} fee_rate={quote.fee_rate:.4f} token={token_id[:12]}"
             )
+        quote_block_reason = execution_quote_block_reason(quote)
+        if quote_block_reason:
+            await block_for_execution(
+                GATE_EXECUTION_QUOTE,
+                quote_block_reason,
+                quote=quote,
+            )
+            return
         if quote.spread > MAX_EXECUTION_SPREAD:
             await block_for_execution(
                 GATE_WIDE_SPREAD,
@@ -10216,6 +10406,16 @@ class TradingBot:
                     required_confidence=required_confidence,
                 )
                 return
+            quote_block_reason = execution_quote_block_reason(quote)
+            if quote_block_reason:
+                await block_for_execution(
+                    GATE_EXECUTION_QUOTE,
+                    quote_block_reason,
+                    quote=quote,
+                    net_edge=net_edge,
+                    required_confidence=required_confidence,
+                )
+                return
             if not quote.enough_liquidity:
                 await block_for_execution(
                     GATE_WIDE_SPREAD,
@@ -10270,7 +10470,16 @@ class TradingBot:
                     f"dir={direction} beat=${win.beat_price:,.2f}"
                 )
                 if SKIP_ON_HIGH_DIVERGENCE:
-                    self.state.log_event("[ORACLE_DIV] Trade skipped due to high oracle divergence")
+                    await block_for_execution(
+                        GATE_ORACLE_DIVERGENCE,
+                        (
+                            f"Binance/Pyth divergence ${divergence:,.2f} "
+                            f">= ${ORACLE_DIVERGENCE_ALERT_USD:,.0f}"
+                        ),
+                        quote=quote,
+                        net_edge=net_edge,
+                        required_confidence=required_confidence,
+                    )
                     return
 
         attempt_started_at_ts = time.time()
@@ -10731,17 +10940,33 @@ class TradingBot:
                     prediction_record = self.state.paper_prediction_records.get(pos.condition_id)
                 if prediction_record is not None:
                     prediction_record.paper_trade_won = won
+                    prediction_record.realized_pnl_usdc = float(pos.pnl or 0.0)
+                    prediction_record.realized_roi = (
+                        float(pos.pnl or 0.0) / float(amount or 1.0)
+                        if amount > 0.0 else 0.0
+                    )
                     prediction_record.simulated_order_id = pos.order_id or prediction_record.simulated_order_id
                     prediction_record.executed_order_id = pos.order_id or prediction_record.executed_order_id
                     if settlement_info is not None:
                         prediction_record.settlement_source = settlement_info.settlement_source
+                        prediction_record.settlement_low_confidence = (
+                            settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
+                        )
                     prediction_record.last_updated_at = datetime.now(_UTC)
                     self.state.paper_prediction_records[pos.condition_id] = prediction_record
             elif prediction_record is not None:
                 prediction_record.live_trade_won = won
+                prediction_record.realized_pnl_usdc = float(pos.pnl or 0.0)
+                prediction_record.realized_roi = (
+                    float(pos.pnl or 0.0) / float(amount or 1.0)
+                    if amount > 0.0 else 0.0
+                )
                 prediction_record.executed_order_id = pos.order_id or prediction_record.executed_order_id
                 if settlement_info is not None:
                     prediction_record.settlement_source = settlement_info.settlement_source
+                    prediction_record.settlement_low_confidence = (
+                        settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
+                    )
                 prediction_record.last_updated_at = datetime.now(_UTC)
                 self.state.paper_prediction_records[pos.condition_id] = prediction_record
             self.state.resolved_count += 1
@@ -10825,6 +11050,9 @@ class TradingBot:
                 current.counterfactual_pnl = counterfactual_pnl
                 if settlement_info is not None:
                     current.settlement_source = settlement_info.settlement_source
+                    current.settlement_low_confidence = (
+                        settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
+                    )
                 current.resolved_at = resolved_at
                 current.last_updated_at = resolved_at
                 self.state.paper_prediction_records[current.condition_id] = current
@@ -11165,9 +11393,15 @@ class TradingBot:
                 gross_size=float(raw.get("gross_size", 0.0) or 0.0),
                 net_size=float(raw.get("net_size", 0.0) or 0.0),
                 net_edge=float(raw.get("net_edge", 0.0) or 0.0),
+                expected_ev_usdc=float(raw.get("expected_ev_usdc", 0.0) or 0.0),
+                realized_pnl_usdc=float(raw.get("realized_pnl_usdc", 0.0) or 0.0),
+                realized_roi=float(raw.get("realized_roi", 0.0) or 0.0),
                 payout_per_dollar=float(raw.get("payout_per_dollar", 0.0) or 0.0),
                 execution_mode=str(raw.get("execution_mode", "")),
+                liquidity_source=str(raw.get("liquidity_source", "")),
+                quote_age_s=float(raw.get("quote_age_s", 0.0) or 0.0),
                 settlement_source=str(raw.get("settlement_source", "")),
+                settlement_low_confidence=bool(raw.get("settlement_low_confidence", False)),
             )
             self.state.prediction_records[row_id] = record
             self.state.prediction_rows_by_condition[condition_id].add(row_id)
@@ -12574,6 +12808,16 @@ def refresh_trade_history_from_logs(state: BotState, *, force: bool = False) -> 
     return len(loaded)
 
 
+def _wilson_interval(hits: int, total: int, z: float = 1.96) -> tuple[float, float]:
+    if total <= 0:
+        return 0.0, 0.0
+    p_hat = hits / total
+    denom = 1.0 + (z * z / total)
+    centre = p_hat + (z * z / (2.0 * total))
+    margin = z * math.sqrt((p_hat * (1.0 - p_hat) / total) + (z * z / (4.0 * total * total)))
+    return max(0.0, (centre - margin) / denom), min(1.0, (centre + margin) / denom)
+
+
 def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int = 14) -> dict[str, Any]:
     records = _iter_prediction_analytics_records(log_dir, lookback_days=lookback_days)
     latest_by_row: dict[str, dict[str, Any]] = {}
@@ -12598,14 +12842,39 @@ def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int
     ]
     net_edges = [_safe_float(record.get("net_edge"), 0.0) for record in latest if record.get("net_edge") is not None]
     spreads = [_safe_float(record.get("execution_spread"), 0.0) for record in latest if record.get("execution_spread") is not None]
+    trade_outcomes = [
+        record.get("paper_trade_won") if isinstance(record.get("paper_trade_won"), bool) else record.get("live_trade_won")
+        for record in trades
+        if isinstance(record.get("paper_trade_won"), bool) or isinstance(record.get("live_trade_won"), bool)
+    ]
+    trade_wins = sum(1 for won in trade_outcomes if won is True)
+    wr_low, wr_high = _wilson_interval(trade_wins, len(trade_outcomes))
+    realized_pnl = [
+        _safe_float(record.get("realized_pnl_usdc"), 0.0)
+        for record in latest
+        if record.get("realized_pnl_usdc") is not None
+    ]
+    realized_roi = [
+        _safe_float(record.get("realized_roi"), 0.0)
+        for record in latest
+        if record.get("realized_roi") is not None
+    ]
+    liquidity_sources = Counter(str(record.get("liquidity_source") or "unknown") for record in latest)
     return {
         "rows": len(latest),
         "events": len(records),
         "trades": len(trades),
+        "settled_trades": len(trade_outcomes),
+        "trade_win_rate": round(trade_wins / len(trade_outcomes), 4) if trade_outcomes else 0.0,
+        "trade_win_rate_wilson_low": round(wr_low, 4),
+        "trade_win_rate_wilson_high": round(wr_high, 4),
         "actions": dict(actions.most_common()),
         "top_gates": dict(gates.most_common(10)),
+        "liquidity_sources": dict(liquidity_sources.most_common(10)),
         "avg_net_edge": round(sum(net_edges) / len(net_edges), 6) if net_edges else 0.0,
         "avg_spread": round(sum(spreads) / len(spreads), 6) if spreads else 0.0,
+        "total_realized_pnl": round(sum(realized_pnl), 6) if realized_pnl else 0.0,
+        "avg_realized_roi": round(sum(realized_roi) / len(realized_roi), 6) if realized_roi else 0.0,
     }
 
 
@@ -12772,11 +13041,16 @@ if __name__ == "__main__":
                 Console().print(
                     f"[green]strategy_audit[/green] rows={report['rows']} "
                     f"events={report['events']} trades={report['trades']} "
+                    f"settled={report['settled_trades']} "
+                    f"wr={report['trade_win_rate']:.1%} "
+                    f"wr_ci={report['trade_win_rate_wilson_low']:.1%}-{report['trade_win_rate_wilson_high']:.1%} "
                     f"avg_net_edge={report['avg_net_edge']:+.3f} "
-                    f"avg_spread={report['avg_spread']:.3f}"
+                    f"avg_spread={report['avg_spread']:.3f} "
+                    f"pnl={report['total_realized_pnl']:+.2f}"
                 )
                 Console().print(f"actions={report['actions']}")
                 Console().print(f"top_gates={report['top_gates']}")
+                Console().print(f"liquidity_sources={report['liquidity_sources']}")
         elif args.command == "promote-ml":
             registry = ModelRegistry(ML_MODELS_DIR)
             manifest = registry.set_active_version(

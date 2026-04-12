@@ -107,6 +107,37 @@ def make_position(*, condition_id: str, direction: str, order_id: str, now: date
     )
 
 
+def make_execution_quote(
+    *,
+    token_id: str = "up-token",
+    amount_usdc: float = 2.0,
+    price: float = 0.56,
+    mid_price: float | None = None,
+    min_order_size: float = 1.0,
+    spread: float = 0.01,
+    liquidity_source: str = "orderbook",
+) -> tf.ExecutionQuote:
+    est = tf.estimate_buy_net_shares(amount_usdc, price, tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+    return tf.ExecutionQuote(
+        token_id=token_id,
+        amount_usdc=amount_usdc,
+        mid_price=mid_price if mid_price is not None else max(0.01, min(0.99, price - spread / 2)),
+        best_bid=max(0.01, price - spread),
+        best_ask=price,
+        avg_price=price,
+        spread=spread,
+        gross_shares=est["gross_shares"],
+        net_shares=est["net_shares"],
+        fee_usdc=est["fee_usdc"],
+        fee_shares=est["fee_shares"],
+        fee_rate=tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE,
+        fee_rate_source="fee-rate",
+        min_order_size=min_order_size,
+        enough_liquidity=True,
+        liquidity_source=liquidity_source,
+    )
+
+
 def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):
     logger = tf.BotLogger(tmp_path / "logs")
     now = datetime.now(timezone.utc)
@@ -1137,6 +1168,9 @@ def test_paper_buy_signal_sends_signal_notification(tmp_path):
 
 def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatch):
     class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
+
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
             return tf.TradeResult(
                 success=True,
@@ -1267,10 +1301,146 @@ def test_place_trade_skips_when_midpoint_edge_disappears_at_best_ask(tmp_path, m
     asyncio.run(run_case())
 
 
+def test_place_trade_blocks_non_orderbook_execution_quote(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                price=current_odds,
+                liquidity_source="legacy_odds_fallback",
+            )
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("fallback quotes must be blocked before dummy/live order placement")
+
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "ALLOW_FALLBACK_EXECUTION_QUOTES", False)
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xfallback-quote", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="quote fallback",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-fallback-quote",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="paper",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert len(bot.state.positions) == 0
+        assert updated.blocked_gate == tf.GATE_EXECUTION_QUOTE
+        assert updated.liquidity_source == "legacy_odds_fallback"
+
+    asyncio.run(run_case())
+
+
+def test_place_trade_records_oracle_divergence_gate(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("oracle divergence should block before dummy/live order placement")
+
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SKIP_ON_HIGH_DIVERGENCE", True)
+        monkeypatch.setattr(tf, "ORACLE_DIVERGENCE_ALERT_USD", 15.0)
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.btc_price = 120.0
+        bot.state.pyth_btc_price = 100.0
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xoracle-div", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="oracle divergence",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-oracle-div",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="paper",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert len(bot.state.positions) == 0
+        assert updated.blocked_gate == tf.GATE_ORACLE_DIVERGENCE
+        assert updated.net_edge >= tf.MIN_NET_EDGE
+
+    asyncio.run(run_case())
+
+
 def test_place_trade_skips_when_market_minimum_exceeds_risk_cap(tmp_path, monkeypatch):
     class StubMarket:
         def __init__(self):
             self.bet_calls = []
+
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                price=current_odds,
+                min_order_size=5.0,
+            )
 
         async def get_min_order_size(self, token_id):
             return 5.0
@@ -1336,6 +1506,9 @@ def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path
     class StubMarket:
         def __init__(self):
             self.bet_calls = 0
+
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
 
         async def get_min_order_size(self, token_id):
             return 1.0
@@ -1471,6 +1644,9 @@ def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path
 
 def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
     class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
+
         async def get_min_order_size(self, token_id):
             return 1.0
 
@@ -1556,6 +1732,9 @@ def test_nonretryable_live_trade_failure_consumes_window(tmp_path, monkeypatch):
 
 def test_live_low_balance_records_trade_failure_without_strategy_block(tmp_path, monkeypatch):
     class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
+
         async def get_min_order_size(self, token_id):
             return 1.0
 
@@ -1636,6 +1815,9 @@ def test_live_low_balance_records_trade_failure_without_strategy_block(tmp_path,
 
 def test_daily_budget_preflight_holds_trade_without_strategy_block(tmp_path, monkeypatch):
     class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(token_id=token_id, amount_usdc=amount_usdc, price=current_odds)
+
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
             raise AssertionError("place_bet should not run when daily budget left is too small")
 

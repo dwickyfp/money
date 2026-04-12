@@ -211,6 +211,23 @@ def test_backfill_prefers_chainlink_settlement_over_binance(tmp_path):
     assert record["chainlink_settlement_price"] == 100.40
 
 
+def test_resolve_label_treats_equal_final_price_as_up():
+    ts = datetime(2026, 4, 10, 0, 0, tzinfo=UTC)
+    feature = _sample_feature(direction="UP", ts=ts, idx=45).to_record()
+
+    label = ml.resolve_label_for_row(
+        feature,
+        ml.pd.DataFrame(),
+        override_price=float(feature["beat_price"]),
+        label_source="chainlink_market_resolved",
+        override_resolution_ts=feature["window_end_at"],
+        settlement_source_priority=ml._label_source_priority("chainlink_market_resolved"),
+    )
+
+    assert label is not None
+    assert label.resolved_label == ml.LABEL_BUY_UP
+
+
 def test_grouped_window_splits_do_not_overlap_conditions(tmp_path):
     rows = []
     start = datetime(2026, 4, 1, 0, 0, tzinfo=UTC)
@@ -468,6 +485,53 @@ def test_threshold_tuner_prefers_highest_coverage_profile_above_guardrail(tmp_pa
     assert tuned["runtime_thresholds"]["early_exec"] == pytest.approx(0.76)
 
 
+def test_threshold_tuner_prefers_realized_ev_when_execution_economics_exist(tmp_path):
+    log_dir = tmp_path / "logs"
+    ts = datetime(2026, 4, 11, 12, 0, tzinfo=UTC)
+    records = []
+    for idx in range(20):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * idx)),
+                "event": "prediction_resolved",
+                "row_id": f"row-cheap-winrate-{idx}",
+                "condition_id": f"cond-cheap-winrate-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "RESERVE",
+                "phase_bucket": "RESERVE",
+                "confidence": 0.72,
+                "prediction_correct": idx < 17,
+                "payout_per_dollar": 1.10,
+                "net_edge": -0.208,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * idx, seconds=1)),
+            }
+        )
+    for idx in range(20):
+        records.append(
+            {
+                "ts": ml._iso_z(ts + timedelta(minutes=5 * (idx + 20))),
+                "event": "prediction_resolved",
+                "row_id": f"row-clean-edge-{idx}",
+                "condition_id": f"cond-clean-edge-{idx}",
+                "signal": "BUY_UP",
+                "candidate_phase": "RESERVE",
+                "phase_bucket": "RESERVE",
+                "confidence": 0.80,
+                "prediction_correct": idx < 16,
+                "payout_per_dollar": 2.00,
+                "net_edge": 0.60,
+                "resolved_at": ml._iso_z(ts + timedelta(minutes=5 * (idx + 20), seconds=1)),
+            }
+        )
+    _write_jsonl(log_dir / "prediction_analytics_2026-04-11.jsonl", records)
+
+    tuned = ml.tune_runtime_thresholds_from_shadow_data(log_dir, min_windows=40, min_win_rate=0.80)
+
+    assert tuned["threshold_source"] == "auto_tuned"
+    assert tuned["runtime_thresholds"]["reserve"] == pytest.approx(0.80)
+    assert tuned["threshold_tuning_summary"]["selected_metrics"]["avg_realized_ev_per_trade"] > 0.50
+
+
 def test_threshold_tuner_degrades_when_recent_validation_misses_guardrail(tmp_path):
     log_dir = tmp_path / "logs"
     ts = datetime(2026, 4, 12, 0, 0, tzinfo=UTC)
@@ -659,6 +723,12 @@ def test_market_client_place_bet_skips_when_below_live_min_order_size(monkeypatc
             self.order_type = order_type
             return {"success": True, "orderID": "live-123"}
 
+        def get_order_book(self, token_id):
+            return {
+                "bids": [{"price": "0.49", "size": "10"}],
+                "asks": [{"price": "0.50", "size": "10"}],
+            }
+
     class FakeHttp:
         async def aclose(self):
             return None
@@ -693,6 +763,8 @@ def test_dynamic_fee_math_uses_net_redeemable_shares():
     fee = ml.compute_taker_fee_usdc(shares=4.0, price=0.5, fee_rate=0.072)
     est = ml.estimate_buy_net_shares(amount_usdc=2.0, price=0.5, fee_rate=0.072)
 
+    assert ml.normalize_fee_rate(720) == pytest.approx(0.072)
+    assert ml.normalize_fee_rate(7.2) == pytest.approx(0.072)
     assert fee == pytest.approx(0.072)
     assert est["gross_shares"] == pytest.approx(4.0)
     assert est["fee_usdc"] == pytest.approx(0.072)
@@ -763,6 +835,12 @@ def test_market_client_paper_place_bet_uses_live_like_quote_without_clob_order(m
 
 def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch):
     class FakeClient:
+        def get_order_book(self, token_id):
+            return {
+                "bids": [{"price": "0.49", "size": "10"}],
+                "asks": [{"price": "0.50", "size": "10"}],
+            }
+
         def create_market_order(self, order_args):
             return {"signed": True, "price": 0.5}
 
@@ -798,6 +876,12 @@ def test_market_client_place_bet_marks_transient_failures_retryable(monkeypatch)
 
 def test_market_client_place_bet_marks_fok_not_filled_retryable(monkeypatch):
     class FakeClient:
+        def get_order_book(self, token_id):
+            return {
+                "bids": [{"price": "0.49", "size": "10"}],
+                "asks": [{"price": "0.50", "size": "10"}],
+            }
+
         def create_market_order(self, order_args):
             return {"signed": True, "price": 0.5}
 
