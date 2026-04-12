@@ -889,3 +889,12 @@
 2026-04-12T19:40:46.483Z  [PAPER] Restored 15864 pending paper prediction(s)
 2026-04-12T19:40:46.485Z  [CLAIM] Warmed 54 claim record(s)
 2026-04-12T19:40:46.490Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-12T19:40:48.256Z  [CONTINUITY] mode=paper model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-12T19:40:48.256Z  [CONTINUITY] recent24 buy=100% exec=21% fail=25% reserve=12% | recent100 buy=100% exec=35% fail=17%
+2026-04-12T19:40:48.291Z  [ML] Starting background bootstrap
+2026-04-12T19:40:48.437Z  [MKT] Window: Bitcoin Up or Down - April 12, 3:40PM-3:45PM ET | beat=$0.00 | ends 19:45:00 UTC
+2026-04-12T19:40:48.551Z  [HL] Hyperliquid WebSocket connected
+2026-04-12T19:40:48.770Z  [BTC] Binance WebSocket connected
+2026-04-12T19:40:49.122Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-12T19:40:50.690Z  [MKTWS] Market WebSocket connected
+2026-04-12T19:40:53.634Z  [ML] Backfilled 26 pending label(s) from feature logs

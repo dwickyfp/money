@@ -889,3 +889,12 @@
 {"ts": "2026-04-12T19:40:46.483Z", "msg": "[PAPER] Restored 15864 pending paper prediction(s)"}
 {"ts": "2026-04-12T19:40:46.485Z", "msg": "[CLAIM] Warmed 54 claim record(s)"}
 {"ts": "2026-04-12T19:40:46.490Z", "msg": "[ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1"}
+{"ts": "2026-04-12T19:40:48.256Z", "msg": "[CONTINUITY] mode=paper model=20260411T120821Z-s20 state=active thresholds=rtp_v1"}
+{"ts": "2026-04-12T19:40:48.256Z", "msg": "[CONTINUITY] recent24 buy=100% exec=21% fail=25% reserve=12% | recent100 buy=100% exec=35% fail=17%"}
+{"ts": "2026-04-12T19:40:48.291Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-12T19:40:48.437Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 12, 3:40PM-3:45PM ET | beat=$0.00 | ends 19:45:00 UTC"}
+{"ts": "2026-04-12T19:40:48.551Z", "msg": "[HL] Hyperliquid WebSocket connected"}
+{"ts": "2026-04-12T19:40:48.770Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-12T19:40:49.122Z", "msg": "[CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-12T19:40:50.690Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-12T19:40:53.634Z", "msg": "[ML] Backfilled 26 pending label(s) from feature logs"}
