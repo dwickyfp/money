@@ -20,3 +20,11 @@
 {"ts": "2026-04-13T10:31:26.787Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
 {"ts": "2026-04-13T10:31:46.835Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
 {"ts": "2026-04-13T10:31:51.847Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-13T10:32:31.931Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: candidate confidence 60% below 70%"}
+{"ts": "2026-04-13T10:32:41.959Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-13T10:32:46.971Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.5% D=65.5% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-13T10:33:06.030Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.70 src=ml U=29.9% D=70.1% | ml: candidate confidence 70% below 74%"}
+{"ts": "2026-04-13T10:33:22.148Z", "msg": "[SIGNAL/RESERVE] SKIP conf=0.60 src=ml U=39.6% D=60.4% | ml: edge -9.8% below 4%"}
+{"ts": "2026-04-13T10:33:31.175Z", "msg": "[SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: edge -8.9% below 3%"}
+{"ts": "2026-04-13T10:34:02.261Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 78%"}
+{"ts": "2026-04-13T10:34:24.571Z", "msg": "[SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 78%"}
