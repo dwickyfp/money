@@ -128,6 +128,7 @@ def make_execution_quote(
     liquidity_source: str = "orderbook",
 ) -> tf.ExecutionQuote:
     est = tf.estimate_buy_net_shares(amount_usdc, price, tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+    fill_confidence = "orderbook" if liquidity_source == "orderbook" else "fallback"
     return tf.ExecutionQuote(
         token_id=token_id,
         amount_usdc=amount_usdc,
@@ -145,6 +146,9 @@ def make_execution_quote(
         min_order_size=min_order_size,
         enough_liquidity=True,
         liquidity_source=liquidity_source,
+        fill_source=liquidity_source,
+        fill_status="filled",
+        fill_confidence=fill_confidence,
     )
 
 
@@ -214,7 +218,8 @@ def test_telegram_notifier_formats_shadow_signal_hold():
     assert "net edge below threshold" in sent[0]
 
 
-def test_telegram_new_window_includes_shadow_record():
+def test_telegram_new_window_includes_shadow_record_and_pnl(monkeypatch):
+    monkeypatch.setattr(tf, "LIVE_TRADING", False)
     notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
     notifier._enabled = True
     notifier._mode = "PAPER"
@@ -223,14 +228,201 @@ def test_telegram_new_window_includes_shadow_record():
     now = datetime.now(timezone.utc)
     win = make_window(condition_id="0xnew-window-shadow", beat_price=100.0, end_time=now + timedelta(minutes=1))
     state = tf.BotState()
+    state.paper_stats.paper_trade_wins_total = 2
+    state.paper_stats.paper_trade_losses_total = 2
+    state.paper_stats.paper_trade_pnl_total = 1.25
     state.paper_stats.shadow_order_wins_total = 3
     state.paper_stats.shadow_order_losses_total = 1
+    state.paper_stats.shadow_order_pnl_total = -0.5
 
     notifier.notify_window(win, state)
 
     assert len(sent) == 1
+    assert "Paper: Win 2 / Lose 2" in sent[0]
+    assert "PnL: +$1.25" in sent[0]
     assert "Shadow: Win 3 / Lose 1" in sent[0]
     assert "Winrate: 75.0%" in sent[0]
+    assert "PnL: -$0.50" in sent[0]
+
+
+def test_telegram_shadow_order_opened_labels_estimated_fill():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    sent = []
+    notifier._fire = sent.append
+    now = datetime.now(timezone.utc)
+    order = tf.ShadowOrder(
+        shadow_order_id="SHADOW-EST",
+        row_id="row-est",
+        condition_id="0xshadow-est",
+        window_label="12:00",
+        window_end_at=now + timedelta(minutes=1),
+        beat_price=100.0,
+        direction="UP",
+        token_id="up-token",
+        amount_usdc=1.0,
+        entry_price=0.5,
+        size=1.98,
+        placed_at=now,
+        target_amount_usdc=1.0,
+        actual_spend_usdc=1.0,
+        fee_usdc=0.01,
+        blocked_gate=tf.GATE_EXECUTION_QUOTE,
+        blocked_reason="strict quote missing",
+        status="open",
+        fill_source="estimated_shadow",
+        fill_status=tf.SHADOW_ESTIMATED_FILL_STATUS,
+        fill_confidence=tf.SHADOW_ESTIMATED_FILL_CONFIDENCE,
+        strict_real_fill=False,
+        training_eligible=False,
+    )
+
+    notifier.notify_shadow_order_opened(order)
+
+    assert len(sent) == 1
+    assert "SHADOW ORDER OPEN (EST.)" in sent[0]
+    assert "Strict real fill" in sent[0]
+    assert "estimated_shadow" in sent[0]
+
+
+def test_telegram_result_uses_simplified_win_loss_template():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    sent = []
+    notifier._fire = sent.append
+    resolved_at = datetime(2026, 4, 14, 12, 34, tzinfo=timezone.utc)
+    state = tf.BotState()
+    win_pos = make_position(
+        condition_id="0xtelegram-win",
+        direction="UP",
+        order_id="SIM-WIN",
+        now=resolved_at,
+    )
+    win_pos.status = "won"
+    win_pos.amount_usdc = 1.0
+    win_pos.entry_price = 0.980
+    win_pos.window_beat = 71234.56
+    win_pos.actual_winner = "UP"
+    win_pos.settlement_price = 71260.12
+    win_pos.resolved_at = resolved_at
+    loss_pos = make_position(
+        condition_id="0xtelegram-loss",
+        direction="DOWN",
+        order_id="SIM-LOSS",
+        now=resolved_at,
+    )
+    loss_pos.status = "lost"
+    loss_pos.amount_usdc = 1.25
+    loss_pos.entry_price = 0.970
+    loss_pos.window_beat = 71234.56
+    loss_pos.actual_winner = "UP"
+    loss_pos.settlement_price = 71260.12
+    loss_pos.resolved_at = resolved_at
+
+    notifier.notify_result(win_pos, state)
+    notifier.notify_result(loss_pos, state)
+
+    assert len(sent) == 2
+    assert "ORDER WON - 19:34 WIB" in sent[0]
+    assert "Direction : UP Winner : UP" in sent[0]
+    assert "Entry : $71,234.56 -> Exit: $71,260.12" in sent[0]
+    assert "Amount : $1.00 @ 0.980" in sent[0]
+    assert "PnL" not in sent[0]
+    assert "ORDER LOSE - 19:34 WIB" in sent[1]
+    assert "Direction : DOWN Winner : UP" in sent[1]
+    assert "Amount : $1.25 @ 0.970" in sent[1]
+
+
+def test_telegram_shadow_result_uses_simplified_template_and_estimated_label():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    sent = []
+    notifier._fire = sent.append
+    resolved_at = datetime(2026, 4, 14, 12, 34, tzinfo=timezone.utc)
+    base = dict(
+        row_id="row-shadow-telegram",
+        condition_id="0xshadow-telegram-result",
+        window_label="12:30",
+        window_end_at=resolved_at,
+        beat_price=71234.56,
+        direction="UP",
+        token_id="up-token",
+        amount_usdc=1.0,
+        entry_price=0.980,
+        size=1.01,
+        placed_at=resolved_at - timedelta(minutes=1),
+        target_amount_usdc=1.0,
+        actual_spend_usdc=1.0,
+        actual_winner="UP",
+        settlement_price=71260.12,
+        resolved_at=resolved_at,
+    )
+    strict_order = tf.ShadowOrder(
+        shadow_order_id="SHADOW-STRICT",
+        status="won",
+        won=True,
+        fill_confidence="orderbook",
+        **base,
+    )
+    estimated_order = tf.ShadowOrder(
+        shadow_order_id="SHADOW-EST",
+        status="lost",
+        won=False,
+        direction="DOWN",
+        actual_winner="UP",
+        fill_status=tf.SHADOW_ESTIMATED_FILL_STATUS,
+        fill_confidence=tf.SHADOW_ESTIMATED_FILL_CONFIDENCE,
+        strict_real_fill=False,
+        training_eligible=False,
+        **{key: value for key, value in base.items() if key not in ("direction", "actual_winner")},
+    )
+
+    notifier.notify_shadow_order_result(strict_order)
+    notifier.notify_shadow_order_result(estimated_order)
+
+    assert len(sent) == 2
+    assert "ORDER WON (Shadow) - 19:34 WIB" in sent[0]
+    assert "Direction : UP Winner : UP" in sent[0]
+    assert "Entry : $71,234.56 -> Exit: $71,260.12" in sent[0]
+    assert "Amount : $1.00 @ 0.980" in sent[0]
+    assert "ORDER LOSE (Shadow EST.) - 19:34 WIB" in sent[1]
+    assert "Direction : DOWN Winner : UP" in sent[1]
+
+
+def test_telegram_shadow_unresolved_does_not_fake_winner_or_exit():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    sent = []
+    notifier._fire = sent.append
+    resolved_at = datetime(2026, 4, 14, 12, 34, tzinfo=timezone.utc)
+    order = tf.ShadowOrder(
+        shadow_order_id="SHADOW-UNRESOLVED",
+        row_id="row-shadow-unresolved",
+        condition_id="0xshadow-unresolved",
+        window_label="12:30",
+        window_end_at=resolved_at,
+        beat_price=71234.56,
+        direction="UP",
+        token_id="up-token",
+        amount_usdc=1.0,
+        entry_price=0.980,
+        size=1.01,
+        placed_at=resolved_at - timedelta(minutes=1),
+        target_amount_usdc=1.0,
+        actual_spend_usdc=1.0,
+        status="unresolved_official_settlement",
+        won=None,
+        actual_winner="",
+        settlement_price=0.0,
+        resolved_at=resolved_at,
+    )
+
+    notifier.notify_shadow_order_result(order)
+
+    assert len(sent) == 1
+    assert "ORDER UNRESOLVED (Shadow) - 19:34 WIB" in sent[0]
+    assert "Direction : UP Winner : UNKNOWN" in sent[0]
+    assert "Entry : $71,234.56 -> Exit: n/a" in sent[0]
 
 
 def test_execution_block_notification_dedupes_per_window(tmp_path):
@@ -395,6 +587,7 @@ def test_shadow_order_resolves_with_clean_pnl_and_inclusive_up_tie(tmp_path, mon
         assert bot.state.daily_budget_spent_usdc == 0.0
         assert bot.state.paper_stats.paper_trade_total == 0
         assert bot.state.paper_stats.shadow_order_wins_total == 1
+        assert bot.state.paper_stats.shadow_order_pnl_total == pytest.approx(expected_pnl)
         assert len(bot.notifier.shadow_order_result_calls) == 1
         updated = bot.state.paper_prediction_records[win.condition_id]
         assert updated.shadow_order_id == order.shadow_order_id
@@ -409,11 +602,146 @@ def test_shadow_order_resolves_with_clean_pnl_and_inclusive_up_tie(tmp_path, mon
     asyncio.run(run_case())
 
 
+def test_shadow_order_estimated_fallback_opens_and_resolves_with_official_pnl(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        monkeypatch.setattr(tf, "STRICT_REAL_PAPER_QUOTES", True)
+        monkeypatch.setattr(tf, "SHADOW_ESTIMATED_FALLBACK", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xshadow-est-resolve", beat_price=100.0, end_time=now - timedelta(seconds=5))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="estimated shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-est-resolve")
+        bot.state.up_odds = 0.50
+        bot.state.down_odds = 0.50
+        quote = make_execution_quote(
+            token_id=win.up_token_id,
+            amount_usdc=tf.BET_SIZE_USDC,
+            price=0.50,
+            liquidity_source="legacy_odds_fallback",
+        )
+
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_EXECUTION_QUOTE,
+            reason="non-orderbook quote blocked",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+
+        assert order is not None
+        assert order.status == "open"
+        assert order.fill_status == tf.SHADOW_ESTIMATED_FILL_STATUS
+        assert order.fill_confidence == tf.SHADOW_ESTIMATED_FILL_CONFIDENCE
+        assert order.strict_real_fill is False
+        assert order.training_eligible is False
+        assert order.amount_usdc == pytest.approx(tf.BET_SIZE_USDC)
+        assert order.actual_spend_usdc == pytest.approx(tf.BET_SIZE_USDC)
+        assert order.unfilled_amount_usdc == pytest.approx(0.0)
+        assert "live orderbook depth" in order.blocked_reason
+        assert len(bot.state.positions) == 0
+        assert bot.state.bets_this_hour == 0
+        assert bot.state.daily_budget_spent_usdc == 0.0
+        assert len(bot.notifier.shadow_order_open_calls) == 1
+
+        bot.state.settlement_registry_cache[win.condition_id] = {
+            "settlement_price": win.beat_price,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
+
+        await bot._check_shadow_orders()
+
+        resolved = bot.state.shadow_orders[win.condition_id]
+        expected = tf.estimate_buy_net_shares(tf.BET_SIZE_USDC, 0.50, tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+        expected_pnl = expected["net_shares"] - tf.BET_SIZE_USDC
+        assert resolved.status == "won"
+        assert resolved.won is True
+        assert resolved.pnl == pytest.approx(expected_pnl)
+        assert resolved.fill_confidence == tf.SHADOW_ESTIMATED_FILL_CONFIDENCE
+        assert bot.state.paper_stats.shadow_order_wins_total == 1
+        assert bot.state.paper_stats.shadow_order_pnl_total == pytest.approx(expected_pnl)
+        assert bot.state.paper_stats.paper_trade_total == 0
+        assert len(bot.notifier.shadow_order_result_calls) == 1
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_won is True
+        assert updated.shadow_order_pnl_usdc == pytest.approx(expected_pnl)
+        assert updated.fill_confidence == tf.SHADOW_ESTIMATED_FILL_CONFIDENCE
+        assert updated.training_eligible is False
+
+    asyncio.run(run_case())
+
+
+def test_shadow_order_min_order_uses_estimated_fallback_when_enabled(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        monkeypatch.setattr(tf, "STRICT_REAL_PAPER_QUOTES", True)
+        monkeypatch.setattr(tf, "SHADOW_ESTIMATED_FALLBACK", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xshadow-est-min", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="estimated min order shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-est-min")
+        bot.state.up_odds = 0.60
+        bot.state.down_odds = 0.40
+        quote = make_execution_quote(
+            token_id=win.up_token_id,
+            amount_usdc=tf.BET_SIZE_USDC,
+            price=0.60,
+            min_order_size=5.0,
+        )
+
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_MIN_ORDER_RISK,
+            reason="market minimum exceeds risk",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+
+        assert order is not None
+        assert order.status == "open"
+        assert order.fill_status == tf.SHADOW_ESTIMATED_FILL_STATUS
+        assert order.fill_confidence == tf.SHADOW_ESTIMATED_FILL_CONFIDENCE
+        assert order.amount_usdc == pytest.approx(tf.BET_SIZE_USDC)
+        assert order.size > 0.0
+        assert "below market minimum" in order.blocked_reason
+        assert len(bot.state.trade_history) == 0
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_status == "open"
+        assert updated.training_eligible is False
+
+    asyncio.run(run_case())
+
+
 def test_shadow_order_records_no_fill_when_min_order_exceeds_target(tmp_path, monkeypatch):
     async def run_case():
         monkeypatch.setattr(tf, "LIVE_TRADING", False)
         monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
         monkeypatch.setattr(tf, "STRICT_REAL_PAPER_QUOTES", True)
+        monkeypatch.setattr(tf, "SHADOW_ESTIMATED_FALLBACK", False)
         bot = make_bot(tmp_path)
         now = datetime.now(timezone.utc)
         win = make_window(condition_id="0xshadow-nofill-min", beat_price=100.0, end_time=now + timedelta(minutes=1))
@@ -1308,6 +1636,7 @@ def test_paper_settlement_notifies_clean_win_and_loss(tmp_path):
             ("UP", "won", pytest.approx(1.856), True),
             ("DOWN", "lost", pytest.approx(-2.0), True),
         ]
+        assert bot.state.paper_stats.paper_trade_pnl_total == pytest.approx(-0.144)
 
     asyncio.run(run_case())
 

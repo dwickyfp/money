@@ -667,3 +667,234 @@
 2026-04-13T14:54:58.718Z  [ML] Activated model 20260413T135851Z-s20 source=ml state=active thresholds=auto_0.81_0.81_0.81
 2026-04-13T14:55:00.606Z  [CONTINUITY] mode=paper model=20260413T135851Z-s20 state=active thresholds=auto_0.81_0.81_0.81
 2026-04-13T14:55:00.606Z  [CONTINUITY] recent24 buy=100% exec=4% fail=4% reserve=33% | recent100 buy=100% exec=33% fail=11%
+2026-04-13T16:07:43.912Z  [BOT] Starting up…
+2026-04-13T16:07:44.018Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-13T16:07:44.185Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-13T16:07:44.605Z  [PAPER] Warmed 3153 resolved paper analytics entries
+2026-04-13T16:07:44.605Z  [PAPER] Restored 16319 pending paper prediction(s)
+2026-04-13T16:07:44.607Z  [CLAIM] Warmed 54 claim record(s)
+2026-04-13T16:07:44.710Z  [ML] Activated model 20260413T135851Z-s20 source=ml state=active thresholds=auto_0.81_0.81_0.81
+2026-04-13T16:07:46.447Z  [CONTINUITY] mode=paper model=20260413T135851Z-s20 state=active thresholds=auto_0.81_0.81_0.81
+2026-04-13T16:07:46.448Z  [CONTINUITY] recent24 buy=100% exec=4% fail=4% reserve=33% | recent100 buy=100% exec=33% fail=11%
+2026-04-13T16:07:46.632Z  [ML] Starting background bootstrap
+2026-04-13T16:07:47.167Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:05PM-12:10PM ET | beat=$0.00 | ends 16:10:00 UTC
+2026-04-13T16:07:47.168Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T16:07:47.315Z  [BTC] Binance WebSocket connected
+2026-04-13T16:07:48.120Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:07:50.146Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:07:53.381Z  [MKT] Beat price set retroactively: $71,894.11
+2026-04-13T16:07:56.820Z  [ML] Activated model 20260413T160756Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T16:07:57.905Z  [ML] Bootstrap trained 20260413T160756Z-s20 state=active ap=0.739 cv_ap=0.753 ev=+0.54
+2026-04-13T16:08:11.132Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: candidate confidence 61% below 82%
+2026-04-13T16:08:12.332Z  [SIGNAL/RESERVE] SKIP conf=0.52 src=ml U=48.2% D=51.8% | ml: edge +3.6% below 4%
+2026-04-13T16:08:57.274Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: candidate confidence 52% below 81%
+2026-04-13T16:09:01.249Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:09:06.975Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:09:07.206Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=72.1% D=27.9% | ml: edge -26.0% below 5%
+2026-04-13T16:10:05.261Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:10PM-12:15PM ET | beat=$72,022.80 | ends 16:15:00 UTC
+2026-04-13T16:10:05.480Z  [SIGNAL/OBSERVE] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: edge -40.0% below 5%
+2026-04-13T16:10:06.316Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:10:33.128Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=48.8% D=51.2% | ml: edge +2.4% below 5%
+2026-04-13T16:10:41.926Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:10:47.667Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:11:03.192Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T16:12:23.315Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%
+2026-04-13T16:12:28.684Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T16:12:50.268Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:13:02.914Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:13:03.531Z  [SIGNAL/RESERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 82%
+2026-04-13T16:13:08.509Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:13:24.383Z  [SIGNAL/RESERVE] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: candidate confidence 59% below 82%
+2026-04-13T16:13:44.127Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: edge +0.4% below 3%
+2026-04-13T16:14:09.557Z  [SIGNAL/LATE_EXEC] SKIP conf=0.51 src=ml U=48.8% D=51.2% | ml: edge +2.4% below 5%
+2026-04-13T16:14:13.907Z  [SIGNAL/LATE_EXEC] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 83%
+2026-04-13T16:14:23.690Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=72.1% D=27.9% | ml: candidate confidence 72% below 83%
+2026-04-13T16:14:45.605Z  [SIGNAL/LATE_EXEC] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: candidate confidence 64% below 83%
+2026-04-13T16:14:54.564Z  [SIGNAL/TOO_LATE] SKIP conf=0.83 src=ml U=82.9% D=17.1% | ml: edge -2.4% below 5%
+2026-04-13T16:15:01.745Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:15PM-12:20PM ET | beat=$72,076.38 | ends 16:20:00 UTC
+2026-04-13T16:15:04.543Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: candidate confidence 61% below 70%
+2026-04-13T16:15:08.217Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:16:25.557Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:16:31.260Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:17:15.259Z  [SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge +3.4% below 5%
+2026-04-13T16:17:17.429Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:17:22.947Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:17:25.156Z  [SIGNAL/OBSERVE] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: candidate confidence 59% below 70%
+2026-04-13T16:17:52.155Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:18:16.133Z  [SIGNAL/RESERVE] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 82%
+2026-04-13T16:18:32.391Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: edge -16.6% below 3%
+2026-04-13T16:18:45.479Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: edge -11.3% below 3%
+2026-04-13T16:19:11.693Z  [SIGNAL/LATE_EXEC] SKIP conf=0.81 src=ml U=81.5% D=18.5% | ml: edge -16.0% below 5%
+2026-04-13T16:19:21.666Z  [SIGNAL/LATE_EXEC] SKIP conf=0.93 src=ml U=93.2% D=6.8% | ml: edge -5.9% below 5%
+2026-04-13T16:19:46.770Z  [SIGNAL/LATE_EXEC] SKIP conf=0.99 src=ml U=98.9% D=1.1% | ml: edge -0.1% below 5%
+2026-04-13T16:19:51.103Z  [SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-13T16:20:03.431Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:20PM-12:25PM ET | beat=$72,155.34 | ends 16:25:00 UTC
+2026-04-13T16:20:04.348Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:20:16.513Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T16:20:36.270Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%
+2026-04-13T16:21:00.366Z  [SIGNAL/OBSERVE] SKIP conf=0.63 src=ml U=37.0% D=63.0% | ml: candidate confidence 63% below 70%
+2026-04-13T16:22:53.910Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:23:23.715Z  [SIGNAL/RESERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 82%
+2026-04-13T16:23:47.798Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: candidate confidence 71% below 81%
+2026-04-13T16:24:25.291Z  [SIGNAL/LATE_EXEC] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge -44.4% below 5%
+2026-04-13T16:24:34.181Z  [SIGNAL/LATE_EXEC] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 83%
+2026-04-13T16:24:47.438Z  [SIGNAL/LATE_EXEC] SKIP conf=0.93 src=ml U=93.2% D=6.8% | ml: edge -5.9% below 5%
+2026-04-13T16:24:52.856Z  [SIGNAL/TOO_LATE] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.4% below 5%
+2026-04-13T16:25:03.298Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:25PM-12:30PM ET | beat=$72,262.87 | ends 16:30:00 UTC
+2026-04-13T16:25:08.203Z  [SIGNAL/OBSERVE] SKIP conf=0.53 src=ml U=46.7% D=53.3% | ml: candidate confidence 53% below 70%
+2026-04-13T16:25:09.167Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:25:09.361Z  [OB] refresh failed for 86986441…: 
+2026-04-13T16:26:13.045Z  [SIGNAL/OBSERVE] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: candidate confidence 61% below 70%
+2026-04-13T16:26:48.265Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=28.1% D=71.9% | ml: BUY_DOWN prob=72% edge=+43.8%
+2026-04-13T16:26:53.678Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.81 src=ml U=18.9% D=81.1% | ml: BUY_DOWN prob=81% edge=+62.2%
+2026-04-13T16:26:56.371Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:26:59.279Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%
+2026-04-13T16:27:01.947Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:27:28.955Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.81 src=ml U=18.9% D=81.1% | ml: BUY_DOWN prob=81% edge=+62.2%
+2026-04-13T16:27:47.725Z  [SIGNAL/OBSERVE] SKIP conf=0.85 src=ml U=14.6% D=85.4% | ml: edge -6.1% below 5%
+2026-04-13T16:27:48.729Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.97 src=ml U=3.4% D=96.6% | ml: BUY_DOWN prob=97% edge=+6.2%
+2026-04-13T16:27:55.718Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:28:02.251Z  [SIGNAL/RESERVE] SKIP conf=0.81 src=ml U=18.9% D=81.1% | ml: candidate confidence 81% below 82%
+2026-04-13T16:28:22.171Z  [SIGNAL/RESERVE] BUY_DOWN conf=0.85 src=ml U=14.6% D=85.4% | ml: BUY_DOWN prob=85% edge=+70.8%
+2026-04-13T16:29:35.952Z  [SIGNAL/LATE_EXEC] SKIP conf=0.52 src=ml U=52.0% D=48.0% | ml: edge +4.0% below 5%
+2026-04-13T16:30:01.040Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:30PM-12:35PM ET | beat=$72,278.05 | ends 16:35:00 UTC
+2026-04-13T16:30:06.489Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:30:14.380Z  [SIGNAL/OBSERVE] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: candidate confidence 64% below 70%
+2026-04-13T16:30:19.999Z  [SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge -0.5% below 5%
+2026-04-13T16:31:45.652Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 70%
+2026-04-13T16:31:51.138Z  [OB] refresh failed for 75129135…: 
+2026-04-13T16:32:22.204Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:32:27.818Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:32:57.490Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:33:16.317Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: edge -4.3% below 4%
+2026-04-13T16:33:22.967Z  [SIGNAL/RESERVE] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: candidate confidence 71% below 82%
+2026-04-13T16:33:26.274Z  [SIGNAL/RESERVE] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 82%
+2026-04-13T16:33:41.571Z  [SIGNAL/EARLY_EXEC] BUY_UP conf=0.81 src=ml U=81.5% D=18.5% | ml: BUY_UP prob=81% edge=+62.9%
+2026-04-13T16:33:41.572Z  [SHADOW] BUY_UP conf=81% — blocked by GATE_LOW_CONF
+2026-04-13T16:34:04.826Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=72.1% D=27.9% | ml: candidate confidence 72% below 83%
+2026-04-13T16:34:05.832Z  [SIGNAL/LATE_EXEC] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: edge -21.3% below 5%
+2026-04-13T16:34:11.431Z  [SIGNAL/LATE_EXEC] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: candidate confidence 71% below 83%
+2026-04-13T16:34:13.211Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:34:18.692Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:34:31.032Z  [SIGNAL/LATE_EXEC] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: edge -31.2% below 5%
+2026-04-13T16:34:52.857Z  [SIGNAL/TOO_LATE] SKIP conf=0.72 src=ml U=28.1% D=71.9% | ml: edge -16.4% below 5%
+2026-04-13T16:35:04.698Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:35PM-12:40PM ET | beat=$72,265.31 | ends 16:40:00 UTC
+2026-04-13T16:35:10.272Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:35:16.800Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=48.8% D=51.2% | ml: edge +2.4% below 5%
+2026-04-13T16:36:47.948Z  [SIGNAL/OBSERVE] BUY_UP conf=0.71 src=ml U=71.0% D=29.0% | ml: BUY_UP prob=71% edge=+41.9%
+2026-04-13T16:36:56.671Z  [SIGNAL/OBSERVE] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: edge -4.1% below 5%
+2026-04-13T16:37:13.250Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=48.8% D=51.2% | ml: candidate confidence 51% below 70%
+2026-04-13T16:37:57.167Z  [SIGNAL/OBSERVE] BUY_UP conf=0.71 src=ml U=71.0% D=29.0% | ml: BUY_UP prob=71% edge=+41.9%
+2026-04-13T16:37:59.370Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:38:12.593Z  [SIGNAL/RESERVE] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: candidate confidence 71% below 82%
+2026-04-13T16:38:22.356Z  [SIGNAL/RESERVE] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge +3.4% below 4%
+2026-04-13T16:38:37.663Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.51 src=ml U=48.8% D=51.2% | ml: candidate confidence 51% below 81%
+2026-04-13T16:40:00.351Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:40PM-12:45PM ET | beat=$72,321.88 | ends 16:45:00 UTC
+2026-04-13T16:40:05.869Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:40:07.785Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T16:40:33.243Z  [SIGNAL/OBSERVE] BUY_UP conf=0.81 src=ml U=81.5% D=18.5% | ml: BUY_UP prob=81% edge=+62.9%
+2026-04-13T16:40:49.694Z  [SIGNAL/OBSERVE] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: candidate confidence 59% below 70%
+2026-04-13T16:40:54.072Z  [SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge +3.4% below 5%
+2026-04-13T16:42:04.132Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.82 src=ml U=18.1% D=81.9% | ml: BUY_DOWN prob=82% edge=+67.2%
+2026-04-13T16:42:53.965Z  [MKTWS] error: no close frame received or sent, reconnecting…
+2026-04-13T16:42:59.425Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:43:01.210Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:43:14.441Z  [SIGNAL/RESERVE] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: candidate confidence 61% below 82%
+2026-04-13T16:44:24.239Z  [SIGNAL/LATE_EXEC] SKIP conf=0.64 src=ml U=64.3% D=35.7% | ml: candidate confidence 64% below 85%
+2026-04-13T16:45:02.968Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:45PM-12:50PM ET | beat=$72,344.29 | ends 16:50:00 UTC
+2026-04-13T16:45:08.430Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:45:35.645Z  [SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=48.2% D=51.8% | ml: edge +3.6% below 5%
+2026-04-13T16:47:56.212Z  [SIGNAL/OBSERVE] SKIP conf=0.81 src=ml U=81.5% D=18.5% | ml: edge -7.4% below 5%
+2026-04-13T16:48:03.477Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T16:49:10.284Z  [SIGNAL/LATE_EXEC] SKIP conf=0.72 src=ml U=72.1% D=27.9% | ml: candidate confidence 72% below 83%
+2026-04-13T16:51:15.077Z  [MKT] Window: Bitcoin Up or Down - April 13, 12:50PM-12:55PM ET | beat=$72,385.84 | ends 16:55:00 UTC
+2026-04-13T16:51:58.358Z  [MKTWS] Market WebSocket connected
+2026-04-13T16:52:18.739Z  [BTC] reconnecting after error: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2026-04-13T16:52:22.215Z  [BTC] Binance WebSocket connected
+2026-04-13T17:09:07.008Z  [HL] reconnecting after error: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2026-04-13T17:24:44.042Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:24:44.060Z  [MKT] Window ended, searching for next…
+2026-04-13T17:24:47.047Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:24:47.551Z  [MKTWS] idle 30s, reconnecting…
+2026-04-13T17:25:13.921Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:25:16.939Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:25:18.392Z  [BTC] reconnecting after error: no close frame received or sent
+2026-04-13T17:25:19.944Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:40:47.797Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:40:49.350Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:40:50.801Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:40:52.355Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:56:35.601Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:56:37.157Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T17:56:38.607Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:12:25.959Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:12:27.411Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:12:28.962Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:12:30.418Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:28:47.745Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:28:49.363Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:28:50.752Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:45:42.181Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:45:43.576Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:45:45.198Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:45:46.581Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:38.429Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:40.093Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:41.434Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:43.099Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:44.442Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:46.104Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:47.478Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:49.109Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:50.483Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:52.114Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:53.486Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:55.118Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:56.489Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:58.134Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:47:59.493Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:48:01.139Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:48:02.496Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:48:04.143Z  [HL] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:48:05.501Z  [BTC] reconnecting after error: [Errno 8] nodename nor servname provided, or not known
+2026-04-13T18:48:07.483Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T18:48:07.946Z  [MKT] ⚠ Beat price extraction failed — using Binance spot $72,309.59 as fallback. Oracle divergence risk elevated.
+2026-04-13T18:48:07.947Z  [MKT] Window: Bitcoin Up or Down - April 13, 2:45PM-2:50PM ET | beat=$72,309.59 | ends 18:50:00 UTC
+2026-04-13T18:48:08.889Z  [BTC] Binance WebSocket connected
+2026-04-13T18:48:09.015Z  [MKTWS] Market WebSocket connected
+2026-04-13T18:48:47.523Z  [SIGNAL/EARLY_EXEC] BUY_UP conf=0.83 src=ml U=82.9% D=17.1% | ml: BUY_UP prob=83% edge=+65.9%
+2026-04-13T18:48:47.525Z  [SHADOW] BUY_UP conf=83% — blocked by GATE_LOW_CONF
+2026-04-13T18:50:01.500Z  [MKT] Window: Bitcoin Up or Down - April 13, 2:50PM-2:55PM ET | beat=$72,361.90 | ends 18:55:00 UTC
+2026-04-13T18:50:06.976Z  [MKTWS] Market WebSocket connected
+2026-04-13T18:50:19.010Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T18:51:48.935Z  [SIGNAL/OBSERVE] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: edge -5.7% below 5%
+2026-04-13T18:53:05.279Z  [BOT] Starting up…
+2026-04-13T18:53:05.383Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-13T18:53:05.537Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-13T18:53:05.982Z  [PAPER] Warmed 3153 resolved paper analytics entries
+2026-04-13T18:53:05.982Z  [PAPER] Restored 16443 pending paper prediction(s)
+2026-04-13T18:53:05.985Z  [CLAIM] Warmed 54 claim record(s)
+2026-04-13T18:53:06.086Z  [ML] Activated model 20260413T160756Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T18:53:07.861Z  [CONTINUITY] mode=paper model=20260413T160756Z-s20 state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T18:53:07.861Z  [CONTINUITY] recent24 buy=100% exec=4% fail=4% reserve=33% | recent100 buy=100% exec=33% fail=11%
+2026-04-13T18:53:08.056Z  [ML] Starting background bootstrap
+2026-04-13T18:53:08.145Z  [MKT] Window: Bitcoin Up or Down - April 13, 2:50PM-2:55PM ET | beat=$0.00 | ends 18:55:00 UTC
+2026-04-13T18:53:08.307Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T18:53:08.636Z  [BTC] Binance WebSocket connected
+2026-04-13T18:53:09.100Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T18:53:10.961Z  [MKTWS] Market WebSocket connected
+2026-04-13T18:53:13.513Z  [MKT] Beat price set retroactively: $72,393.15
+2026-04-13T18:53:16.656Z  [ML] Activated model 20260413T185316Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T18:53:17.614Z  [ML] Bootstrap trained 20260413T185316Z-s20 state=active ap=0.739 cv_ap=0.753 ev=+0.54
+2026-04-13T18:54:35.027Z  [SIGNAL/LATE_EXEC] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: candidate confidence 59% below 85%
+2026-04-13T18:55:01.463Z  [MKT] Window: Bitcoin Up or Down - April 13, 2:55PM-3:00PM ET | beat=$72,444.85 | ends 19:00:00 UTC
+2026-04-13T18:55:07.067Z  [MKTWS] Market WebSocket connected
+2026-04-13T18:56:12.163Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: edge -25.7% below 5%
+2026-04-13T18:58:11.267Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T18:58:51.956Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.72 src=ml U=72.1% D=27.9% | ml: candidate confidence 72% below 81%
+2026-04-13T19:00:03.423Z  [MKT] Window: Bitcoin Up or Down - April 13, 3:00PM-3:05PM ET | beat=$72,471.70 | ends 19:05:00 UTC
+2026-04-13T19:00:06.615Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: edge -5.1% below 5%
+2026-04-13T19:00:08.902Z  [MKTWS] Market WebSocket connected
+2026-04-13T19:01:14.082Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%
+2026-04-13T19:02:33.516Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=28.1% D=71.9% | ml: BUY_DOWN prob=72% edge=+43.8%
+2026-04-13T19:03:13.141Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok

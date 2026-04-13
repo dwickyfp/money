@@ -111,25 +111,28 @@
       "wins": 0
     },
     "shadow": {
-      "losses": 0,
-      "pnl": 0.0,
-      "total": 0,
-      "win_rate": 0.0,
-      "wins": 0
+      "losses": 1,
+      "pnl": 0.302501,
+      "total": 9,
+      "win_rate": 88.89,
+      "wins": 8
     },
     "status": {
       "activation_reason": "scheduled_retrain",
-      "active_model_version": "20260413T135851Z-s20",
+      "active_model_version": "20260413T185316Z-s20",
       "active_signal_source": "ml",
       "applied_state": "active",
-      "balance_usdc": 0.0,
+      "balance_usdc": 0.740051,
       "bets_this_hour": 0,
-      "claim_last_scan_at": 0.0,
+      "claim_last_scan_at": 1776106992.353108,
       "claim_last_scan_candidates": 0,
       "claim_last_scan_error": "",
-      "claim_last_scan_identities": [],
-      "claim_last_scan_status": "",
-      "claim_last_scan_trigger": "",
+      "claim_last_scan_identities": [
+        "address:0x6590\u202647b0",
+        "funder:0x6B41\u2026578a"
+      ],
+      "claim_last_scan_status": "address:ok,funder:ok",
+      "claim_last_scan_trigger": "scheduled",
       "claimable_total": 42.5431,
       "claimed_today_count": 0,
       "daily_budget_left_usdc": null,
@@ -147,6 +150,8 @@
       "mode": "paper",
       "open_positions": 0,
       "open_shadow_orders": 0,
+      "paper_trade_pnl_today": 0.0,
+      "paper_trade_pnl_total": 21.783461,
       "participation_recent100": {
         "blocked_profitable_rate": {
           "GATE_BANDAR_PUSH": 0.8571,
@@ -343,28 +348,30 @@
       "polymarket_session": {
         "can_refresh_credentials": true,
         "consecutive_auth_failures": 0,
-        "creds_refreshed_at": "2026-04-13T14:54:57.916Z",
+        "creds_refreshed_at": "2026-04-13T18:53:05.241Z",
         "generation": 0,
         "has_l2_credentials": true,
         "last_auth_error": "",
         "last_auth_failure_at": "",
-        "last_auth_success_at": "",
+        "last_auth_success_at": "2026-04-13T19:03:10.143Z",
         "last_heartbeat_ok_at": "",
-        "last_positions_checked_at": "",
+        "last_positions_checked_at": "2026-04-13T19:03:12.772Z",
         "last_positions_error": "",
-        "last_positions_status": "",
-        "last_positions_user": "",
-        "market_ws_connected": false,
-        "market_ws_last_message_at": "",
+        "last_positions_status": "ok",
+        "last_positions_user": "0x6B41\u2026578a",
+        "market_ws_connected": true,
+        "market_ws_last_message_at": "2026-04-13T19:03:13.139Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
       "shadow_order_losses_today": 1,
       "shadow_order_losses_total": 1,
+      "shadow_order_pnl_today": 0.302501,
+      "shadow_order_pnl_total": 0.302501,
       "shadow_order_wins_today": 8,
       "shadow_order_wins_total": 8,
-      "threshold_profile_version": "auto_0.81_0.81_0.81",
-      "updated_at": "2026-04-13T14:54:59.695Z"
+      "threshold_profile_version": "auto_0.82_0.81_0.81",
+      "updated_at": "2026-04-13T19:03:14.363Z"
     }
   }
 }

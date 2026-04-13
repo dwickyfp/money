@@ -173,6 +173,7 @@ MAX_EXECUTION_SPREAD   = float(os.getenv("MAX_EXECUTION_SPREAD", "0.03"))
 MAX_EXECUTION_QUOTE_AGE_S = float(os.getenv("MAX_EXECUTION_QUOTE_AGE_S", "2.0"))
 ALLOW_FALLBACK_EXECUTION_QUOTES = os.getenv("ALLOW_FALLBACK_EXECUTION_QUOTES", "false").lower() == "true"
 STRICT_REAL_PAPER_QUOTES = os.getenv("STRICT_REAL_PAPER_QUOTES", "true").lower() == "true"
+SHADOW_ESTIMATED_FALLBACK = os.getenv("SHADOW_ESTIMATED_FALLBACK", "true").lower() == "true"
 DEGRADED_MODE_CONF_BUMP = float(os.getenv("DEGRADED_MODE_CONF_BUMP", "0.04"))
 DEGRADED_MODE_EDGE_BUMP = float(os.getenv("DEGRADED_MODE_EDGE_BUMP", "0.03"))
 DEGRADED_MIN_RECENT_WIN_RATE = float(os.getenv("DEGRADED_MIN_RECENT_WIN_RATE", "0.80"))
@@ -188,6 +189,8 @@ TELEGRAM_STATUS_INTERVAL_S = int(os.getenv("TELEGRAM_STATUS_INTERVAL_S", "300"))
 SIGNAL_NOTIFY_MIN_STREAK = int(os.getenv("SIGNAL_NOTIFY_MIN_STREAK", "2"))
 SIGNAL_NOTIFY_IMMEDIATE_CONF = float(os.getenv("SIGNAL_NOTIFY_IMMEDIATE_CONF", "0.88"))
 SHADOW_ORDERS_ENABLED = os.getenv("SHADOW_ORDERS_ENABLED", "true").lower() == "true"
+SHADOW_ESTIMATED_FILL_STATUS = "filled_estimated_shadow"
+SHADOW_ESTIMATED_FILL_CONFIDENCE = "estimated_shadow"
 SHADOW_NO_FILL_STATUSES = {
     "no_fill_no_orderbook",
     "no_fill_min_order",
@@ -554,8 +557,16 @@ class BotLogger:
             "fill_source": getattr(position, "fill_source", ""),
             "fill_status": getattr(position, "fill_status", ""),
             "fill_confidence": getattr(position, "fill_confidence", ""),
+            "strict_real_fill": getattr(position, "strict_real_fill", True),
+            "training_eligible": getattr(position, "training_eligible", True),
             "orderbook_timestamp": getattr(position, "orderbook_timestamp", 0.0),
+            "actual_winner": getattr(position, "actual_winner", ""),
+            "settlement_price": getattr(position, "settlement_price", 0.0),
             "settlement_confidence": getattr(position, "settlement_confidence", ""),
+            "resolved_at": (
+                getattr(position, "resolved_at", None).isoformat()
+                if getattr(position, "resolved_at", None) else ""
+            ),
         }
 
     @staticmethod
@@ -587,6 +598,8 @@ class BotLogger:
             "fill_source": getattr(record, "fill_source", ""),
             "fill_status": getattr(record, "fill_status", ""),
             "fill_confidence": getattr(record, "fill_confidence", ""),
+            "strict_real_fill": getattr(record, "strict_real_fill", True),
+            "training_eligible": getattr(record, "training_eligible", True),
             "orderbook_timestamp": getattr(record, "orderbook_timestamp", 0.0),
             "quote_age_s": getattr(record, "quote_age_s", 0.0),
             "settlement_source": getattr(record, "settlement_source", ""),
@@ -644,6 +657,8 @@ class BotLogger:
             "fill_source": getattr(order, "fill_source", ""),
             "fill_status": getattr(order, "fill_status", ""),
             "fill_confidence": getattr(order, "fill_confidence", ""),
+            "strict_real_fill": getattr(order, "strict_real_fill", True),
+            "training_eligible": getattr(order, "training_eligible", True),
             "orderbook_timestamp": getattr(order, "orderbook_timestamp", 0.0),
             "quote_age_s": getattr(order, "quote_age_s", 0.0),
             "blocked_gate": getattr(order, "blocked_gate", ""),
@@ -653,6 +668,7 @@ class BotLogger:
             "shadow_order_pnl_usdc": getattr(order, "pnl", 0.0),
             "pnl": getattr(order, "pnl", 0.0),
             "actual_winner": getattr(order, "actual_winner", ""),
+            "settlement_price": getattr(order, "settlement_price", 0.0),
             "settlement_source": getattr(order, "settlement_source", ""),
             "settlement_low_confidence": getattr(order, "settlement_low_confidence", False),
             "settlement_confidence": getattr(order, "settlement_confidence", ""),
@@ -928,7 +944,10 @@ class BotLogger:
             "raw_confidence":     position.ai_raw_confidence,
             "alignment":          position.signal_alignment,
             "execution_bucket":   getattr(position, "execution_bucket", ""),
-            "resolved_at":        self._ts(),
+            "resolved_at":        (
+                getattr(position, "resolved_at", None).isoformat()
+                if getattr(position, "resolved_at", None) else self._ts()
+            ),
             **self._position_audit_fields(position),
         })
 
@@ -1375,6 +1394,8 @@ class BotLogger:
             "paper_trade_losses_total": 0,
             "paper_trade_wins_today": 0,
             "paper_trade_losses_today": 0,
+            "paper_trade_pnl_total": 0.0,
+            "paper_trade_pnl_today": 0.0,
             "live_trade_wins_total": 0,
             "live_trade_losses_total": 0,
             "live_trade_wins_today": 0,
@@ -1383,6 +1404,8 @@ class BotLogger:
             "shadow_order_losses_total": 0,
             "shadow_order_wins_today": 0,
             "shadow_order_losses_today": 0,
+            "shadow_order_pnl_total": 0.0,
+            "shadow_order_pnl_today": 0.0,
             "shadow_by_gate": shadow_by_gate,
         }
 
@@ -1434,6 +1457,10 @@ class BotLogger:
                                 counts["shadow_order_losses_total"] += 1
                                 if _is_today(record):
                                     counts["shadow_order_losses_today"] += 1
+                            shadow_pnl = float(record.get("shadow_order_pnl_usdc", record.get("pnl", 0.0)) or 0.0)
+                            counts["shadow_order_pnl_total"] += shadow_pnl
+                            if _is_today(record):
+                                counts["shadow_order_pnl_today"] += shadow_pnl
 
                             gate = str(record.get("blocked_gate", "") or "")
                             if gate:
@@ -1502,6 +1529,7 @@ class BotLogger:
                         if unique_key and unique_key not in resolved_trade_keys:
                             resolved_trade_keys.add(unique_key)
                             count_key = "paper_trade" if event == "paper_trade_resolved" else "live_trade"
+                            pnl_value = float(record.get("pnl", record.get("realized_pnl_usdc", 0.0)) or 0.0)
                             if won_value:
                                 counts[f"{count_key}_wins_total"] += 1
                                 if _is_today(record):
@@ -1510,6 +1538,10 @@ class BotLogger:
                                 counts[f"{count_key}_losses_total"] += 1
                                 if _is_today(record):
                                     counts[f"{count_key}_losses_today"] += 1
+                            if count_key == "paper_trade":
+                                counts["paper_trade_pnl_total"] += pnl_value
+                                if _is_today(record):
+                                    counts["paper_trade_pnl_today"] += pnl_value
 
                         if prediction_id:
                             trade_results_by_prediction[prediction_id] = won_value
@@ -5137,18 +5169,31 @@ class TelegramNotifier:
         """New market window detected."""
         if not self._enabled:
             return
+        def _pnl_s(value: float) -> str:
+            pnl = float(value or 0.0)
+            return f"{'+' if pnl >= 0.0 else '-'}${abs(pnl):.2f}"
+
         record_line = ""
         shadow_line = ""
         balance_line = ""
         if state is not None:
-            record_line = (
-                f"Record: Win {state.win_count} / Lose {state.loss_count}  "
-                f"Winrate: {state.win_rate:.1f}%\n"
-            )
+            if LIVE_TRADING:
+                record_line = (
+                    f"Record: Win {state.win_count} / Lose {state.loss_count}  "
+                    f"Winrate: {state.win_rate:.1f}%  PnL: {_pnl_s(state.total_pnl)}\n"
+                )
+            else:
+                record_line = (
+                    f"Paper: Win {state.paper_stats.paper_trade_wins_total} / "
+                    f"Lose {state.paper_stats.paper_trade_losses_total}  "
+                    f"Winrate: {state.paper_stats.paper_trade_win_rate:.1f}%  "
+                    f"PnL: {_pnl_s(state.paper_stats.paper_trade_pnl_total)}\n"
+                )
             shadow_line = (
                 f"Shadow: Win {state.paper_stats.shadow_order_wins_total} / "
                 f"Lose {state.paper_stats.shadow_order_losses_total}  "
-                f"Winrate: {state.paper_stats.shadow_order_win_rate:.1f}%\n"
+                f"Winrate: {state.paper_stats.shadow_order_win_rate:.1f}%  "
+                f"PnL: {_pnl_s(state.paper_stats.shadow_order_pnl_total)}\n"
             )
             if state.balance_usdc > 0:
                 balance_line = f"Balance: <code>${state.balance_usdc:.2f} USDC</code>\n"
@@ -5299,13 +5344,17 @@ class TelegramNotifier:
             )
             self._fire(text)
             return
+        estimated = order.fill_confidence == SHADOW_ESTIMATED_FILL_CONFIDENCE
+        title = "SHADOW ORDER OPEN (EST.)" if estimated else "SHADOW ORDER OPEN"
+        strict_line = "Strict real fill: <code>no</code>\n" if estimated else ""
         text = (
-            f"🧪 <b>SHADOW ORDER OPEN</b> {emoji}  [PAPER]\n"
+            f"🧪 <b>{title}</b> {emoji}  [PAPER]\n"
             f"Direction: <b>{html.escape(order.direction)}</b>  "
             f"Target: <code>${order.target_amount_usdc:.2f}</code>  "
             f"Spent: <code>${order.amount_usdc:.2f}</code> @ {order.entry_price:.3f}\n"
             f"Net shares: <code>{order.size:.4f}</code>  Fee: <code>${order.fee_usdc:.4f}</code>\n"
             f"Net EV: <code>{net_ev_s}</code>  Gate: <code>{html.escape(order.blocked_gate or 'EXECUTION_HOLD')}</code>\n"
+            f"{strict_line}"
             f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
             f"Fill: <code>{html.escape(order.fill_source or order.liquidity_source or 'unknown')}</code>  "
             f"Fee source: <code>{html.escape(order.fee_source or order.fee_rate_source or 'unknown')}</code>  "
@@ -5317,64 +5366,85 @@ class TelegramNotifier:
         """Send the win/loss result for a paper-only shadow order."""
         if not self._enabled:
             return
-        if order.won is True:
-            emoji = "✅"
-            status_label = "WON"
-        elif order.won is False:
-            emoji = "❌"
-            status_label = "LOST"
-        elif order.status == "unresolved_official_settlement":
-            emoji = "⏳"
-            status_label = "UNRESOLVED"
-        else:
-            emoji = "➖"
-            status_label = "VOID"
-        pnl = float(order.pnl or 0.0)
-        pnl_s = f"{'+' if pnl >= 0 else '-'}${abs(pnl):.2f}"
-        source = html.escape(order.settlement_source or "unknown")
-        if order.settlement_low_confidence:
-            source = f"{source} low-confidence"
-        text = (
-            f"{emoji} <b>SHADOW ORDER {status_label}</b>  [PAPER]  <code>{pnl_s}</code>\n"
-            f"Direction: {html.escape(order.direction)}  Entry: {order.entry_price:.3f}  "
-            f"Winner: <b>{html.escape(order.actual_winner or 'UNKNOWN')}</b>\n"
-            f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
-            f"Settlement: <code>{source}</code>\n"
-            f"Order: <code>{html.escape(order.shadow_order_id)}</code>"
-        )
-        self._fire(text)
+        tag = "Shadow EST." if order.fill_confidence == SHADOW_ESTIMATED_FILL_CONFIDENCE else "Shadow"
+        self._fire(self._format_compact_order_result(
+            status=order.status,
+            won=order.won,
+            direction=order.direction,
+            winner=order.actual_winner,
+            entry_btc=order.beat_price,
+            exit_btc=order.settlement_price,
+            amount_usdc=order.amount_usdc or order.actual_spend_usdc or order.target_amount_usdc,
+            entry_odds=order.entry_price,
+            resolved_at=order.resolved_at,
+            tag=tag,
+        ))
 
     def notify_result(self, pos: "Position", state: "BotState") -> None:
         """Bet resolved — won or lost."""
         if not self._enabled:
             return
-        if pos.status == "won":
-            emoji = "✅"
-            pnl_s = f"+${pos.pnl:.2f}" if pos.pnl is not None else "?"
-            status_label = "WON"
-        elif pos.status == "lost":
-            emoji = "❌"
-            pnl_s = f"-${abs(pos.pnl):.2f}" if pos.pnl is not None else "?"
-            status_label = "LOST"
-        elif pos.status == "unresolved_official_settlement":
-            emoji = "⏳"
-            pnl_s = "$0.00"
-            status_label = "UNRESOLVED"
-        else:
-            emoji = "➖"
-            pnl_s = f"${pos.pnl:.2f}" if pos.pnl is not None else "$0.00"
-            status_label = "VOID"
-        wr = state.win_rate
-        mode_tag = "PAPER" if pos.simulated else "LIVE"
-        text = (
-            f"{emoji} <b>{status_label}</b>  [{mode_tag}]  {pnl_s}\n"
-            f"Direction: {pos.direction}  Entry: {pos.entry_price:.3f}\n"
-            f"Beat was: <code>${pos.window_beat:,.2f}</code>\n"
-            f"Record: {state.win_count}W / {state.loss_count}L  "
-            f"({wr:.1f}%)  Total PnL: {'+' if state.total_pnl >= 0 else ''}"
-            f"${state.total_pnl:.2f}"
+        won = True if pos.status == "won" else False if pos.status == "lost" else None
+        self._fire(self._format_compact_order_result(
+            status=pos.status,
+            won=won,
+            direction=pos.direction,
+            winner=getattr(pos, "actual_winner", ""),
+            entry_btc=pos.window_beat,
+            exit_btc=getattr(pos, "settlement_price", 0.0),
+            amount_usdc=pos.amount_usdc or pos.actual_spend_usdc or pos.target_amount_usdc,
+            entry_odds=pos.entry_price,
+            resolved_at=getattr(pos, "resolved_at", None),
+        ))
+
+    @staticmethod
+    def _format_result_time_wib(resolved_at: datetime | None) -> str:
+        resolved = resolved_at or datetime.now(_UTC)
+        if resolved.tzinfo is None:
+            resolved = resolved.replace(tzinfo=_UTC)
+        return resolved.astimezone(timezone(timedelta(hours=7))).strftime("%H:%M WIB")
+
+    @staticmethod
+    def _format_result_status(status: str, won: bool | None) -> str:
+        if won is True or status == "won":
+            return "WON"
+        if won is False or status == "lost":
+            return "LOSE"
+        if status == "unresolved_official_settlement":
+            return "UNRESOLVED"
+        return "VOID"
+
+    @staticmethod
+    def _format_result_btc(value: float) -> str:
+        price = float(value or 0.0)
+        return f"${price:,.2f}" if price > 0.0 else "n/a"
+
+    @classmethod
+    def _format_compact_order_result(
+        cls,
+        *,
+        status: str,
+        won: bool | None,
+        direction: str,
+        winner: str,
+        entry_btc: float,
+        exit_btc: float,
+        amount_usdc: float,
+        entry_odds: float,
+        resolved_at: datetime | None,
+        tag: str = "",
+    ) -> str:
+        status_label = cls._format_result_status(status, won)
+        title = f"ORDER {status_label}"
+        if tag:
+            title = f"{title} ({tag})"
+        winner_label = winner if winner in ("UP", "DOWN") else "UNKNOWN"
+        return (
+            f"{html.escape(title)} - {cls._format_result_time_wib(resolved_at)}\n"
+            f"Direction : {html.escape(direction or 'UNKNOWN')} Winner : {html.escape(winner_label)}\n"
+            f"Entry : {cls._format_result_btc(entry_btc)} -> Exit: {cls._format_result_btc(exit_btc)}\n"
+            f"Amount : ${float(amount_usdc or 0.0):.2f} @ {float(entry_odds or 0.0):.3f}"
         )
-        self._fire(text)
 
     # ── Raw send ──────────────────────────────────────────────────────────────
 
@@ -8141,7 +8211,10 @@ class Position:
     fill_status: str = ""
     fill_confidence: str = ""
     orderbook_timestamp: float = 0.0
+    actual_winner: str = ""
+    settlement_price: float = 0.0
     settlement_confidence: str = ""
+    resolved_at: datetime | None = None
 
 
 @dataclass
@@ -8199,6 +8272,7 @@ class ShadowOrder:
     pnl: float | None = None
     won: bool | None = None
     actual_winner: str = ""
+    settlement_price: float = 0.0
     settlement_source: str = ""
     settlement_low_confidence: bool = False
     settlement_confidence: str = ""
@@ -8220,6 +8294,8 @@ class ShadowOrder:
     fill_source: str = ""
     fill_status: str = "filled"
     fill_confidence: str = "orderbook"
+    strict_real_fill: bool = True
+    training_eligible: bool = True
     orderbook_timestamp: float = 0.0
     quote_age_s: float = 0.0
     confidence: float = 0.0
@@ -8320,6 +8396,8 @@ class WindowPredictionRecord:
     fill_source: str = ""
     fill_status: str = ""
     fill_confidence: str = ""
+    strict_real_fill: bool = True
+    training_eligible: bool = True
     orderbook_timestamp: float = 0.0
     quote_age_s: float = 0.0
     settlement_source: str = ""
@@ -8345,8 +8423,12 @@ class PaperPerformanceStats:
     shadow_order_losses_total: int = 0
     shadow_order_wins_today: int = 0
     shadow_order_losses_today: int = 0
+    paper_trade_pnl_total: float = 0.0
+    paper_trade_pnl_today: float = 0.0
+    shadow_order_pnl_total: float = 0.0
+    shadow_order_pnl_today: float = 0.0
 
-    def apply_counts(self, counts: dict[str, int]) -> None:
+    def apply_counts(self, counts: dict[str, Any]) -> None:
         for key in (
             "prediction_correct_total",
             "prediction_incorrect_total",
@@ -8366,16 +8448,25 @@ class PaperPerformanceStats:
             "shadow_order_losses_today",
         ):
             setattr(self, key, int(counts.get(key, 0) or 0))
+        for key in (
+            "paper_trade_pnl_total",
+            "paper_trade_pnl_today",
+            "shadow_order_pnl_total",
+            "shadow_order_pnl_today",
+        ):
+            setattr(self, key, float(counts.get(key, 0.0) or 0.0))
 
     def reset_today(self) -> None:
         self.prediction_correct_today = 0
         self.prediction_incorrect_today = 0
         self.paper_trade_wins_today = 0
         self.paper_trade_losses_today = 0
+        self.paper_trade_pnl_today = 0.0
         self.live_trade_wins_today = 0
         self.live_trade_losses_today = 0
         self.shadow_order_wins_today = 0
         self.shadow_order_losses_today = 0
+        self.shadow_order_pnl_today = 0.0
 
     def record_prediction(self, correct: bool) -> None:
         if correct:
@@ -8385,21 +8476,27 @@ class PaperPerformanceStats:
             self.prediction_incorrect_total += 1
             self.prediction_incorrect_today += 1
 
-    def record_paper_trade(self, won: bool) -> None:
+    def record_paper_trade(self, won: bool, pnl_usdc: float = 0.0) -> None:
         if won:
             self.paper_trade_wins_total += 1
             self.paper_trade_wins_today += 1
         else:
             self.paper_trade_losses_total += 1
             self.paper_trade_losses_today += 1
+        pnl_value = float(pnl_usdc or 0.0)
+        self.paper_trade_pnl_total += pnl_value
+        self.paper_trade_pnl_today += pnl_value
 
-    def record_shadow_order(self, won: bool) -> None:
+    def record_shadow_order(self, won: bool, pnl_usdc: float = 0.0) -> None:
         if won:
             self.shadow_order_wins_total += 1
             self.shadow_order_wins_today += 1
         else:
             self.shadow_order_losses_total += 1
             self.shadow_order_losses_today += 1
+        pnl_value = float(pnl_usdc or 0.0)
+        self.shadow_order_pnl_total += pnl_value
+        self.shadow_order_pnl_today += pnl_value
 
     @property
     def prediction_total(self) -> int:
@@ -9105,10 +9202,14 @@ class TradingBot:
                     order for order in self.state.shadow_orders.values()
                     if order.status == "open"
                 ]),
+                "paper_trade_pnl_total": round(float(self.state.paper_stats.paper_trade_pnl_total or 0.0), 6),
+                "paper_trade_pnl_today": round(float(self.state.paper_stats.paper_trade_pnl_today or 0.0), 6),
                 "shadow_order_wins_total": int(self.state.paper_stats.shadow_order_wins_total or 0),
                 "shadow_order_losses_total": int(self.state.paper_stats.shadow_order_losses_total or 0),
                 "shadow_order_wins_today": int(self.state.paper_stats.shadow_order_wins_today or 0),
                 "shadow_order_losses_today": int(self.state.paper_stats.shadow_order_losses_today or 0),
+                "shadow_order_pnl_total": round(float(self.state.paper_stats.shadow_order_pnl_total or 0.0), 6),
+                "shadow_order_pnl_today": round(float(self.state.paper_stats.shadow_order_pnl_today or 0.0), 6),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
                 "applied_state": self.state.model_activation_status.applied_state,
@@ -9156,12 +9257,17 @@ class TradingBot:
                         except Exception:
                             continue
                         event = str(record.get("event", ""))
-                        if event not in ("paper_trade_resolved", "live_trade_resolved"):
+                        if event not in ("paper_trade_resolved", "live_trade_resolved", "shadow_order_resolved"):
                             continue
                         day_key = str(record.get("resolved_at") or record.get("ts") or "")[:10]
                         if not day_key:
                             continue
-                        order_id = str(record.get("executed_order_id") or record.get("simulated_order_id") or "").strip()
+                        order_id = str(
+                            record.get("executed_order_id")
+                            or record.get("simulated_order_id")
+                            or record.get("shadow_order_id")
+                            or ""
+                        ).strip()
                         unique_key = order_id or f"{record.get('condition_id', '')}:{record.get('placed_at', '')}:{event}"
                         if unique_key in seen:
                             continue
@@ -10178,6 +10284,65 @@ class TradingBot:
             and session.locked_signal == signal.signal
         )
 
+    @staticmethod
+    def _build_estimated_shadow_quote(
+        *,
+        quote: ExecutionQuote,
+        token_id: str,
+        target_amount_usdc: float,
+        entry_odds: float,
+    ) -> ExecutionQuote | None:
+        raw_price = (
+            quote.execution_price
+            or quote.best_ask
+            or quote.avg_price
+            or quote.mid_price
+            or entry_odds
+        )
+        if raw_price <= 0.0 or raw_price >= 1.0:
+            return None
+        price = max(0.01, min(0.99, float(raw_price)))
+        amount = max(0.0, float(target_amount_usdc or 0.0))
+        if amount <= 0.0:
+            return None
+        fee_rate = float(quote.fee_rate or POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+        fee_source = quote.fee_source or quote.fee_rate_source or "fallback_crypto"
+        est = estimate_buy_net_shares(amount, price, fee_rate)
+        if est["net_shares"] <= 0.0:
+            return None
+        liquidity_source = str(quote.liquidity_source or "fallback").strip() or "fallback"
+        if not liquidity_source.endswith("_estimated_shadow"):
+            liquidity_source = f"{liquidity_source}_estimated_shadow"
+        return ExecutionQuote(
+            token_id=token_id,
+            amount_usdc=amount,
+            target_amount_usdc=amount,
+            actual_spend_usdc=amount,
+            unfilled_amount_usdc=0.0,
+            mid_price=quote.mid_price or price,
+            best_bid=quote.best_bid,
+            best_ask=quote.best_ask or price,
+            avg_price=price,
+            spread=quote.spread,
+            gross_shares=est["gross_shares"],
+            net_shares=est["net_shares"],
+            fee_usdc=est["fee_usdc"],
+            fee_shares=est["fee_shares"],
+            fee_rate=fee_rate,
+            fee_rate_source=quote.fee_rate_source or fee_source,
+            fee_rate_bps=quote.fee_rate_bps or fee_rate_to_bps(fee_rate),
+            fee_source=fee_source,
+            min_order_size=quote.min_order_size,
+            enough_liquidity=True,
+            liquidity_source=liquidity_source,
+            fill_source="estimated_shadow",
+            fill_status=SHADOW_ESTIMATED_FILL_STATUS,
+            fill_confidence=SHADOW_ESTIMATED_FILL_CONFIDENCE,
+            orderbook_timestamp=quote.orderbook_timestamp,
+            last_trade_price=quote.last_trade_price,
+            quoted_at_ts=quote.quoted_at_ts,
+        )
+
     async def _open_shadow_order(
         self,
         *,
@@ -10232,6 +10397,18 @@ class TradingBot:
         no_fill_status = no_fill[0] if no_fill is not None else ""
         no_fill_reason = no_fill[1] if no_fill is not None else ""
         filled = no_fill is None
+        estimated_shadow_fill = False
+        if not filled and SHADOW_ESTIMATED_FALLBACK:
+            estimated_quote = self._build_estimated_shadow_quote(
+                quote=quote,
+                token_id=token_id,
+                target_amount_usdc=amount_usdc,
+                entry_odds=float(entry_odds),
+            )
+            if estimated_quote is not None:
+                quote = estimated_quote
+                filled = True
+                estimated_shadow_fill = True
         if not filled and quote.execution_price <= 0.0:
             quote.avg_price = quote.avg_price or entry_odds or 0.0
         if quote.execution_price <= 0.0 and entry_odds <= 0.0:
@@ -10241,6 +10418,16 @@ class TradingBot:
         net_edge_value = calculated_net_edge if net_edge is None else float(net_edge)
         if filled and abs(float(quote.amount_usdc or 0.0) - amount_usdc) < 0.01:
             net_edge_value = calculated_net_edge
+        strict_real_fill = (
+            filled
+            and not estimated_shadow_fill
+            and str(quote.liquidity_source or "").lower() == "orderbook"
+            and str(quote.fill_confidence or "").lower() == "orderbook"
+        )
+        training_eligible = strict_real_fill
+        blocked_reason = reason
+        if no_fill_reason:
+            blocked_reason = f"{no_fill_reason} | estimated shadow for {reason}" if estimated_shadow_fill else no_fill_reason
 
         now_utc = datetime.now(_UTC)
         elapsed_bet = int((now_utc - win.start_time).total_seconds())
@@ -10263,7 +10450,7 @@ class TradingBot:
             actual_spend_usdc=actual_spend,
             unfilled_amount_usdc=quote.unfilled_amount_usdc if filled else amount_usdc,
             blocked_gate=gate,
-            blocked_reason=no_fill_reason or reason,
+            blocked_reason=blocked_reason,
             status="open" if filled else no_fill_status,
             gross_size=quote.gross_shares if filled else 0.0,
             fee_usdc=quote.fee_usdc if filled else 0.0,
@@ -10280,8 +10467,10 @@ class TradingBot:
             liquidity_source=quote.liquidity_source,
             avg_fill_price=quote.avg_price if filled else 0.0,
             fill_source=quote.fill_source,
-            fill_status="filled" if filled else no_fill_status,
-            fill_confidence="orderbook" if filled else "none",
+            fill_status=quote.fill_status if filled else no_fill_status,
+            fill_confidence=quote.fill_confidence if filled else "none",
+            strict_real_fill=strict_real_fill,
+            training_eligible=training_eligible,
             orderbook_timestamp=quote.orderbook_timestamp,
             quote_age_s=quote.quote_age_s,
             confidence=signal.confidence,
@@ -10315,14 +10504,16 @@ class TradingBot:
                 log_blocked = not bool(record.blocked_gate)
                 record.execution_allowed = False
                 record.blocked_gate = gate
-                record.blocked_reason = reason
-                record.decision_reason = reason
+                record.blocked_reason = order.blocked_reason or reason
+                record.decision_reason = order.blocked_reason or reason
                 record.decision_skip_reason_code = gate
                 record.shadow_order_id = order.shadow_order_id
                 record.shadow_order_status = order.status
                 record.execution_mode = "paper_shadow"
                 record.fill_status = order.fill_status
                 record.fill_confidence = order.fill_confidence
+                record.strict_real_fill = order.strict_real_fill
+                record.training_eligible = order.training_eligible
                 record.last_updated_at = now_utc
                 self.state.paper_prediction_records[record.condition_id] = record
                 record_to_log = record
@@ -10345,8 +10536,9 @@ class TradingBot:
             self.state.logger.log_prediction_blocked(record_to_log)
         self.state.logger.log_shadow_order_opened(order)
         if order.status == "open":
+            estimate_tag = " ESTIMATED" if order.fill_confidence == SHADOW_ESTIMATED_FILL_CONFIDENCE else ""
             self.state.log_event(
-                f"[SHADOW_ORDER] OPEN {order.direction} target=${order.target_amount_usdc:.2f} "
+                f"[SHADOW_ORDER] OPEN{estimate_tag} {order.direction} target=${order.target_amount_usdc:.2f} "
                 f"spent=${order.amount_usdc:.2f} @ {order.entry_price:.3f} gate={gate} id={order.shadow_order_id}"
             )
         else:
@@ -12140,6 +12332,7 @@ class TradingBot:
             current.status = "unresolved_official_settlement"
             current.won = None
             current.pnl = 0.0
+            current.settlement_price = settlement_info.settlement_price if settlement_info is not None else 0.0
             current.settlement_source = settlement_info.settlement_source if settlement_info is not None else ""
             current.settlement_low_confidence = True
             current.settlement_confidence = "unresolved_official"
@@ -12235,6 +12428,7 @@ class TradingBot:
             if current is None or current.status != "open":
                 return
             current.actual_winner = actual_winner
+            current.settlement_price = float(settlement_info.settlement_price or 0.0)
             current.won = won
             current.settlement_source = settlement_info.settlement_source
             current.settlement_low_confidence = (
@@ -12254,7 +12448,7 @@ class TradingBot:
                 current.status = "void"
                 current.pnl = 0.0
             if isinstance(won, bool):
-                self.state.paper_stats.record_shadow_order(won)
+                self.state.paper_stats.record_shadow_order(won, float(current.pnl or 0.0))
                 self.state.trade_history.appendleft(TradeHistoryEntry(
                     direction=current.direction,
                     amount_usdc=current.amount_usdc,
@@ -12291,8 +12485,9 @@ class TradingBot:
         self.state.logger.log_shadow_order_resolved(order_to_log)
         if record_to_log is not None:
             self.state.logger.log_prediction_state(record_to_log)
+        estimate_tag = " ESTIMATED" if order_to_log.fill_confidence == SHADOW_ESTIMATED_FILL_CONFIDENCE else ""
         self.state.log_event(
-            f"[SHADOW_ORDER] {order_to_log.direction} {order_to_log.status.upper()} "
+            f"[SHADOW_ORDER] {order_to_log.direction} {order_to_log.status.upper()}{estimate_tag} "
             f"PnL={float(order_to_log.pnl or 0.0):+.2f} actual={actual_winner} "
             f"source={order_to_log.settlement_source}"
         )
@@ -12312,6 +12507,9 @@ class TradingBot:
                 return
             pos.status = "unresolved_official_settlement"
             pos.pnl = 0.0
+            pos.resolved_at = resolved_at
+            pos.actual_winner = ""
+            pos.settlement_price = settlement_info.settlement_price if settlement_info is not None else 0.0
             pos.settlement_confidence = "unresolved_official"
             self._record_daily_budget_close(pos)
             if pos.prediction_row_id:
@@ -12442,6 +12640,7 @@ class TradingBot:
 
     async def _settle_position(self, pos: "Position", actual_winner: str, amount: float) -> None:
         """Apply win/loss to a position and fire all downstream notifications."""
+        resolved_at = datetime.now(_UTC)
         settlement_btc = self._get_settlement_btc(pos)
         settlement_info = self._get_window_settlement_info(
             condition_id=pos.condition_id,
@@ -12451,6 +12650,13 @@ class TradingBot:
         expected_claim: ClaimRecord | None = None
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
+            pos.actual_winner = actual_winner if actual_winner in ("UP", "DOWN") else ""
+            pos.settlement_price = float(
+                settlement_btc
+                or (settlement_info.settlement_price if settlement_info is not None else 0.0)
+                or 0.0
+            )
+            pos.resolved_at = resolved_at
             if settlement_info is not None:
                 pos.settlement_confidence = (
                     "official"
@@ -12506,7 +12712,7 @@ class TradingBot:
                     pnl=pos.pnl or 0.0,
                     status=pos.status,
                     placed_at=pos.placed_at,
-                    closed_at=datetime.now(_UTC),
+                    closed_at=resolved_at,
                     simulated=pos.simulated,
                     order_id=pos.order_id,
                     condition_id=pos.condition_id,
@@ -12518,7 +12724,7 @@ class TradingBot:
                 prediction_record = self.state.prediction_records.get(pos.prediction_row_id)
             if pos.simulated:
                 if isinstance(won, bool):
-                    self.state.paper_stats.record_paper_trade(won)
+                    self.state.paper_stats.record_paper_trade(won, float(pos.pnl or 0.0))
                 if prediction_record is None:
                     prediction_record = self.state.paper_prediction_records.get(pos.condition_id)
                 if prediction_record is not None:
@@ -12538,7 +12744,7 @@ class TradingBot:
                         prediction_record.settlement_confidence = (
                             "official" if not prediction_record.settlement_low_confidence else "low_confidence"
                         )
-                    prediction_record.last_updated_at = datetime.now(_UTC)
+                    prediction_record.last_updated_at = resolved_at
                     self.state.paper_prediction_records[pos.condition_id] = prediction_record
             elif prediction_record is not None:
                 prediction_record.live_trade_won = won
@@ -12556,7 +12762,7 @@ class TradingBot:
                     prediction_record.settlement_confidence = (
                         "official" if not prediction_record.settlement_low_confidence else "low_confidence"
                     )
-                prediction_record.last_updated_at = datetime.now(_UTC)
+                prediction_record.last_updated_at = resolved_at
                 self.state.paper_prediction_records[pos.condition_id] = prediction_record
             self.state.resolved_count += 1
 
@@ -12570,7 +12776,7 @@ class TradingBot:
             condition_id=pos.condition_id,
             beat_price=pos.window_beat,
             resolved_btc_price=settlement_btc,
-            resolved_at=datetime.now(_UTC),
+            resolved_at=resolved_at,
             settlement_info=settlement_info,
         )
         self.state.logger.log_trade_close(pos)
@@ -13003,6 +13209,8 @@ class TradingBot:
                 fill_source=str(raw.get("fill_source", "")),
                 fill_status=str(raw.get("fill_status", "")),
                 fill_confidence=str(raw.get("fill_confidence", "")),
+                strict_real_fill=bool(raw.get("strict_real_fill", True)),
+                training_eligible=bool(raw.get("training_eligible", True)),
                 orderbook_timestamp=float(raw.get("orderbook_timestamp", 0.0) or 0.0),
                 quote_age_s=float(raw.get("quote_age_s", 0.0) or 0.0),
                 settlement_source=str(raw.get("settlement_source", "")),
@@ -14510,6 +14718,10 @@ def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int
         1 for record in shadow_records
         if str(record.get("shadow_order_status") or record.get("status") or "") == "unresolved_official_settlement"
     )
+    shadow_estimated = sum(
+        1 for record in shadow_records
+        if str(record.get("fill_confidence") or "") == SHADOW_ESTIMATED_FILL_CONFIDENCE
+    )
     shadow_pnl = [
         _safe_float(record.get("shadow_order_pnl_usdc"), 0.0)
         for record in shadow_resolved
@@ -14533,6 +14745,7 @@ def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int
         "shadow_resolved": len(shadow_resolved),
         "shadow_no_fill": shadow_no_fill,
         "shadow_unresolved": shadow_unresolved,
+        "shadow_estimated": shadow_estimated,
         "shadow_win_rate": round(shadow_wins / len(shadow_resolved), 4) if shadow_resolved else 0.0,
         "shadow_pnl": round(sum(shadow_pnl), 6) if shadow_pnl else 0.0,
         "avg_net_edge": round(sum(net_edges) / len(net_edges), 6) if net_edges else 0.0,
