@@ -946,3 +946,4 @@
 {"ts": "2026-04-12T20:01:44.841Z", "msg": "[MKTWS] Market WebSocket connected"}
 {"ts": "2026-04-12T20:01:47.772Z", "msg": "[MKT] Beat price set retroactively: $71,133.83"}
 {"ts": "2026-04-12T20:01:47.804Z", "msg": "[ML] Backfilled 78 pending label(s) from feature logs"}
+{"ts": "2026-04-12T20:01:55.557Z", "msg": "[ML] Bootstrap trained 20260412T200154Z-s20 state=shadow ap=0.743 cv_ap=0.754 ev=+0.52"}

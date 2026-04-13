@@ -1185,6 +1185,7 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatc
         monkeypatch.setattr(tf, "LIVE_TRADING", False)
         bot = make_bot(tmp_path)
         bot.market = StubMarket()
+        bot.state.balance_usdc = 0.0
         now = datetime.now(timezone.utc)
         win = make_window(condition_id="0xpaper", beat_price=100.0, end_time=now + timedelta(minutes=1))
         snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
@@ -1218,6 +1219,10 @@ def test_place_trade_opens_simulated_position_in_paper_mode(tmp_path, monkeypatc
         assert entry_odds == pytest.approx(0.56)
         assert simulated is True
         assert kwargs["expected_payout"] == pytest.approx(bot.state.positions[0].size)
+        assert all(
+            "INSUFFICIENT_BALANCE_PRECHECK" not in message
+            for _, message in bot.state.event_log
+        )
 
     asyncio.run(run_case())
 

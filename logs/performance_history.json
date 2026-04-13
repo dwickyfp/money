@@ -305,13 +305,13 @@
         "last_positions_error": "",
         "last_positions_status": "ok",
         "last_positions_user": "0x6B41\u2026578a",
-        "market_ws_connected": false,
-        "market_ws_last_message_at": "",
+        "market_ws_connected": true,
+        "market_ws_last_message_at": "2026-04-12T20:01:54.644Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
       "threshold_profile_version": "rtp_v1",
-      "updated_at": "2026-04-12T20:01:44.328Z"
+      "updated_at": "2026-04-12T20:01:55.556Z"
     }
   }
 }

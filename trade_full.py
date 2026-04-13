@@ -10286,7 +10286,9 @@ class TradingBot:
             self.state.set_engine_status("DECISION_SKIP", gate, reason)
             self.state.log_event(f"[TRADE] Skipped {gate}: {reason}")
 
-        # In live mode use real balance; in paper mode use simulated bankroll.
+        # Paper mode must not depend on the real Polymarket wallet balance.
+        # Keep sizing live-like by using the simulated bankroll, while live mode
+        # uses the real balance when it is available.
         bankroll = (
             self.state.balance_usdc
             if (LIVE_TRADING and self.state.balance_usdc > 1.0)
