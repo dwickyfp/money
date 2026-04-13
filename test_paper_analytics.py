@@ -14,6 +14,8 @@ class DummyNotifier:
     def __init__(self) -> None:
         self.signal_calls = []
         self.shadow_calls = []
+        self.shadow_order_open_calls = []
+        self.shadow_order_result_calls = []
         self.bet_calls = []
         self.result_calls = []
 
@@ -23,6 +25,14 @@ class DummyNotifier:
 
     def notify_shadow_signal(self, signal, win, snap, **kwargs) -> None:
         self.shadow_calls.append((signal.signal, win.condition_id, kwargs))
+        return None
+
+    def notify_shadow_order_opened(self, order) -> None:
+        self.shadow_order_open_calls.append(order)
+        return None
+
+    def notify_shadow_order_result(self, order) -> None:
+        self.shadow_order_result_calls.append(order)
         return None
 
     def notify_bet(self, direction, bet_size, entry_odds, win, order_id, simulated, snap, **kwargs) -> None:
@@ -138,6 +148,31 @@ def make_execution_quote(
     )
 
 
+def store_locked_buy_record(bot, win, signal, *, row_id: str = "row-shadow") -> tf.WindowPredictionRecord:
+    now = datetime.now(timezone.utc)
+    direction = "UP" if signal.signal == "BUY_UP" else "DOWN"
+    record = tf.WindowPredictionRecord(
+        row_id=row_id,
+        condition_id=win.condition_id,
+        window_label=win.window_label,
+        window_end_at=win.end_time,
+        beat_price=win.beat_price,
+        mode="paper",
+        signal=signal.signal,
+        predicted_direction=direction,
+        confidence=signal.confidence,
+        raw_confidence=signal.raw_confidence or signal.confidence,
+        source=signal.source,
+        last_updated_at=now,
+    )
+    bot.state.prediction_records[record.row_id] = record
+    bot.state.paper_prediction_records[record.condition_id] = record
+    bot.state.session_signal_state.reset(win.condition_id)
+    bot.state.session_signal_state.locked_signal = signal.signal
+    bot.state.session_signal_state.locked_row_id = record.row_id
+    return record
+
+
 _WIB = timezone(timedelta(hours=7), "WIB")
 
 
@@ -219,6 +254,140 @@ def test_execution_block_notification_dedupes_per_window(tmp_path):
     assert second is False
     assert len(bot.notifier.shadow_calls) == 1
     assert bot.notifier.shadow_calls[0][2]["blocked_gate"] == tf.GATE_BET_SESSION
+
+
+@pytest.mark.parametrize(
+    "gate",
+    [tf.GATE_EXECUTION_WINDOW, tf.GATE_NET_EDGE, tf.GATE_MIN_ORDER_RISK, tf.GATE_BET_SESSION],
+)
+def test_shadow_order_opens_for_locked_blocked_buy_without_affecting_paper_accounting(tmp_path, monkeypatch, gate):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id=f"0xshadow-{gate.lower()}", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="locked shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id=f"row-{gate.lower()}")
+        bot.state.up_odds = 0.56
+        bot.state.down_odds = 0.44
+        quote = make_execution_quote(token_id=win.up_token_id, amount_usdc=tf.BET_SIZE_USDC, price=0.56)
+
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=gate,
+            reason=f"{gate} blocked",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+        duplicate = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=gate,
+            reason=f"{gate} blocked again",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+
+        assert order is not None
+        assert duplicate is order
+        assert order.shadow_order_id.startswith("SHADOW-")
+        assert order.blocked_gate == gate
+        assert order.entry_price == pytest.approx(0.56)
+        assert order.size == pytest.approx(quote.net_shares)
+        assert len(bot.state.positions) == 0
+        assert bot.state.bets_this_hour == 0
+        assert bot.state.daily_budget_spent_usdc == 0.0
+        assert bot.state.paper_stats.paper_trade_total == 0
+        assert bot.state.paper_stats.shadow_order_total == 0
+        assert len(bot.notifier.shadow_order_open_calls) == 1
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_id == order.shadow_order_id
+        assert updated.shadow_order_status == "open"
+        assert updated.blocked_gate == gate
+
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+        assert "shadow_order_opened" in contents
+        assert order.shadow_order_id in contents
+
+    asyncio.run(run_case())
+
+
+def test_shadow_order_resolves_with_clean_pnl_and_inclusive_up_tie(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xshadow-resolve", beat_price=100.0, end_time=now - timedelta(seconds=5))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="resolve shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-resolve")
+        bot.state.up_odds = 0.50
+        bot.state.down_odds = 0.50
+        quote = make_execution_quote(token_id=win.up_token_id, amount_usdc=tf.BET_SIZE_USDC, price=0.50)
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_EXECUTION_WINDOW,
+            reason="before execution window",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+        assert order is not None
+        bot.state.settlement_registry_cache[win.condition_id] = {
+            "settlement_price": win.beat_price,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
+
+        await bot._check_shadow_orders()
+
+        resolved = bot.state.shadow_orders[win.condition_id]
+        expected_pnl = quote.net_shares - quote.amount_usdc
+        assert resolved.status == "won"
+        assert resolved.won is True
+        assert resolved.actual_winner == "UP"
+        assert resolved.pnl == pytest.approx(expected_pnl)
+        assert resolved.settlement_source == "chainlink_market_resolved"
+        assert resolved.settlement_low_confidence is False
+        assert len(bot.state.positions) == 0
+        assert bot.state.bets_this_hour == 0
+        assert bot.state.daily_budget_spent_usdc == 0.0
+        assert bot.state.paper_stats.paper_trade_total == 0
+        assert bot.state.paper_stats.shadow_order_wins_total == 1
+        assert len(bot.notifier.shadow_order_result_calls) == 1
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_id == order.shadow_order_id
+        assert updated.shadow_order_won is True
+        assert updated.shadow_order_pnl_usdc == pytest.approx(expected_pnl)
+
+        analytics_path = next((tmp_path / "logs").glob("prediction_analytics_*.jsonl"))
+        contents = analytics_path.read_text(encoding="utf-8")
+        assert "shadow_order_resolved" in contents
+        assert "chainlink_market_resolved" in contents
+
+    asyncio.run(run_case())
 
 
 def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):

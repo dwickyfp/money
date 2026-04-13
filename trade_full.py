@@ -186,6 +186,7 @@ TELEGRAM_ENABLED         = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
 TELEGRAM_STATUS_INTERVAL_S = int(os.getenv("TELEGRAM_STATUS_INTERVAL_S", "300"))  # every 5 min
 SIGNAL_NOTIFY_MIN_STREAK = int(os.getenv("SIGNAL_NOTIFY_MIN_STREAK", "2"))
 SIGNAL_NOTIFY_IMMEDIATE_CONF = float(os.getenv("SIGNAL_NOTIFY_IMMEDIATE_CONF", "0.88"))
+SHADOW_ORDERS_ENABLED = os.getenv("SHADOW_ORDERS_ENABLED", "true").lower() == "true"
 
 # ── Bandar Push Detection (Anti Whale Push) ─────────────────────────────────
 BANDAR_FINAL_SECONDS       = 45      # final 45 detik = zona paling berbahaya
@@ -558,6 +559,70 @@ class BotLogger:
             "quote_age_s": getattr(record, "quote_age_s", 0.0),
             "settlement_source": getattr(record, "settlement_source", ""),
             "settlement_low_confidence": getattr(record, "settlement_low_confidence", False),
+            "shadow_order_id": getattr(record, "shadow_order_id", ""),
+            "shadow_order_status": getattr(record, "shadow_order_status", ""),
+            "shadow_order_won": getattr(record, "shadow_order_won", None),
+            "shadow_order_pnl_usdc": getattr(record, "shadow_order_pnl_usdc", 0.0),
+        }
+
+    @staticmethod
+    def _shadow_order_audit_fields(order) -> dict[str, Any]:
+        return {
+            "shadow_order_id": getattr(order, "shadow_order_id", ""),
+            "simulated_order_id": getattr(order, "shadow_order_id", ""),
+            "prediction_row_id": getattr(order, "row_id", ""),
+            "row_id": getattr(order, "row_id", ""),
+            "condition_id": getattr(order, "condition_id", ""),
+            "window_label": getattr(order, "window_label", ""),
+            "window_end_at": (
+                getattr(order, "window_end_at", None).isoformat()
+                if getattr(order, "window_end_at", None) else ""
+            ),
+            "beat_price": getattr(order, "beat_price", 0.0),
+            "direction": getattr(order, "direction", ""),
+            "token_id": getattr(order, "token_id", ""),
+            "amount_usdc": getattr(order, "amount_usdc", 0.0),
+            "entry_price": getattr(order, "entry_price", 0.0),
+            "size": getattr(order, "size", 0.0),
+            "gross_size": getattr(order, "gross_size", 0.0),
+            "fee_usdc": getattr(order, "fee_usdc", 0.0),
+            "fee_rate": getattr(order, "fee_rate", 0.0),
+            "fee_rate_source": getattr(order, "fee_rate_source", ""),
+            "mid_odds": getattr(order, "mid_price", 0.0),
+            "best_bid": getattr(order, "best_bid", 0.0),
+            "best_ask": getattr(order, "best_ask", 0.0),
+            "execution_spread": getattr(order, "spread", 0.0),
+            "net_edge": getattr(order, "net_edge", 0.0),
+            "expected_ev_usdc": round(
+                float(getattr(order, "amount_usdc", 0.0) or 0.0)
+                * float(getattr(order, "net_edge", 0.0) or 0.0),
+                6,
+            ),
+            "payout_per_dollar": getattr(order, "payout_per_dollar", 0.0),
+            "execution_mode": "paper_shadow",
+            "liquidity_source": getattr(order, "liquidity_source", ""),
+            "quote_age_s": getattr(order, "quote_age_s", 0.0),
+            "blocked_gate": getattr(order, "blocked_gate", ""),
+            "blocked_reason": getattr(order, "blocked_reason", ""),
+            "status": getattr(order, "status", ""),
+            "shadow_order_won": getattr(order, "won", None),
+            "shadow_order_pnl_usdc": getattr(order, "pnl", 0.0),
+            "pnl": getattr(order, "pnl", 0.0),
+            "actual_winner": getattr(order, "actual_winner", ""),
+            "settlement_source": getattr(order, "settlement_source", ""),
+            "settlement_low_confidence": getattr(order, "settlement_low_confidence", False),
+            "placed_at": (
+                getattr(order, "placed_at", None).isoformat()
+                if getattr(order, "placed_at", None) else ""
+            ),
+            "resolved_at": (
+                getattr(order, "resolved_at", None).isoformat()
+                if getattr(order, "resolved_at", None) else ""
+            ),
+            "confidence": getattr(order, "confidence", 0.0),
+            "raw_confidence": getattr(order, "raw_confidence", 0.0),
+            "alignment": getattr(order, "signal_alignment", 0),
+            "execution_bucket": getattr(order, "execution_bucket", ""),
         }
 
     def log_prediction_state(self, record) -> None:
@@ -820,6 +885,28 @@ class BotLogger:
             "execution_bucket":   getattr(position, "execution_bucket", ""),
             "resolved_at":        self._ts(),
             **self._position_audit_fields(position),
+        })
+
+    def log_shadow_order_opened(self, order) -> None:
+        """Persist a paper-only shadow order open event."""
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        self._append(f"prediction_analytics_{today}.jsonl", {
+            "ts": self._ts(),
+            "event": "shadow_order_opened",
+            "mode": "paper",
+            "decision_action": "shadow_order",
+            **self._shadow_order_audit_fields(order),
+        })
+
+    def log_shadow_order_resolved(self, order) -> None:
+        """Persist a resolved paper-only shadow order event."""
+        today = datetime.now(_UTC).strftime("%Y-%m-%d")
+        self._append(f"prediction_analytics_{today}.jsonl", {
+            "ts": self._ts(),
+            "event": "shadow_order_resolved",
+            "mode": "paper",
+            "decision_action": "shadow_order",
+            **self._shadow_order_audit_fields(order),
         })
 
     def log_paper_prediction_state(self, record) -> None:
@@ -1183,6 +1270,7 @@ class BotLogger:
         pending_by_id: dict[str, dict] = {}
         resolved_predictions: set[str] = set()
         resolved_trade_keys: set[str] = set()
+        resolved_shadow_keys: set[str] = set()
         trade_results_by_prediction: dict[str, bool] = {}
         trade_results_by_condition: dict[str, bool] = {}
         shadow_by_gate: dict[str, dict[str, float]] = defaultdict(
@@ -1201,6 +1289,10 @@ class BotLogger:
             "live_trade_losses_total": 0,
             "live_trade_wins_today": 0,
             "live_trade_losses_today": 0,
+            "shadow_order_wins_total": 0,
+            "shadow_order_losses_total": 0,
+            "shadow_order_wins_today": 0,
+            "shadow_order_losses_today": 0,
             "shadow_by_gate": shadow_by_gate,
         }
 
@@ -1230,6 +1322,37 @@ class BotLogger:
                                 gate = str(record.get("blocked_gate", "") or "")
                                 if event == "prediction_blocked" and gate:
                                     shadow_by_gate[gate]["count"] += 1
+                            continue
+
+                        if event == "shadow_order_opened":
+                            continue
+
+                        if event == "shadow_order_resolved":
+                            won_value = record.get("shadow_order_won")
+                            if not isinstance(won_value, bool):
+                                continue
+                            order_id = str(record.get("shadow_order_id", "") or "").strip()
+                            unique_key = order_id or f"{condition_id}:{record.get('placed_at', '')}:shadow"
+                            if unique_key in resolved_shadow_keys:
+                                continue
+                            resolved_shadow_keys.add(unique_key)
+                            if won_value:
+                                counts["shadow_order_wins_total"] += 1
+                                if _is_today(record):
+                                    counts["shadow_order_wins_today"] += 1
+                            else:
+                                counts["shadow_order_losses_total"] += 1
+                                if _is_today(record):
+                                    counts["shadow_order_losses_today"] += 1
+
+                            gate = str(record.get("blocked_gate", "") or "")
+                            if gate:
+                                shadow_by_gate[gate]["resolved"] += 1
+                                if won_value:
+                                    shadow_by_gate[gate]["hits"] += 1
+                                else:
+                                    shadow_by_gate[gate]["misses"] += 1
+                                shadow_by_gate[gate]["counterfactual_pnl"] += float(record.get("shadow_order_pnl_usdc", 0.0) or 0.0)
                             continue
 
                         if event == "prediction_resolved":
@@ -1270,7 +1393,7 @@ class BotLogger:
                                     trade_results_by_condition[condition_id] = live_trade_won
                             continue
 
-                        if event not in ("paper_trade_resolved", "live_trade_resolved"):
+                        if event not in ("paper_trade_resolved", "live_trade_resolved", "shadow_order_resolved"):
                             continue
 
                         won_value = record.get("paper_trade_won")
@@ -1279,7 +1402,12 @@ class BotLogger:
                         if not isinstance(won_value, bool):
                             continue
 
-                        order_id = str(record.get("executed_order_id") or record.get("simulated_order_id") or "").strip()
+                        order_id = str(
+                            record.get("executed_order_id")
+                            or record.get("simulated_order_id")
+                            or record.get("shadow_order_id")
+                            or ""
+                        ).strip()
                         unique_key = order_id or f"{condition_id}:{record.get('placed_at', '')}"
                         if unique_key and unique_key not in resolved_trade_keys:
                             resolved_trade_keys.add(unique_key)
@@ -2370,6 +2498,8 @@ GATE_AI_HOLD              = "GATE_AI_HOLD"              # signal engine returned
 GATE_LOW_ALIGNMENT        = "GATE_LOW_ALIGNMENT"        # indicator families do not agree enough
 GATE_LOW_CONF             = "GATE_LOW_CONF"             # signal confidence below threshold
 GATE_OK                   = "OK"                        # all gates passed → BUY
+GATE_EXECUTION_WINDOW     = "GATE_EXECUTION_WINDOW"     # locked before the configured execution start
+GATE_TOO_LATE             = "GATE_TOO_LATE"             # too close to settlement for a new order
 GATE_ALREADY_OPEN         = "GATE_ALREADY_OPEN"         # position already open in this window
 GATE_ALREADY_ATTEMPTED    = "GATE_ALREADY_ATTEMPTED"    # window consumed by a successful/terminal attempt
 GATE_RETRY_COOLDOWN       = "GATE_RETRY_COOLDOWN"       # waiting before retrying a retryable placement failure
@@ -4683,6 +4813,52 @@ class TelegramNotifier:
             f"Align: {snap.signal_alignment}/6  Dip: {html.escape(signal.dip_label)}  "
             f"CVD: {html.escape(snap.cvd_divergence)}\n"
             f"Why: {reason}"
+        )
+        self._fire(text)
+
+    def notify_shadow_order_opened(self, order: "ShadowOrder") -> None:
+        """Send a clear diagnostic notice when a paper-only shadow order is opened."""
+        if not self._enabled:
+            return
+        emoji = "⬆️" if order.direction == "UP" else "⬇️"
+        net_ev_s = f"{order.net_edge:+.1%}" if math.isfinite(float(order.net_edge or 0.0)) else "n/a"
+        text = (
+            f"🧪 <b>SHADOW ORDER OPEN</b> {emoji}  [PAPER]\n"
+            f"Direction: <b>{html.escape(order.direction)}</b>  "
+            f"Amount: <code>${order.amount_usdc:.2f}</code> @ {order.entry_price:.3f}\n"
+            f"Net shares: <code>{order.size:.4f}</code>  Fee: <code>${order.fee_usdc:.4f}</code>\n"
+            f"Net EV: <code>{net_ev_s}</code>  Gate: <code>{html.escape(order.blocked_gate or 'EXECUTION_HOLD')}</code>\n"
+            f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
+            f"Source: <code>{html.escape(order.liquidity_source or 'unknown')}</code>  "
+            f"Order: <code>{html.escape(order.shadow_order_id)}</code>"
+        )
+        self._fire(text)
+
+    def notify_shadow_order_result(self, order: "ShadowOrder") -> None:
+        """Send the win/loss result for a paper-only shadow order."""
+        if not self._enabled:
+            return
+        if order.won is True:
+            emoji = "✅"
+            status_label = "WON"
+        elif order.won is False:
+            emoji = "❌"
+            status_label = "LOST"
+        else:
+            emoji = "➖"
+            status_label = "VOID"
+        pnl = float(order.pnl or 0.0)
+        pnl_s = f"{'+' if pnl >= 0 else '-'}${abs(pnl):.2f}"
+        source = html.escape(order.settlement_source or "unknown")
+        if order.settlement_low_confidence:
+            source = f"{source} low-confidence"
+        text = (
+            f"{emoji} <b>SHADOW ORDER {status_label}</b>  [PAPER]  <code>{pnl_s}</code>\n"
+            f"Direction: {html.escape(order.direction)}  Entry: {order.entry_price:.3f}  "
+            f"Winner: <b>{html.escape(order.actual_winner or 'UNKNOWN')}</b>\n"
+            f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
+            f"Settlement: <code>{source}</code>\n"
+            f"Order: <code>{html.escape(order.shadow_order_id)}</code>"
         )
         self._fire(text)
 
@@ -7497,6 +7673,48 @@ class BlockedWindow:
 
 
 @dataclass
+class ShadowOrder:
+    """Paper-only diagnostic order that never touches bankroll or exchange state."""
+    shadow_order_id: str
+    row_id: str
+    condition_id: str
+    window_label: str
+    window_end_at: datetime | None
+    beat_price: float
+    direction: str
+    token_id: str
+    amount_usdc: float
+    entry_price: float
+    size: float
+    placed_at: datetime
+    blocked_gate: str = ""
+    blocked_reason: str = ""
+    status: str = "open"
+    pnl: float | None = None
+    won: bool | None = None
+    actual_winner: str = ""
+    settlement_source: str = ""
+    settlement_low_confidence: bool = False
+    resolved_at: datetime | None = None
+    gross_size: float = 0.0
+    fee_usdc: float = 0.0
+    fee_rate: float = 0.0
+    fee_rate_source: str = ""
+    mid_price: float = 0.0
+    best_bid: float = 0.0
+    best_ask: float = 0.0
+    spread: float = 0.0
+    net_edge: float = 0.0
+    payout_per_dollar: float = 0.0
+    liquidity_source: str = ""
+    quote_age_s: float = 0.0
+    confidence: float = 0.0
+    raw_confidence: float = 0.0
+    signal_alignment: int = 0
+    execution_bucket: str = ""
+
+
+@dataclass
 class WindowPredictionRecord:
     row_id: str = ""
     condition_id: str = ""
@@ -7545,6 +7763,10 @@ class WindowPredictionRecord:
     counterfactual_pnl: float | None = None
     paper_trade_won: bool | None = None
     live_trade_won: bool | None = None
+    shadow_order_id: str = ""
+    shadow_order_status: str = ""
+    shadow_order_won: bool | None = None
+    shadow_order_pnl_usdc: float = 0.0
     notification_locked: bool = False
     notification_sent: bool = False
     notification_signal: str = ""
@@ -7594,6 +7816,10 @@ class PaperPerformanceStats:
     live_trade_losses_total: int = 0
     live_trade_wins_today: int = 0
     live_trade_losses_today: int = 0
+    shadow_order_wins_total: int = 0
+    shadow_order_losses_total: int = 0
+    shadow_order_wins_today: int = 0
+    shadow_order_losses_today: int = 0
 
     def apply_counts(self, counts: dict[str, int]) -> None:
         for key in (
@@ -7609,6 +7835,10 @@ class PaperPerformanceStats:
             "live_trade_losses_total",
             "live_trade_wins_today",
             "live_trade_losses_today",
+            "shadow_order_wins_total",
+            "shadow_order_losses_total",
+            "shadow_order_wins_today",
+            "shadow_order_losses_today",
         ):
             setattr(self, key, int(counts.get(key, 0) or 0))
 
@@ -7619,6 +7849,8 @@ class PaperPerformanceStats:
         self.paper_trade_losses_today = 0
         self.live_trade_wins_today = 0
         self.live_trade_losses_today = 0
+        self.shadow_order_wins_today = 0
+        self.shadow_order_losses_today = 0
 
     def record_prediction(self, correct: bool) -> None:
         if correct:
@@ -7635,6 +7867,14 @@ class PaperPerformanceStats:
         else:
             self.paper_trade_losses_total += 1
             self.paper_trade_losses_today += 1
+
+    def record_shadow_order(self, won: bool) -> None:
+        if won:
+            self.shadow_order_wins_total += 1
+            self.shadow_order_wins_today += 1
+        else:
+            self.shadow_order_losses_total += 1
+            self.shadow_order_losses_today += 1
 
     @property
     def prediction_total(self) -> int:
@@ -7671,6 +7911,24 @@ class PaperPerformanceStats:
     def paper_trade_win_rate_today(self) -> float:
         total = self.paper_trade_today_total
         return (self.paper_trade_wins_today / total * 100.0) if total else 0.0
+
+    @property
+    def shadow_order_total(self) -> int:
+        return self.shadow_order_wins_total + self.shadow_order_losses_total
+
+    @property
+    def shadow_order_today_total(self) -> int:
+        return self.shadow_order_wins_today + self.shadow_order_losses_today
+
+    @property
+    def shadow_order_win_rate(self) -> float:
+        total = self.shadow_order_total
+        return (self.shadow_order_wins_total / total * 100.0) if total else 0.0
+
+    @property
+    def shadow_order_win_rate_today(self) -> float:
+        total = self.shadow_order_today_total
+        return (self.shadow_order_wins_today / total * 100.0) if total else 0.0
 
 
 @dataclass
@@ -7746,11 +8004,13 @@ class DailyHistorySnapshot:
     paper: dict[str, Any]
     live: dict[str, Any]
     status: dict[str, Any]
+    shadow: dict[str, Any] = field(default_factory=dict)
 
     def to_record(self) -> dict[str, Any]:
         return {
             "paper": self.paper,
             "live": self.live,
+            "shadow": self.shadow,
             "status": self.status,
         }
 
@@ -7897,6 +8157,7 @@ class BotState:
 
     # ── BLOCKED tracking
     blocked_windows: list[BlockedWindow] = field(default_factory=list)
+    shadow_orders: dict[str, ShadowOrder] = field(default_factory=dict)
 
     # ── Price tick log for UI streaming (ts, btc, buy_vol, sell_vol, cvd, up_odds, dn_odds)
     price_tick_log: deque = field(default_factory=lambda: deque(maxlen=200))
@@ -8300,6 +8561,7 @@ class TradingBot:
         base = base or {}
         paper = self._finalize_mode_stats(dict(base.get("paper", self._empty_mode_stats())))
         live = self._finalize_mode_stats(dict(base.get("live", self._empty_mode_stats())))
+        shadow = self._finalize_mode_stats(dict(base.get("shadow", self._empty_mode_stats())))
         if include_current_status:
             market_client = getattr(self, "market", None)
             status = {
@@ -8314,6 +8576,14 @@ class TradingBot:
                 "daily_profit_halted": bool(self.state.daily_profit_halted),
                 "bets_this_hour": int(self.state.bets_this_hour or 0),
                 "open_positions": len([p for p in self.state.positions if p.status == "open"]),
+                "open_shadow_orders": len([
+                    order for order in self.state.shadow_orders.values()
+                    if order.status == "open"
+                ]),
+                "shadow_order_wins_total": int(self.state.paper_stats.shadow_order_wins_total or 0),
+                "shadow_order_losses_total": int(self.state.paper_stats.shadow_order_losses_total or 0),
+                "shadow_order_wins_today": int(self.state.paper_stats.shadow_order_wins_today or 0),
+                "shadow_order_losses_today": int(self.state.paper_stats.shadow_order_losses_today or 0),
                 "active_model_version": self.state.model_activation_status.active_model_version,
                 "active_signal_source": self.state.model_activation_status.active_signal_source,
                 "applied_state": self.state.model_activation_status.applied_state,
@@ -8340,7 +8610,7 @@ class TradingBot:
             }
         else:
             status = dict(base.get("status", {}))
-        return DailyHistorySnapshot(paper=paper, live=live, status=status)
+        return DailyHistorySnapshot(paper=paper, live=live, shadow=shadow, status=status)
 
     def _rebuild_performance_history_cache(self) -> dict[str, dict[str, Any]]:
         history: dict[str, dict[str, Any]] = {}
@@ -8377,19 +8647,27 @@ class TradingBot:
                             {
                                 "paper": self._empty_mode_stats(),
                                 "live": self._empty_mode_stats(),
+                                "shadow": self._empty_mode_stats(),
                                 "status": {},
                             },
                         )
-                        bucket = "paper" if event == "paper_trade_resolved" else "live"
+                        if event == "shadow_order_resolved":
+                            bucket = "shadow"
+                        else:
+                            bucket = "paper" if event == "paper_trade_resolved" else "live"
                         target = day_entry[bucket]
                         won_value = record.get("paper_trade_won")
                         if not isinstance(won_value, bool):
                             won_value = record.get("live_trade_won")
+                        if not isinstance(won_value, bool):
+                            won_value = record.get("shadow_order_won")
                         if won_value is True:
                             target["wins"] += 1
                         elif won_value is False:
                             target["losses"] += 1
-                        target["pnl"] = float(target.get("pnl", 0.0) or 0.0) + float(record.get("pnl", 0.0) or 0.0)
+                        target["pnl"] = float(target.get("pnl", 0.0) or 0.0) + float(
+                            record.get("pnl", record.get("shadow_order_pnl_usdc", 0.0)) or 0.0
+                        )
             except Exception:
                 continue
 
@@ -9301,6 +9579,156 @@ class TradingBot:
                 mode=record.mode,
             ))
 
+    def _shadow_order_amount_usdc(self) -> float:
+        bankroll = max(0.0, float(PAPER_BANKROLL_USDC or 0.0))
+        risk_cap = min(float(BET_SIZE_USDC or 0.0), bankroll * MAX_BET_FRACTION)
+        return round(max(0.0, risk_cap), 2)
+
+    def _shadow_order_locked_signal(self, win: "WindowInfo", signal: AISignal) -> bool:
+        if LIVE_TRADING or not SHADOW_ORDERS_ENABLED:
+            return False
+        if signal.signal not in ("BUY_UP", "BUY_DOWN"):
+            return False
+        session = self.state.session_signal_state
+        return (
+            session.condition_id == win.condition_id
+            and session.locked_signal == signal.signal
+        )
+
+    async def _open_shadow_order(
+        self,
+        *,
+        win: "WindowInfo",
+        signal: AISignal,
+        snap: "IndicatorSnapshot",
+        gate: str,
+        reason: str,
+        prediction_row_id: str = "",
+        quote: ExecutionQuote | None = None,
+        net_edge: float | None = None,
+        required_confidence: float | None = None,
+    ) -> ShadowOrder | None:
+        if not self._shadow_order_locked_signal(win, signal):
+            return None
+
+        row_id = prediction_row_id or self.state.session_signal_state.locked_row_id
+        direction = "UP" if signal.signal == "BUY_UP" else "DOWN"
+        token_id = win.up_token_id if direction == "UP" else win.down_token_id
+        entry_odds = self.state.up_odds if direction == "UP" else self.state.down_odds
+        if entry_odds is None or entry_odds <= 0.0:
+            if quote is not None and quote.execution_price > 0.0:
+                entry_odds = quote.execution_price
+            else:
+                return None
+
+        async with self.state._lock:
+            existing = self.state.shadow_orders.get(win.condition_id)
+            if existing is not None:
+                return existing
+            if any(pos.condition_id == win.condition_id for pos in self.state.positions):
+                return None
+
+        amount_usdc = self._shadow_order_amount_usdc()
+        if amount_usdc <= 0.0:
+            return None
+        if quote is None or abs(float(quote.amount_usdc or 0.0) - amount_usdc) >= 0.01:
+            quote = await self._get_execution_quote(
+                direction=direction,
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                current_odds=float(entry_odds),
+            )
+        if quote is None or quote.execution_price <= 0.0 or quote.amount_usdc <= 0.0:
+            return None
+
+        calculated_net_edge = compute_net_edge(signal.confidence, quote.payout_per_dollar)
+        net_edge_value = calculated_net_edge if net_edge is None else float(net_edge)
+        if abs(float(quote.amount_usdc or 0.0) - amount_usdc) < 0.01:
+            net_edge_value = calculated_net_edge
+
+        now_utc = datetime.now(_UTC)
+        elapsed_bet = int((now_utc - win.start_time).total_seconds())
+        seconds_remaining = max(0, int((win.end_time - now_utc).total_seconds()))
+        order = ShadowOrder(
+            shadow_order_id=f"SHADOW-{uuid.uuid4().hex[:12]}",
+            row_id=row_id,
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            direction=direction,
+            token_id=token_id,
+            amount_usdc=float(quote.amount_usdc or amount_usdc),
+            entry_price=quote.execution_price,
+            size=quote.net_shares,
+            placed_at=now_utc,
+            blocked_gate=gate,
+            blocked_reason=reason,
+            gross_size=quote.gross_shares,
+            fee_usdc=quote.fee_usdc,
+            fee_rate=quote.fee_rate,
+            fee_rate_source=quote.fee_rate_source,
+            mid_price=quote.mid_price,
+            best_bid=quote.best_bid,
+            best_ask=quote.best_ask,
+            spread=quote.spread,
+            net_edge=net_edge_value,
+            payout_per_dollar=quote.payout_per_dollar,
+            liquidity_source=quote.liquidity_source,
+            quote_age_s=quote.quote_age_s,
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence or signal.confidence,
+            signal_alignment=int(getattr(snap, "signal_alignment", 0) or 0),
+            execution_bucket=self._phase_bucket(elapsed_bet, seconds_remaining),
+        )
+
+        await self._annotate_prediction_execution(
+            row_id,
+            quote=quote,
+            net_edge=net_edge_value,
+            required_confidence=required_confidence,
+            execution_mode="paper_shadow",
+        )
+
+        log_blocked = False
+        record_to_log: WindowPredictionRecord | None = None
+        async with self.state._lock:
+            existing = self.state.shadow_orders.get(win.condition_id)
+            if existing is not None:
+                return existing
+            if any(pos.condition_id == win.condition_id for pos in self.state.positions):
+                return None
+            self.state.shadow_orders[win.condition_id] = order
+
+            record = self.state.prediction_records.get(row_id) if row_id else None
+            if record is None:
+                record = self.state.paper_prediction_records.get(win.condition_id)
+            if record is not None:
+                log_blocked = not bool(record.blocked_gate)
+                record.execution_allowed = False
+                record.blocked_gate = gate
+                record.blocked_reason = reason
+                record.decision_reason = reason
+                record.decision_skip_reason_code = gate
+                record.shadow_order_id = order.shadow_order_id
+                record.shadow_order_status = "open"
+                record.execution_mode = "paper_shadow"
+                record.last_updated_at = now_utc
+                self.state.paper_prediction_records[record.condition_id] = record
+                record_to_log = record
+
+        if record_to_log is not None and log_blocked:
+            self.state.logger.log_prediction_blocked(record_to_log)
+        self.state.logger.log_shadow_order_opened(order)
+        self.state.log_event(
+            f"[SHADOW_ORDER] OPEN {order.direction} ${order.amount_usdc:.2f} "
+            f"@ {order.entry_price:.3f} gate={gate} id={order.shadow_order_id}"
+        )
+        notify = getattr(self.notifier, "notify_shadow_order_opened", None)
+        if callable(notify):
+            notify(order)
+        return order
+
     @staticmethod
     def _should_record_shadow_block(gate: str) -> bool:
         return gate not in {
@@ -9426,9 +9854,9 @@ class TradingBot:
             return None
 
         if elapsed_s < EXECUTION_START_S:
-            return ("GATE_EXECUTION_WINDOW", f"elapsed={elapsed_s}s < {EXECUTION_START_S}s start")
+            return (GATE_EXECUTION_WINDOW, f"elapsed={elapsed_s}s < {EXECUTION_START_S}s start")
         if seconds_remaining < LAST_MIN_SECONDS_GUARD:
-            return ("GATE_TOO_LATE", f"seconds_remaining={seconds_remaining}s < {LAST_MIN_SECONDS_GUARD}s guard")
+            return (GATE_TOO_LATE, f"seconds_remaining={seconds_remaining}s < {LAST_MIN_SECONDS_GUARD}s guard")
         if decision.action != "BUY":
             return (decision.gate, decision.reason)
 
@@ -9636,7 +10064,7 @@ class TradingBot:
         return False
 
     async def _poll_settlements_for_open_positions(self) -> None:
-        """For all open positions with expired windows and no high-priority settlement,
+        """For all open positions/shadow orders with expired windows and no high-priority settlement,
         poll GAMMA API to obtain Chainlink-equivalent settlement before resolving."""
         now_ts = time.time()
         async with self.state._lock:
@@ -9646,13 +10074,24 @@ class TradingBot:
                 and p.window_end_at is not None
                 and p.window_end_at.timestamp() < now_ts
             ]
-        for pos in expired_open:
-            cached = self.state.settlement_registry_cache.get(pos.condition_id)
+            expired_shadow = [
+                order for order in self.state.shadow_orders.values()
+                if order.status == "open"
+                and order.window_end_at is not None
+                and order.window_end_at.timestamp() < now_ts
+            ]
+        seen: set[str] = set()
+        for item in [*expired_open, *expired_shadow]:
+            condition_id = item.condition_id
+            if not condition_id or condition_id in seen:
+                continue
+            seen.add(condition_id)
+            cached = self.state.settlement_registry_cache.get(condition_id)
             cached_priority = int(cached.get("settlement_source_priority", 0)) if cached else 0
-            if cached_priority < SETTLEMENT_POLL_MIN_PRIORITY and pos.window_end_at is not None:
+            if cached_priority < SETTLEMENT_POLL_MIN_PRIORITY and item.window_end_at is not None:
                 await self._poll_settlement_after_expiry(
-                    condition_id=pos.condition_id,
-                    window_end_at=pos.window_end_at,
+                    condition_id=condition_id,
+                    window_end_at=item.window_end_at,
                 )
 
     def _resolve_pending_ml_labels(
@@ -10341,7 +10780,16 @@ class TradingBot:
 
             if execution_block is not None:
                 gate, reason = execution_block
-                if gate == "GATE_EXECUTION_WINDOW":
+                if gate == GATE_EXECUTION_WINDOW:
+                    if signal.signal in ("BUY_UP", "BUY_DOWN"):
+                        await self._open_shadow_order(
+                            win=win,
+                            signal=signal,
+                            snap=snap,
+                            gate=gate,
+                            reason=reason,
+                            prediction_row_id=record.row_id,
+                        )
                     self.state.set_engine_status("DECISION_WAIT", gate, reason)
                     continue
                 if signal.signal in ("BUY_UP", "BUY_DOWN"):
@@ -10352,6 +10800,14 @@ class TradingBot:
                     )
                     if blocked is not None and self._should_record_shadow_block(gate):
                         await self._record_shadow_block(blocked)
+                    await self._open_shadow_order(
+                        win=win,
+                        signal=signal,
+                        snap=snap,
+                        gate=gate,
+                        reason=reason,
+                        prediction_row_id=record.row_id,
+                    )
                     self.state.set_engine_status("DECISION_SKIP", gate, reason)
                 else:
                     self.state.set_engine_status("DECISION_SKIP", decision.gate, decision.reason)
@@ -10374,6 +10830,14 @@ class TradingBot:
                 )
                 if blocked is not None and self._should_record_shadow_block(gate):
                     await self._record_shadow_block(blocked)
+                await self._open_shadow_order(
+                    win=win,
+                    signal=signal,
+                    snap=snap,
+                    gate=gate,
+                    reason=reason,
+                    prediction_row_id=record.row_id,
+                )
                 self._notify_execution_block_once(
                     win=win,
                     signal=signal,
@@ -10450,6 +10914,17 @@ class TradingBot:
             )
             if blocked is not None and self._should_record_shadow_block(gate):
                 await self._record_shadow_block(blocked)
+            await self._open_shadow_order(
+                win=win,
+                signal=signal,
+                snap=snap,
+                gate=gate,
+                reason=reason,
+                prediction_row_id=prediction_row_id,
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
+            )
             self._notify_execution_block_once(
                 win=win,
                 signal=signal,
@@ -10722,6 +11197,17 @@ class TradingBot:
                     attempt_count=execution_state.attempt_count,
                     attempted_at=attempt_started_at,
                 )
+                await self._open_shadow_order(
+                    win=win,
+                    signal=signal,
+                    snap=snap,
+                    gate=result.failure_code,
+                    reason=error_msg,
+                    prediction_row_id=prediction_row_id,
+                    quote=quote,
+                    net_edge=net_edge,
+                    required_confidence=required_confidence,
+                )
                 self._sync_daily_budget_halt(log_change=True)
                 self.state.set_engine_status("ORDER_FAILED", reason=error_msg)
                 self.state.log_event(f"[TRADE] Held — {error_msg}")
@@ -10824,6 +11310,17 @@ class TradingBot:
                 result=result,
                 attempt_count=execution_state.attempt_count,
                 attempted_at=attempt_started_at,
+            )
+            await self._open_shadow_order(
+                win=win,
+                signal=signal,
+                snap=snap,
+                gate=failure_code,
+                reason=failure_reason,
+                prediction_row_id=prediction_row_id,
+                quote=quote,
+                net_edge=net_edge,
+                required_confidence=required_confidence,
             )
             self.state.set_engine_status("ORDER_FAILED", reason=f"{failure_code}: {failure_reason}")
             self.state.log_event(
@@ -10962,8 +11459,109 @@ class TradingBot:
             await asyncio.sleep(60)
             await self._poll_settlements_for_open_positions()
             await self._check_positions()
+            await self._check_shadow_orders()
             await self._resolve_prediction_analytics()
             await self._resolve_blocked_windows()
+
+    def _shadow_order_window_has_ended(self, order: "ShadowOrder") -> bool:
+        now_utc = datetime.now(_UTC)
+        if order.window_end_at is not None:
+            return now_utc.timestamp() >= order.window_end_at.timestamp()
+
+        active_win = self.state.window
+        if active_win and active_win.condition_id == order.condition_id:
+            return now_utc >= active_win.end_time
+        return True
+
+    async def _check_shadow_orders(self) -> None:
+        async with self.state._lock:
+            open_orders = [
+                order for order in self.state.shadow_orders.values()
+                if order.status == "open"
+            ]
+
+        for order in open_orders:
+            if not self._shadow_order_window_has_ended(order):
+                continue
+            settlement_info = self._get_window_settlement_info(
+                condition_id=order.condition_id,
+                window_end_at=order.window_end_at,
+            )
+            if settlement_info is None:
+                continue
+            if settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY and order.window_end_at is not None:
+                window_age_s = time.time() - order.window_end_at.timestamp()
+                if window_age_s < SETTLEMENT_GRACE_PERIOD_S:
+                    continue
+            if settlement_info.settlement_price is None or order.beat_price <= 0.0:
+                continue
+
+            actual_winner = self._classify_window_outcome(order.beat_price, settlement_info.settlement_price)
+            if actual_winner == "UNKNOWN":
+                continue
+            await self._settle_shadow_order(order, actual_winner, settlement_info)
+
+    async def _settle_shadow_order(
+        self,
+        order: "ShadowOrder",
+        actual_winner: str,
+        settlement_info: SettlementInfo,
+    ) -> None:
+        won = self._did_trade_win(order.direction, actual_winner)
+        resolved_at = datetime.now(_UTC)
+        async with self.state._lock:
+            current = self.state.shadow_orders.get(order.condition_id)
+            if current is None or current.status != "open":
+                return
+            current.actual_winner = actual_winner
+            current.won = won
+            current.settlement_source = settlement_info.settlement_source
+            current.settlement_low_confidence = (
+                settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
+            )
+            current.resolved_at = resolved_at
+            if won is True:
+                current.status = "won"
+                current.pnl = max(0.0, float(current.size or 0.0)) - float(current.amount_usdc or 0.0)
+            elif won is False:
+                current.status = "lost"
+                current.pnl = -float(current.amount_usdc or 0.0)
+            else:
+                current.status = "void"
+                current.pnl = 0.0
+            if isinstance(won, bool):
+                self.state.paper_stats.record_shadow_order(won)
+
+            record = self.state.prediction_records.get(current.row_id) if current.row_id else None
+            if record is None:
+                record = self.state.paper_prediction_records.get(current.condition_id)
+            if record is not None:
+                record.shadow_order_id = current.shadow_order_id
+                record.shadow_order_status = current.status
+                record.shadow_order_won = won
+                record.shadow_order_pnl_usdc = float(current.pnl or 0.0)
+                record.actual_winner = actual_winner
+                record.settlement_source = current.settlement_source
+                record.settlement_low_confidence = current.settlement_low_confidence
+                record.last_updated_at = resolved_at
+                self.state.paper_prediction_records[record.condition_id] = record
+                record_to_log = record
+            else:
+                record_to_log = None
+            order_to_log = current
+
+        self.state.logger.log_shadow_order_resolved(order_to_log)
+        if record_to_log is not None:
+            self.state.logger.log_prediction_state(record_to_log)
+        self.state.log_event(
+            f"[SHADOW_ORDER] {order_to_log.direction} {order_to_log.status.upper()} "
+            f"PnL={float(order_to_log.pnl or 0.0):+.2f} actual={actual_winner} "
+            f"source={order_to_log.settlement_source}"
+        )
+        self._refresh_performance_history()
+        notify = getattr(self.notifier, "notify_shadow_order_result", None)
+        if callable(notify):
+            notify(order_to_log)
 
     async def _check_positions(self) -> None:
         async with self.state._lock:
@@ -11545,6 +12143,10 @@ class TradingBot:
                 counterfactual_pnl=float(raw.get("counterfactual_pnl", 0.0)) if raw.get("counterfactual_pnl") is not None else None,
                 paper_trade_won=raw.get("paper_trade_won") if isinstance(raw.get("paper_trade_won"), bool) else None,
                 live_trade_won=raw.get("live_trade_won") if isinstance(raw.get("live_trade_won"), bool) else None,
+                shadow_order_id=str(raw.get("shadow_order_id", "")),
+                shadow_order_status=str(raw.get("shadow_order_status", "")),
+                shadow_order_won=raw.get("shadow_order_won") if isinstance(raw.get("shadow_order_won"), bool) else None,
+                shadow_order_pnl_usdc=float(raw.get("shadow_order_pnl_usdc", 0.0) or 0.0),
                 notification_locked=bool(raw.get("notification_locked", False)),
                 notification_sent=bool(raw.get("notification_sent", False)),
                 notification_signal=str(raw.get("notification_signal", "")),
@@ -11590,6 +12192,7 @@ class TradingBot:
             + self.state.paper_stats.paper_trade_total
             + self.state.paper_stats.live_trade_wins_total
             + self.state.paper_stats.live_trade_losses_total
+            + self.state.paper_stats.shadow_order_total
         )
         return restored, warmed
 
@@ -12747,6 +13350,19 @@ def render_results(state: BotState) -> Panel:
             f"today [green]{ps.paper_trade_wins_today}W[/green]/[red]{ps.paper_trade_losses_today}L[/red] "
             f"({ps.paper_trade_today_total} · {ps.paper_trade_win_rate_today:.1f}%)"
         )
+        if ps.shadow_order_total or ps.shadow_order_today_total or state.shadow_orders:
+            open_shadow = sum(1 for order in state.shadow_orders.values() if order.status == "open")
+            t.add_row(
+                "Shadow Orders",
+                f"all [green]{ps.shadow_order_wins_total}W[/green]/[red]{ps.shadow_order_losses_total}L[/red] "
+                f"({ps.shadow_order_total} · {ps.shadow_order_win_rate:.1f}%)  "
+                f"open [yellow]{open_shadow}[/yellow]"
+            )
+            t.add_row(
+                "Shadow Today",
+                f"today [green]{ps.shadow_order_wins_today}W[/green]/[red]{ps.shadow_order_losses_today}L[/red] "
+                f"({ps.shadow_order_today_total} · {ps.shadow_order_win_rate_today:.1f}%)"
+            )
     pnl_breakdown = (
         f"  [dim](wins [green]+${state.total_gross_wins:.2f}[/green]"
         f"  losses [red]-${state.total_gross_losses:.2f}[/red])[/dim]"
