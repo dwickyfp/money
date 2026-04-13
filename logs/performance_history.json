@@ -119,12 +119,12 @@
     },
     "status": {
       "activation_reason": "scheduled_retrain",
-      "active_model_version": "20260413T192855Z-s20",
+      "active_model_version": "20260413T193431Z-s20",
       "active_signal_source": "ml",
       "applied_state": "active",
       "balance_usdc": 0.740051,
       "bets_this_hour": 0,
-      "claim_last_scan_at": 1776108525.403031,
+      "claim_last_scan_at": 1776108860.8045282,
       "claim_last_scan_candidates": 0,
       "claim_last_scan_error": "",
       "claim_last_scan_identities": [
@@ -348,19 +348,19 @@
       "polymarket_session": {
         "can_refresh_credentials": true,
         "consecutive_auth_failures": 0,
-        "creds_refreshed_at": "2026-04-13T19:28:41.795Z",
+        "creds_refreshed_at": "2026-04-13T19:34:16.685Z",
         "generation": 0,
         "has_l2_credentials": true,
         "last_auth_error": "",
         "last_auth_failure_at": "",
-        "last_auth_success_at": "2026-04-13T19:28:45.595Z",
+        "last_auth_success_at": "2026-04-13T19:34:20.996Z",
         "last_heartbeat_ok_at": "",
-        "last_positions_checked_at": "2026-04-13T19:28:46.019Z",
+        "last_positions_checked_at": "2026-04-13T19:34:21.293Z",
         "last_positions_error": "",
         "last_positions_status": "ok",
         "last_positions_user": "0x6B41\u2026578a",
         "market_ws_connected": true,
-        "market_ws_last_message_at": "2026-04-13T19:28:55.432Z",
+        "market_ws_last_message_at": "2026-04-13T19:34:31.459Z",
         "market_ws_reconnect_requested": false,
         "refresh_in_progress": false
       },
@@ -371,7 +371,7 @@
       "shadow_order_wins_today": 8,
       "shadow_order_wins_total": 8,
       "threshold_profile_version": "auto_0.82_0.81_0.81",
-      "updated_at": "2026-04-13T19:28:56.402Z"
+      "updated_at": "2026-04-13T19:34:32.537Z"
     }
   }
 }

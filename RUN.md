@@ -4,6 +4,8 @@ Survives SSH disconnects
 View logs: tail -f logs/nohup.log
 Stop it: kill $(cat bot.pid)
 
+# Create VENV
+command > python3 -m venv .venv
 
 # RUN in Tmux
 command > tmux
