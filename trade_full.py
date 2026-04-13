@@ -172,6 +172,7 @@ LATE_MIN_NET_EDGE      = float(os.getenv("LATE_MIN_NET_EDGE", "0.08"))
 MAX_EXECUTION_SPREAD   = float(os.getenv("MAX_EXECUTION_SPREAD", "0.03"))
 MAX_EXECUTION_QUOTE_AGE_S = float(os.getenv("MAX_EXECUTION_QUOTE_AGE_S", "2.0"))
 ALLOW_FALLBACK_EXECUTION_QUOTES = os.getenv("ALLOW_FALLBACK_EXECUTION_QUOTES", "false").lower() == "true"
+STRICT_REAL_PAPER_QUOTES = os.getenv("STRICT_REAL_PAPER_QUOTES", "true").lower() == "true"
 DEGRADED_MODE_CONF_BUMP = float(os.getenv("DEGRADED_MODE_CONF_BUMP", "0.04"))
 DEGRADED_MODE_EDGE_BUMP = float(os.getenv("DEGRADED_MODE_EDGE_BUMP", "0.03"))
 DEGRADED_MIN_RECENT_WIN_RATE = float(os.getenv("DEGRADED_MIN_RECENT_WIN_RATE", "0.80"))
@@ -187,6 +188,13 @@ TELEGRAM_STATUS_INTERVAL_S = int(os.getenv("TELEGRAM_STATUS_INTERVAL_S", "300"))
 SIGNAL_NOTIFY_MIN_STREAK = int(os.getenv("SIGNAL_NOTIFY_MIN_STREAK", "2"))
 SIGNAL_NOTIFY_IMMEDIATE_CONF = float(os.getenv("SIGNAL_NOTIFY_IMMEDIATE_CONF", "0.88"))
 SHADOW_ORDERS_ENABLED = os.getenv("SHADOW_ORDERS_ENABLED", "true").lower() == "true"
+SHADOW_NO_FILL_STATUSES = {
+    "no_fill_no_orderbook",
+    "no_fill_min_order",
+    "no_fill_liquidity",
+    "no_fill_stale_quote",
+    "unresolved_official_settlement",
+}
 
 # ── Bandar Push Detection (Anti Whale Push) ─────────────────────────────────
 BANDAR_FINAL_SECONDS       = 45      # final 45 detik = zona paling berbahaya
@@ -516,11 +524,20 @@ class BotLogger:
 
     @staticmethod
     def _position_audit_fields(position) -> dict[str, Any]:
+        amount = float(getattr(position, "amount_usdc", 0.0) or 0.0)
+        target = float(getattr(position, "target_amount_usdc", 0.0) or amount)
         return {
+            "target_amount_usdc": target,
+            "actual_spend_usdc": float(getattr(position, "actual_spend_usdc", 0.0) or amount),
+            "unfilled_amount_usdc": getattr(position, "unfilled_amount_usdc", 0.0),
+            "avg_fill_price": getattr(position, "avg_fill_price", 0.0) or getattr(position, "entry_price", 0.0),
             "gross_size": getattr(position, "gross_size", 0.0),
+            "net_shares": getattr(position, "size", 0.0),
             "fee_usdc": getattr(position, "fee_usdc", 0.0),
             "fee_rate": getattr(position, "fee_rate", 0.0),
             "fee_rate_source": getattr(position, "fee_rate_source", ""),
+            "fee_rate_bps": getattr(position, "fee_rate_bps", 0),
+            "fee_source": getattr(position, "fee_source", "") or getattr(position, "fee_rate_source", ""),
             "mid_odds": getattr(position, "mid_price", 0.0),
             "best_bid": getattr(position, "best_bid", 0.0),
             "best_ask": getattr(position, "best_ask", 0.0),
@@ -534,6 +551,11 @@ class BotLogger:
             "payout_per_dollar": getattr(position, "payout_per_dollar", 0.0),
             "execution_mode": "paper" if getattr(position, "simulated", False) else "live",
             "liquidity_source": getattr(position, "liquidity_source", ""),
+            "fill_source": getattr(position, "fill_source", ""),
+            "fill_status": getattr(position, "fill_status", ""),
+            "fill_confidence": getattr(position, "fill_confidence", ""),
+            "orderbook_timestamp": getattr(position, "orderbook_timestamp", 0.0),
+            "settlement_confidence": getattr(position, "settlement_confidence", ""),
         }
 
     @staticmethod
@@ -546,9 +568,15 @@ class BotLogger:
             "execution_spread": getattr(record, "execution_spread", 0.0),
             "fee_rate": getattr(record, "fee_rate", 0.0),
             "fee_rate_source": getattr(record, "fee_rate_source", ""),
+            "fee_rate_bps": getattr(record, "fee_rate_bps", 0),
+            "fee_source": getattr(record, "fee_source", "") or getattr(record, "fee_rate_source", ""),
             "fee_usdc": getattr(record, "fee_usdc", 0.0),
             "gross_size": getattr(record, "gross_size", 0.0),
             "net_size": getattr(record, "net_size", 0.0),
+            "target_amount_usdc": getattr(record, "target_amount_usdc", 0.0),
+            "actual_spend_usdc": getattr(record, "actual_spend_usdc", 0.0),
+            "unfilled_amount_usdc": getattr(record, "unfilled_amount_usdc", 0.0),
+            "avg_fill_price": getattr(record, "avg_fill_price", 0.0),
             "net_edge": getattr(record, "net_edge", 0.0),
             "expected_ev_usdc": getattr(record, "expected_ev_usdc", 0.0),
             "realized_pnl_usdc": getattr(record, "realized_pnl_usdc", 0.0),
@@ -556,9 +584,14 @@ class BotLogger:
             "payout_per_dollar": getattr(record, "payout_per_dollar", 0.0),
             "execution_mode": getattr(record, "execution_mode", ""),
             "liquidity_source": getattr(record, "liquidity_source", ""),
+            "fill_source": getattr(record, "fill_source", ""),
+            "fill_status": getattr(record, "fill_status", ""),
+            "fill_confidence": getattr(record, "fill_confidence", ""),
+            "orderbook_timestamp": getattr(record, "orderbook_timestamp", 0.0),
             "quote_age_s": getattr(record, "quote_age_s", 0.0),
             "settlement_source": getattr(record, "settlement_source", ""),
             "settlement_low_confidence": getattr(record, "settlement_low_confidence", False),
+            "settlement_confidence": getattr(record, "settlement_confidence", ""),
             "shadow_order_id": getattr(record, "shadow_order_id", ""),
             "shadow_order_status": getattr(record, "shadow_order_status", ""),
             "shadow_order_won": getattr(record, "shadow_order_won", None),
@@ -582,12 +615,19 @@ class BotLogger:
             "direction": getattr(order, "direction", ""),
             "token_id": getattr(order, "token_id", ""),
             "amount_usdc": getattr(order, "amount_usdc", 0.0),
+            "target_amount_usdc": getattr(order, "target_amount_usdc", 0.0) or getattr(order, "amount_usdc", 0.0),
+            "actual_spend_usdc": getattr(order, "actual_spend_usdc", 0.0) or getattr(order, "amount_usdc", 0.0),
+            "unfilled_amount_usdc": getattr(order, "unfilled_amount_usdc", 0.0),
             "entry_price": getattr(order, "entry_price", 0.0),
+            "avg_fill_price": getattr(order, "avg_fill_price", 0.0) or getattr(order, "entry_price", 0.0),
             "size": getattr(order, "size", 0.0),
+            "net_shares": getattr(order, "size", 0.0),
             "gross_size": getattr(order, "gross_size", 0.0),
             "fee_usdc": getattr(order, "fee_usdc", 0.0),
             "fee_rate": getattr(order, "fee_rate", 0.0),
             "fee_rate_source": getattr(order, "fee_rate_source", ""),
+            "fee_rate_bps": getattr(order, "fee_rate_bps", 0),
+            "fee_source": getattr(order, "fee_source", "") or getattr(order, "fee_rate_source", ""),
             "mid_odds": getattr(order, "mid_price", 0.0),
             "best_bid": getattr(order, "best_bid", 0.0),
             "best_ask": getattr(order, "best_ask", 0.0),
@@ -601,6 +641,10 @@ class BotLogger:
             "payout_per_dollar": getattr(order, "payout_per_dollar", 0.0),
             "execution_mode": "paper_shadow",
             "liquidity_source": getattr(order, "liquidity_source", ""),
+            "fill_source": getattr(order, "fill_source", ""),
+            "fill_status": getattr(order, "fill_status", ""),
+            "fill_confidence": getattr(order, "fill_confidence", ""),
+            "orderbook_timestamp": getattr(order, "orderbook_timestamp", 0.0),
             "quote_age_s": getattr(order, "quote_age_s", 0.0),
             "blocked_gate": getattr(order, "blocked_gate", ""),
             "blocked_reason": getattr(order, "blocked_reason", ""),
@@ -611,6 +655,7 @@ class BotLogger:
             "actual_winner": getattr(order, "actual_winner", ""),
             "settlement_source": getattr(order, "settlement_source", ""),
             "settlement_low_confidence": getattr(order, "settlement_low_confidence", False),
+            "settlement_confidence": getattr(order, "settlement_confidence", ""),
             "placed_at": (
                 getattr(order, "placed_at", None).isoformat()
                 if getattr(order, "placed_at", None) else ""
@@ -1038,7 +1083,7 @@ class BotLogger:
                         key = self._trade_key(record)
                         if event == "open":
                             opens.append(record)
-                        elif event == "close" and record.get("status") in ("won", "lost"):
+                        elif event == "close" and record.get("status") in ("won", "lost", "unresolved_official_settlement"):
                             closes[key] = record
             except Exception:
                 continue
@@ -1098,6 +1143,10 @@ class BotLogger:
             f for f in self._dir.glob("trades_*.jsonl")
             if f.stem.rsplit("_", 1)[-1] >= cutoff
         )
+        prediction_files = sorted(
+            f for f in self._dir.glob("prediction_analytics_*.jsonl")
+            if f.stem.rsplit("_", 2)[-1] >= cutoff
+        )
 
         opens: dict[str, dict] = {}
         closes: dict[str, dict] = {}
@@ -1150,6 +1199,47 @@ class BotLogger:
                 condition_id=str(close_rec.get("condition_id", open_rec.get("condition_id", "")) or ""),
                 entry_price=float(close_rec.get("entry_price", open_rec.get("entry_price", 0.0)) or 0.0),
             ))
+
+        seen_shadow: set[str] = set()
+        for path in prediction_files:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            record = json.loads(line)
+                        except Exception:
+                            continue
+                        event = str(record.get("event", ""))
+                        if event not in ("shadow_order_resolved", "shadow_order_opened"):
+                            continue
+                        status = str(record.get("status", "")).lower()
+                        if status not in ("won", "lost", *SHADOW_NO_FILL_STATUSES):
+                            continue
+                        if event == "shadow_order_opened" and status == "open":
+                            continue
+                        order_id = str(record.get("shadow_order_id") or record.get("simulated_order_id") or "").strip()
+                        condition_id = str(record.get("condition_id", "") or "")
+                        unique_key = order_id or f"{condition_id}:{record.get('placed_at', '')}:shadow"
+                        if not condition_id.startswith("0x") or not unique_key or unique_key in seen_shadow:
+                            continue
+                        seen_shadow.add(unique_key)
+                        placed_at = _parse_dt(record.get("placed_at"))
+                        closed_at = _parse_dt(record.get("resolved_at")) or _parse_dt(record.get("ts")) or datetime.now(_UTC)
+                        entries.append(TradeHistoryEntry(
+                            direction=str(record.get("direction") or "NONE"),
+                            amount_usdc=float(record.get("amount_usdc") or record.get("target_amount_usdc", 0.0) or 0.0),
+                            pnl=float(record.get("shadow_order_pnl_usdc", record.get("pnl", 0.0)) or 0.0),
+                            status=status,
+                            placed_at=placed_at,
+                            closed_at=closed_at,
+                            simulated=True,
+                            order_id=order_id,
+                            condition_id=condition_id,
+                            entry_price=float(record.get("entry_price", 0.0) or 0.0),
+                            shadow=True,
+                        ))
+            except Exception:
+                continue
 
         entries.sort(key=lambda entry: entry.closed_at, reverse=True)
         return entries[:limit]
@@ -1937,11 +2027,23 @@ def compute_kelly_size(
     return max(min_bet, min(effective_max, round(bet, 2)))
 
 
-def normalize_fee_rate(raw: Any, default: float = POLYMARKET_CRYPTO_TAKER_FEE_RATE) -> float:
+def normalize_fee_rate(
+    raw: Any,
+    default: float = POLYMARKET_CRYPTO_TAKER_FEE_RATE,
+    *,
+    raw_is_bps: bool = False,
+    zero_is_valid: bool = False,
+) -> float:
     """Normalize Polymarket fee-rate payloads into the formula rate."""
-    value = _safe_float(raw, 0.0)
-    if value <= 0.0:
+    if raw is None or raw == "":
         return default
+    value = _safe_float(raw, 0.0)
+    if value < 0.0:
+        return default
+    if value == 0.0:
+        return 0.0 if zero_is_valid else default
+    if raw_is_bps:
+        return value / 10000.0
     # REST/SDK payloads may report basis points while docs express the formula
     # rate as a decimal, e.g. crypto 0.072. Values like 720 are bps; values like
     # 7.2 are percent-like payloads seen in some API wrappers.
@@ -1950,6 +2052,10 @@ def normalize_fee_rate(raw: Any, default: float = POLYMARKET_CRYPTO_TAKER_FEE_RA
     if value > 1.0:
         return value / 100.0
     return value
+
+
+def fee_rate_to_bps(fee_rate: float) -> int:
+    return int(round(max(0.0, float(fee_rate or 0.0)) * 10000.0))
 
 
 def compute_taker_fee_usdc(shares: float, price: float, fee_rate: float) -> float:
@@ -2009,6 +2115,53 @@ def execution_quote_block_reason(
             f"execution quote source={quote.liquidity_source or 'unknown'} is not live orderbook depth"
         )
     return None
+
+
+def strict_real_quote_no_fill_status(
+    quote: ExecutionQuote | None,
+    *,
+    target_amount_usdc: float,
+    require_orderbook: bool,
+) -> tuple[str, str] | None:
+    """Return a no-fill status when a paper/shadow FOK simulation is not real-fillable."""
+    target_amount_usdc = max(0.0, float(target_amount_usdc or 0.0))
+    if quote is None:
+        return "no_fill_no_orderbook", "execution quote unavailable"
+    if MAX_EXECUTION_QUOTE_AGE_S > 0.0 and quote.quote_age_s > MAX_EXECUTION_QUOTE_AGE_S:
+        return (
+            "no_fill_stale_quote",
+            f"execution quote age {quote.quote_age_s:.2f}s > max {MAX_EXECUTION_QUOTE_AGE_S:.2f}s",
+        )
+    if quote.execution_price <= 0.0:
+        return "no_fill_no_orderbook", f"invalid execution price {quote.execution_price:.4f}"
+    if require_orderbook and str(quote.liquidity_source or "").lower() != "orderbook":
+        return (
+            "no_fill_no_orderbook",
+            f"execution quote source={quote.liquidity_source or 'unknown'} is not live orderbook depth",
+        )
+    min_notional = float(quote.min_notional or 0.0)
+    if min_notional > 0.0 and target_amount_usdc + 1e-9 < min_notional:
+        return (
+            "no_fill_min_order",
+            f"target ${target_amount_usdc:.2f} below market minimum ${min_notional:.2f}",
+        )
+    actual_spend = max(0.0, float(quote.amount_usdc or quote.actual_spend_usdc or 0.0))
+    unfilled = max(float(getattr(quote, "unfilled_amount_usdc", 0.0) or 0.0), target_amount_usdc - actual_spend)
+    if not quote.enough_liquidity or unfilled > 0.009:
+        return (
+            "no_fill_liquidity",
+            f"orderbook ask depth cannot fill target ${target_amount_usdc:.2f} as FOK",
+        )
+    if actual_spend <= 0.0:
+        return "no_fill_liquidity", "quote has no executable ask depth"
+    return None
+
+
+def settlement_is_official(settlement_info: SettlementInfo | None) -> bool:
+    return bool(
+        settlement_info is not None
+        and settlement_info.settlement_source_priority >= SETTLEMENT_POLL_MIN_PRIORITY
+    )
 
 
 # ── Individual filter checks ──────────────────────────────────────────────────
@@ -3111,6 +3264,9 @@ class WindowInfo:
 class ExecutionQuote:
     token_id: str
     amount_usdc: float
+    target_amount_usdc: float = 0.0
+    actual_spend_usdc: float = 0.0
+    unfilled_amount_usdc: float = 0.0
     mid_price: float = 0.0
     best_bid: float = 0.0
     best_ask: float = 0.0
@@ -3122,10 +3278,31 @@ class ExecutionQuote:
     fee_shares: float = 0.0
     fee_rate: float = POLYMARKET_CRYPTO_TAKER_FEE_RATE
     fee_rate_source: str = "fallback_crypto"
+    fee_rate_bps: int = 0
+    fee_source: str = ""
     min_order_size: float = 0.0
     enough_liquidity: bool = True
     liquidity_source: str = "odds_fallback"
+    fill_source: str = ""
+    fill_status: str = "filled"
+    fill_confidence: str = "estimated"
+    orderbook_timestamp: float = 0.0
+    last_trade_price: float = 0.0
     quoted_at_ts: float = field(default_factory=time.time)
+
+    def __post_init__(self) -> None:
+        if self.target_amount_usdc <= 0.0:
+            self.target_amount_usdc = max(0.0, float(self.amount_usdc or 0.0))
+        if self.actual_spend_usdc <= 0.0:
+            self.actual_spend_usdc = max(0.0, float(self.amount_usdc or 0.0))
+        if self.unfilled_amount_usdc <= 0.0 and self.target_amount_usdc > self.actual_spend_usdc:
+            self.unfilled_amount_usdc = max(0.0, self.target_amount_usdc - self.actual_spend_usdc)
+        if not self.fee_rate_bps:
+            self.fee_rate_bps = fee_rate_to_bps(self.fee_rate)
+        if not self.fee_source:
+            self.fee_source = self.fee_rate_source
+        if not self.fill_source:
+            self.fill_source = self.liquidity_source
 
     @property
     def execution_price(self) -> float:
@@ -3158,19 +3335,28 @@ class TradeResult:
     size: float | None = None
     gross_size: float | None = None
     price: float | None = None
-    amount_usdc: float | None = None
+    amount_usdc: float | None = None  # actual spend
+    target_amount_usdc: float | None = None
+    actual_spend_usdc: float | None = None
+    unfilled_amount_usdc: float = 0.0
     failure_code: str = ""
     retryable: bool = False
     attempt_consumed: bool = True
     fee_usdc: float = 0.0
     fee_rate: float = 0.0
     fee_rate_source: str = ""
+    fee_rate_bps: int = 0
+    fee_source: str = ""
     best_bid: float = 0.0
     best_ask: float = 0.0
     mid_price: float = 0.0
     spread: float = 0.0
     payout_per_dollar: float = 0.0
     liquidity_source: str = ""
+    fill_source: str = ""
+    fill_status: str = ""
+    fill_confidence: str = ""
+    orderbook_timestamp: float = 0.0
 
 
 @dataclass
@@ -3182,6 +3368,14 @@ class ClosedTrade:
     status: str       # CONFIRMED | MATCHED | FAILED
     match_time: str
     transaction_hash: str | None = None
+    order_id: str = ""
+    trade_id: str = ""
+    asset_id: str = ""
+    side: str = ""
+    amount_usdc: float = 0.0
+    fee_rate_bps: int = 0
+    fee_usdc: float = 0.0
+    fee_shares: float = 0.0
 
 
 # ── Client ────────────────────────────────────────────────────────────────────
@@ -3564,9 +3758,12 @@ class MarketClient:
     def _extract_fee_rate_payload(payload: Any) -> tuple[float, str]:
         if not isinstance(payload, dict):
             return POLYMARKET_CRYPTO_TAKER_FEE_RATE, "fallback_crypto"
-        for key in ("fee_rate", "feeRate", "fee_rate_bps", "feeRateBps", "rate", "takerFeeRate"):
+        for key in ("base_fee", "baseFee", "fee_rate_bps", "feeRateBps"):
             if key in payload:
-                return normalize_fee_rate(payload.get(key)), "fee-rate"
+                return normalize_fee_rate(payload.get(key), raw_is_bps=True, zero_is_valid=True), "fee-rate"
+        for key in ("fee_rate", "feeRate", "rate", "takerFeeRate"):
+            if key in payload:
+                return normalize_fee_rate(payload.get(key), zero_is_valid=True), "fee-rate"
         return POLYMARKET_CRYPTO_TAKER_FEE_RATE, "fallback_crypto"
 
     async def get_fee_rate(self, token_id: str) -> tuple[float, str]:
@@ -3613,9 +3810,12 @@ class MarketClient:
         fee_rate: float,
         fee_rate_source: str,
         min_order_size: float,
+        orderbook_timestamp: float = 0.0,
+        last_trade_price: float = 0.0,
     ) -> ExecutionQuote:
         best_bid, best_ask, spread = MarketClient._book_best_prices(bids, asks)
-        amount_left = max(0.0, float(amount_usdc or 0.0))
+        target_amount = max(0.0, float(amount_usdc or 0.0))
+        amount_left = target_amount
         spent = 0.0
         gross_shares = 0.0
         fee_usdc = 0.0
@@ -3635,9 +3835,14 @@ class MarketClient:
         if gross_shares > 0.0:
             avg_price = spent / gross_shares
             fee_shares = fee_usdc / avg_price if avg_price > 0.0 else 0.0
+            unfilled_amount = max(0.0, target_amount - spent)
+            filled = amount_left <= 1e-9
             return ExecutionQuote(
                 token_id=token_id,
                 amount_usdc=spent,
+                target_amount_usdc=target_amount,
+                actual_spend_usdc=spent,
+                unfilled_amount_usdc=unfilled_amount,
                 mid_price=mid_price,
                 best_bid=best_bid,
                 best_ask=best_ask,
@@ -3649,30 +3854,46 @@ class MarketClient:
                 fee_shares=fee_shares,
                 fee_rate=fee_rate,
                 fee_rate_source=fee_rate_source,
+                fee_rate_bps=fee_rate_to_bps(fee_rate),
+                fee_source=fee_rate_source,
                 min_order_size=min_order_size,
-                enough_liquidity=amount_left <= 1e-9,
+                enough_liquidity=filled,
                 liquidity_source="orderbook",
+                fill_source="orderbook",
+                fill_status="filled" if filled else "partial_liquidity",
+                fill_confidence="orderbook" if filled else "insufficient_depth",
+                orderbook_timestamp=orderbook_timestamp,
+                last_trade_price=last_trade_price,
             )
 
         fallback_price = max(0.01, min(0.99, best_ask or mid_price or 0.5))
-        est = estimate_buy_net_shares(max(0.0, amount_usdc), fallback_price, fee_rate)
         return ExecutionQuote(
             token_id=token_id,
-            amount_usdc=max(0.0, amount_usdc),
+            amount_usdc=0.0,
+            target_amount_usdc=target_amount,
+            actual_spend_usdc=0.0,
+            unfilled_amount_usdc=target_amount,
             mid_price=mid_price or fallback_price,
             best_bid=best_bid,
             best_ask=best_ask or fallback_price,
             avg_price=fallback_price,
             spread=spread,
-            gross_shares=est["gross_shares"],
-            net_shares=est["net_shares"],
-            fee_usdc=est["fee_usdc"],
-            fee_shares=est["fee_shares"],
+            gross_shares=0.0,
+            net_shares=0.0,
+            fee_usdc=0.0,
+            fee_shares=0.0,
             fee_rate=fee_rate,
             fee_rate_source=fee_rate_source,
+            fee_rate_bps=fee_rate_to_bps(fee_rate),
+            fee_source=fee_rate_source,
             min_order_size=min_order_size,
-            enough_liquidity=bool(best_ask or mid_price),
-            liquidity_source="odds_fallback" if not best_ask else "best_ask_fallback",
+            enough_liquidity=False,
+            liquidity_source="no_orderbook" if not best_ask else "no_ask_liquidity",
+            fill_source="none",
+            fill_status="no_fill_no_orderbook" if not best_ask else "no_fill_liquidity",
+            fill_confidence="none",
+            orderbook_timestamp=orderbook_timestamp,
+            last_trade_price=last_trade_price,
         )
 
     async def get_execution_quote(
@@ -3694,6 +3915,23 @@ class MarketClient:
         if isinstance(raw_book, dict):
             bids = _normalize_book_levels(raw_book.get("bids", []), depth=50)
             asks = _normalize_book_levels(raw_book.get("asks", []), depth=50)
+        orderbook_timestamp = 0.0
+        last_trade_price = 0.0
+        if isinstance(raw_book, dict):
+            orderbook_timestamp = _safe_float(
+                raw_book.get("timestamp")
+                or raw_book.get("ts")
+                or raw_book.get("updated_at")
+                or raw_book.get("updatedAt"),
+                0.0,
+            )
+            last_trade_price = _safe_float(
+                raw_book.get("last_trade_price")
+                or raw_book.get("lastTradePrice")
+                or raw_book.get("last_price")
+                or raw_book.get("lastPrice"),
+                0.0,
+            )
         mid_price = max(0.0, min(0.99, float(current_odds or 0.0)))
         if bids and asks:
             best_bid, best_ask, _ = self._book_best_prices(bids, asks)
@@ -3708,6 +3946,8 @@ class MarketClient:
             fee_rate=fee_rate,
             fee_rate_source=fee_source,
             min_order_size=min_order_size,
+            orderbook_timestamp=orderbook_timestamp,
+            last_trade_price=last_trade_price,
         )
 
     @staticmethod
@@ -3786,14 +4026,26 @@ class MarketClient:
             "fee_usdc": quote.fee_usdc,
             "fee_rate": quote.fee_rate,
             "fee_rate_source": quote.fee_rate_source,
+            "fee_rate_bps": quote.fee_rate_bps,
+            "fee_source": quote.fee_source,
             "best_bid": quote.best_bid,
             "best_ask": quote.best_ask,
             "mid_price": quote.mid_price,
             "spread": quote.spread,
             "payout_per_dollar": quote.payout_per_dollar,
             "liquidity_source": quote.liquidity_source,
+            "target_amount_usdc": quote.target_amount_usdc,
+            "actual_spend_usdc": quote.amount_usdc,
+            "unfilled_amount_usdc": quote.unfilled_amount_usdc,
+            "fill_source": quote.fill_source,
+            "fill_status": quote.fill_status,
+            "fill_confidence": quote.fill_confidence,
+            "orderbook_timestamp": quote.orderbook_timestamp,
         }
-        quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
+        quote_block_reason = execution_quote_block_reason(
+            quote,
+            require_orderbook=LIVE_TRADING or STRICT_REAL_PAPER_QUOTES,
+        )
         if quote_block_reason:
             return TradeResult(
                 success=False,
@@ -3815,11 +4067,20 @@ class MarketClient:
                 attempt_consumed=True,
                 fee_rate=quote.fee_rate,
                 fee_rate_source=quote.fee_rate_source,
+                fee_rate_bps=quote.fee_rate_bps,
+                fee_source=quote.fee_source,
                 best_bid=quote.best_bid,
                 best_ask=quote.best_ask,
                 mid_price=quote.mid_price,
                 spread=quote.spread,
                 liquidity_source=quote.liquidity_source,
+                target_amount_usdc=quote.target_amount_usdc,
+                actual_spend_usdc=0.0,
+                unfilled_amount_usdc=quote.target_amount_usdc,
+                fill_source=quote.fill_source,
+                fill_status="no_fill_min_order",
+                fill_confidence="none",
+                orderbook_timestamp=quote.orderbook_timestamp,
             )
         if not quote.enough_liquidity:
             return TradeResult(
@@ -3830,11 +4091,20 @@ class MarketClient:
                 attempt_consumed=False,
                 fee_rate=quote.fee_rate,
                 fee_rate_source=quote.fee_rate_source,
+                fee_rate_bps=quote.fee_rate_bps,
+                fee_source=quote.fee_source,
                 best_bid=quote.best_bid,
                 best_ask=quote.best_ask,
                 mid_price=quote.mid_price,
                 spread=quote.spread,
                 liquidity_source=quote.liquidity_source,
+                target_amount_usdc=quote.target_amount_usdc,
+                actual_spend_usdc=0.0,
+                unfilled_amount_usdc=quote.unfilled_amount_usdc or quote.target_amount_usdc,
+                fill_source=quote.fill_source,
+                fill_status="no_fill_liquidity",
+                fill_confidence="none",
+                orderbook_timestamp=quote.orderbook_timestamp,
             )
 
         if not LIVE_TRADING:
@@ -3847,15 +4117,24 @@ class MarketClient:
                 gross_size=quote.gross_shares,
                 price=price_hint,
                 amount_usdc=quote.amount_usdc,
+                target_amount_usdc=quote.target_amount_usdc,
+                actual_spend_usdc=quote.amount_usdc,
+                unfilled_amount_usdc=quote.unfilled_amount_usdc,
                 fee_usdc=quote.fee_usdc,
                 fee_rate=quote.fee_rate,
                 fee_rate_source=quote.fee_rate_source,
+                fee_rate_bps=quote.fee_rate_bps,
+                fee_source=quote.fee_source,
                 best_bid=quote.best_bid,
                 best_ask=quote.best_ask,
                 mid_price=quote.mid_price,
                 spread=quote.spread,
                 payout_per_dollar=quote.payout_per_dollar,
                 liquidity_source=quote.liquidity_source,
+                fill_source=quote.fill_source,
+                fill_status="filled",
+                fill_confidence="orderbook",
+                orderbook_timestamp=quote.orderbook_timestamp,
             )
 
         if not POLY_ETH_PRIVATE_KEY:
@@ -3875,6 +4154,7 @@ class MarketClient:
 
             order_type = OrderType.FOK
             actual_amount_usdc = round(amount_usdc, 4)
+            order_started_ts = time.time()
 
             order_args = MarketOrderArgs(
                 token_id=token_id,
@@ -3924,23 +4204,46 @@ class MarketClient:
                         attempt_consumed=False,
                         **quote_result_fields,
                     )
+                order_id = str(resp.get("orderID") or "")
+                fill = await self._reconcile_live_fill(
+                    order_id=order_id,
+                    token_id=token_id,
+                    direction=direction,
+                    after_ts=order_started_ts,
+                    quote=quote,
+                    fallback_amount_usdc=actual_amount_usdc,
+                    fallback_price=effective_price,
+                    fallback_gross_size=gross_size,
+                    fallback_net_size=filled_size,
+                    fallback_fee_usdc=fee_usdc,
+                    fallback_payout_per_dollar=payout_per_dollar,
+                )
                 self._mark_auth_success("place_bet")
                 return TradeResult(
                     success=True,
-                    order_id=resp.get("orderID"),
-                    size=filled_size,
-                    gross_size=gross_size,
-                    price=effective_price,
-                    amount_usdc=actual_amount_usdc,
-                    fee_usdc=fee_usdc,
-                    fee_rate=quote.fee_rate,
+                    order_id=order_id,
+                    size=fill["net_size"],
+                    gross_size=fill["gross_size"],
+                    price=fill["price"],
+                    amount_usdc=fill["amount_usdc"],
+                    target_amount_usdc=actual_amount_usdc,
+                    actual_spend_usdc=fill["amount_usdc"],
+                    unfilled_amount_usdc=max(0.0, actual_amount_usdc - float(fill["amount_usdc"] or 0.0)),
+                    fee_usdc=fill["fee_usdc"],
+                    fee_rate=fill["fee_rate"],
                     fee_rate_source=quote.fee_rate_source,
+                    fee_rate_bps=fill["fee_rate_bps"],
+                    fee_source=quote.fee_source,
                     best_bid=quote.best_bid,
                     best_ask=quote.best_ask,
                     mid_price=quote.mid_price,
                     spread=quote.spread,
-                    payout_per_dollar=payout_per_dollar,
+                    payout_per_dollar=fill["payout_per_dollar"],
                     liquidity_source=quote.liquidity_source,
+                    fill_source=fill["fill_source"],
+                    fill_status=fill["fill_status"],
+                    fill_confidence=fill["fill_confidence"],
+                    orderbook_timestamp=quote.orderbook_timestamp,
                 )
             error_msg = str(resp.get("errorMsg", "unknown")) if isinstance(resp, dict) else "unknown"
             self._mark_auth_failure(error_msg, source="place_bet")
@@ -4128,31 +4431,185 @@ class MarketClient:
 
     # ── Trades (position tracking) ────────────────────────────────────────────
 
-    async def get_recent_trades(self, after_ts: float | None = None) -> list[ClosedTrade]:
+    @staticmethod
+    def _normalize_trade_unit(value: Any) -> float:
+        normalized = _safe_float(value, 0.0)
+        if abs(normalized) >= 100000.0:
+            return normalized / 1_000_000.0
+        return normalized
+
+    @classmethod
+    def _parse_trade_payload(cls, payload: Any) -> ClosedTrade | None:
+        if not isinstance(payload, dict):
+            return None
+        price = _safe_float(payload.get("price"), 0.0)
+        size = cls._normalize_trade_unit(payload.get("size") or payload.get("maker_amount") or payload.get("taker_amount"))
+        if price <= 0.0 and size <= 0.0:
+            return None
+        amount_usdc = cls._normalize_trade_unit(
+            payload.get("sizeUsdc")
+            or payload.get("size_usdc")
+            or payload.get("amount_usdc")
+            or payload.get("makerAmount")
+            or payload.get("maker_amount")
+        )
+        if amount_usdc <= 0.0 and price > 0.0 and size > 0.0:
+            amount_usdc = size * price
+        fee_rate_bps = int(round(_safe_float(
+            payload.get("fee_rate_bps")
+            or payload.get("feeRateBps")
+            or payload.get("feeRate")
+            or 0,
+            0.0,
+        )))
+        fee_rate = fee_rate_bps / 10000.0 if fee_rate_bps > 0 else 0.0
+        fee_usdc = compute_taker_fee_usdc(size, price, fee_rate) if fee_rate > 0.0 else 0.0
+        fee_shares = fee_usdc / price if price > 0.0 else 0.0
+        order_id = str(
+            payload.get("order_id")
+            or payload.get("orderID")
+            or payload.get("taker_order_id")
+            or payload.get("maker_order_id")
+            or ""
+        )
+        status = str(payload.get("status") or payload.get("state") or "UNKNOWN")
+        outcome = str(payload.get("outcome") or payload.get("side") or "").lower()
+        direction = "UP" if outcome in ("yes", "up") else "DOWN" if outcome in ("no", "down") else ""
+        return ClosedTrade(
+            condition_id=str(payload.get("market") or payload.get("condition_id") or payload.get("conditionId") or ""),
+            direction=direction,
+            size=size,
+            price=price,
+            status=status,
+            match_time=str(payload.get("match_time") or payload.get("matchTime") or payload.get("created_at") or ""),
+            transaction_hash=payload.get("transaction_hash") or payload.get("transactionHash"),
+            order_id=order_id,
+            trade_id=str(payload.get("id") or payload.get("trade_id") or ""),
+            asset_id=str(payload.get("asset_id") or payload.get("assetId") or payload.get("token_id") or ""),
+            side=str(payload.get("side") or ""),
+            amount_usdc=amount_usdc,
+            fee_rate_bps=fee_rate_bps,
+            fee_usdc=fee_usdc,
+            fee_shares=fee_shares,
+        )
+
+    @staticmethod
+    def _trades_payload_list(result: Any) -> list[Any]:
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict):
+            data = result.get("data", [])
+            return data if isinstance(data, list) else []
+        return []
+
+    async def get_recent_trades(
+        self,
+        after_ts: float | None = None,
+        *,
+        asset_id: str | None = None,
+        market: str | None = None,
+        order_id: str | None = None,
+    ) -> list[ClosedTrade]:
         """Return trades for our address via GET /trades."""
         client, _, _ = await self._get_client_snapshot()
         try:
             from py_clob_client.clob_types import TradeParams
-            params = TradeParams(maker_address=POLY_ADDRESS)
+            params = TradeParams(
+                maker_address=POLY_ADDRESS or None,
+                market=market,
+                asset_id=asset_id,
+                after=int(after_ts) if after_ts else None,
+            )
             result = await self._run(client.get_trades, params)
 
-            trades = []
-            data = result.get("data", []) if isinstance(result, dict) else []
-            for t in data:
-                trades.append(ClosedTrade(
-                    condition_id=t.get("market", ""),
-                    direction="UP" if t.get("outcome", "").lower() in ("yes", "up") else "DOWN",
-                    size=float(t.get("size", 0)),
-                    price=float(t.get("price", 0)),
-                    status=t.get("status", "UNKNOWN"),
-                    match_time=t.get("match_time", ""),
-                    transaction_hash=t.get("transaction_hash"),
-                ))
+            trades: list[ClosedTrade] = []
+            for raw_trade in self._trades_payload_list(result):
+                trade = self._parse_trade_payload(raw_trade)
+                if trade is None:
+                    continue
+                if order_id and trade.order_id and trade.order_id != order_id:
+                    continue
+                trades.append(trade)
             self._mark_auth_success("get_recent_trades")
             return trades
         except Exception as exc:
             self._mark_auth_failure(str(exc), source="get_recent_trades")
             return []
+
+    async def _reconcile_live_fill(
+        self,
+        *,
+        order_id: str,
+        token_id: str,
+        direction: str,
+        after_ts: float,
+        quote: ExecutionQuote,
+        fallback_amount_usdc: float,
+        fallback_price: float,
+        fallback_gross_size: float,
+        fallback_net_size: float,
+        fallback_fee_usdc: float,
+        fallback_payout_per_dollar: float,
+    ) -> dict[str, Any]:
+        trades = await self.get_recent_trades(
+            after_ts=max(0.0, after_ts - 30.0),
+            asset_id=token_id,
+            order_id=order_id,
+        )
+        matches = [
+            trade for trade in trades
+            if (
+                not trade.asset_id or trade.asset_id == token_id
+            )
+            and (
+                not trade.direction or trade.direction == direction
+            )
+            and (
+                not order_id or not trade.order_id or trade.order_id == order_id
+            )
+            and trade.price > 0.0
+            and trade.size > 0.0
+        ]
+        if not matches:
+            return {
+                "amount_usdc": fallback_amount_usdc,
+                "price": fallback_price,
+                "gross_size": fallback_gross_size,
+                "net_size": fallback_net_size,
+                "fee_usdc": fallback_fee_usdc,
+                "fee_rate": quote.fee_rate,
+                "fee_rate_bps": quote.fee_rate_bps,
+                "payout_per_dollar": fallback_payout_per_dollar,
+                "fill_source": "sdk_estimated_pending_reconcile",
+                "fill_status": "filled_estimated",
+                "fill_confidence": "sdk_estimated",
+            }
+
+        gross_size = sum(max(0.0, trade.size) for trade in matches)
+        amount_usdc = sum(max(0.0, trade.amount_usdc) for trade in matches)
+        if amount_usdc <= 0.0:
+            amount_usdc = sum(max(0.0, trade.size * trade.price) for trade in matches)
+        avg_price = amount_usdc / gross_size if gross_size > 0.0 else fallback_price
+        fee_rate_bps = max((trade.fee_rate_bps for trade in matches), default=quote.fee_rate_bps)
+        fee_rate = fee_rate_bps / 10000.0 if fee_rate_bps > 0 else quote.fee_rate
+        fee_usdc = sum(max(0.0, trade.fee_usdc) for trade in matches)
+        if fee_usdc <= 0.0 and fee_rate > 0.0:
+            fee_usdc = sum(compute_taker_fee_usdc(trade.size, trade.price, fee_rate) for trade in matches)
+        fee_shares = fee_usdc / avg_price if avg_price > 0.0 else 0.0
+        net_size = max(0.0, gross_size - fee_shares)
+        return {
+            "amount_usdc": amount_usdc,
+            "price": avg_price,
+            "gross_size": gross_size,
+            "net_size": net_size,
+            "fee_usdc": fee_usdc,
+            "fee_rate": fee_rate,
+            "fee_rate_bps": fee_rate_bps or fee_rate_to_bps(fee_rate),
+            "payout_per_dollar": net_size / amount_usdc if amount_usdc > 0.0 else 0.0,
+            "fill_source": "clob_trades",
+            "fill_status": "filled",
+            "fill_confidence": "confirmed_trades",
+        }
 
     async def get_order_book_snapshot(self, token_id: str) -> dict[str, Any] | None:
         """Return a best-effort public order book snapshot for a token."""
@@ -4681,11 +5138,17 @@ class TelegramNotifier:
         if not self._enabled:
             return
         record_line = ""
+        shadow_line = ""
         balance_line = ""
         if state is not None:
             record_line = (
                 f"Record: Win {state.win_count} / Lose {state.loss_count}  "
                 f"Winrate: {state.win_rate:.1f}%\n"
+            )
+            shadow_line = (
+                f"Shadow: Win {state.paper_stats.shadow_order_wins_total} / "
+                f"Lose {state.paper_stats.shadow_order_losses_total}  "
+                f"Winrate: {state.paper_stats.shadow_order_win_rate:.1f}%\n"
             )
             if state.balance_usdc > 0:
                 balance_line = f"Balance: <code>${state.balance_usdc:.2f} USDC</code>\n"
@@ -4694,6 +5157,7 @@ class TelegramNotifier:
             f"Beat: <code>${win.beat_price:,.2f}</code>\n"
             f"Ends: {win.end_time.strftime('%H:%M:%S')} UTC\n"
             f"{record_line}"
+            f"{shadow_line}"
             f"{balance_line}"
             f"Mode: {self._mode}"
         )
@@ -4822,14 +5286,29 @@ class TelegramNotifier:
             return
         emoji = "⬆️" if order.direction == "UP" else "⬇️"
         net_ev_s = f"{order.net_edge:+.1%}" if math.isfinite(float(order.net_edge or 0.0)) else "n/a"
+        if order.status != "open":
+            text = (
+                f"🧪 <b>SHADOW ORDER NO FILL</b> {emoji}  [PAPER]\n"
+                f"Direction: <b>{html.escape(order.direction)}</b>  "
+                f"Target: <code>${order.target_amount_usdc:.2f}</code>  Status: <code>{html.escape(order.status)}</code>\n"
+                f"Best ask: <code>{order.best_ask:.3f}</code>  Fee source: <code>{html.escape(order.fee_source or order.fee_rate_source or 'unknown')}</code>\n"
+                f"Gate: <code>{html.escape(order.blocked_gate or 'EXECUTION_HOLD')}</code>\n"
+                f"Why: {html.escape((order.blocked_reason or 'not fillable as strict real FOK')[:160])}\n"
+                f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
+                f"Order: <code>{html.escape(order.shadow_order_id)}</code>"
+            )
+            self._fire(text)
+            return
         text = (
             f"🧪 <b>SHADOW ORDER OPEN</b> {emoji}  [PAPER]\n"
             f"Direction: <b>{html.escape(order.direction)}</b>  "
-            f"Amount: <code>${order.amount_usdc:.2f}</code> @ {order.entry_price:.3f}\n"
+            f"Target: <code>${order.target_amount_usdc:.2f}</code>  "
+            f"Spent: <code>${order.amount_usdc:.2f}</code> @ {order.entry_price:.3f}\n"
             f"Net shares: <code>{order.size:.4f}</code>  Fee: <code>${order.fee_usdc:.4f}</code>\n"
             f"Net EV: <code>{net_ev_s}</code>  Gate: <code>{html.escape(order.blocked_gate or 'EXECUTION_HOLD')}</code>\n"
             f"Window: {html.escape(order.window_label)}  Beat: <code>${order.beat_price:,.2f}</code>\n"
-            f"Source: <code>{html.escape(order.liquidity_source or 'unknown')}</code>  "
+            f"Fill: <code>{html.escape(order.fill_source or order.liquidity_source or 'unknown')}</code>  "
+            f"Fee source: <code>{html.escape(order.fee_source or order.fee_rate_source or 'unknown')}</code>  "
             f"Order: <code>{html.escape(order.shadow_order_id)}</code>"
         )
         self._fire(text)
@@ -4844,6 +5323,9 @@ class TelegramNotifier:
         elif order.won is False:
             emoji = "❌"
             status_label = "LOST"
+        elif order.status == "unresolved_official_settlement":
+            emoji = "⏳"
+            status_label = "UNRESOLVED"
         else:
             emoji = "➖"
             status_label = "VOID"
@@ -4874,6 +5356,10 @@ class TelegramNotifier:
             emoji = "❌"
             pnl_s = f"-${abs(pos.pnl):.2f}" if pos.pnl is not None else "?"
             status_label = "LOST"
+        elif pos.status == "unresolved_official_settlement":
+            emoji = "⏳"
+            pnl_s = "$0.00"
+            status_label = "UNRESOLVED"
         else:
             emoji = "➖"
             pnl_s = f"${pos.pnl:.2f}" if pos.pnl is not None else "$0.00"
@@ -6925,6 +7411,7 @@ def resolve_label_for_row(
     label_source: str | None = None,
     override_resolution_ts: str | datetime | None = None,
     settlement_source_priority: int | None = None,
+    require_official: bool = True,
 ) -> ResolvedLabelRecord | None:
     window_end_at = ml_parse_utc_ts(row.get("window_end_at"))
     beat_price = _safe_float(row.get("beat_price"), 0.0)
@@ -6944,6 +7431,8 @@ def resolve_label_for_row(
         if "chainlink" in source or "market_settlement" in source:
             chainlink_settlement_price = resolved_btc
     else:
+        if require_official:
+            return None
         resolution = _find_closest_price_resolution(price_frame, window_end_at, max_diff_s=min(15.0, max_diff_s))
         source = "binance_15s"
         if resolution is None and max_diff_s > 15.0:
@@ -6955,6 +7444,8 @@ def resolve_label_for_row(
         source_priority = _label_source_priority(source)
 
     if resolved_btc <= 0.0:
+        return None
+    if require_official and source_priority < SETTLEMENT_POLL_MIN_PRIORITY:
         return None
 
     # Polymarket BTC Up/Down resolves equal final/opening Chainlink prices as UP.
@@ -7620,6 +8111,9 @@ class Position:
     pnl: float | None = None
     simulated: bool = False
     amount_usdc: float = 0.0   # actual USDC spent on the order (used for correct PnL)
+    target_amount_usdc: float = 0.0
+    actual_spend_usdc: float = 0.0
+    unfilled_amount_usdc: float = 0.0
     window_beat: float = 0.0   # beat price of THIS window (not current window)
     window_end_at: datetime | None = None
     elapsed_at_bet: int = 0    # seconds elapsed when bet was placed
@@ -7633,6 +8127,8 @@ class Position:
     fee_usdc: float = 0.0
     fee_rate: float = 0.0
     fee_rate_source: str = ""
+    fee_rate_bps: int = 0
+    fee_source: str = ""
     mid_price: float = 0.0
     best_bid: float = 0.0
     best_ask: float = 0.0
@@ -7640,6 +8136,12 @@ class Position:
     net_edge: float = 0.0
     payout_per_dollar: float = 0.0
     liquidity_source: str = ""
+    avg_fill_price: float = 0.0
+    fill_source: str = ""
+    fill_status: str = ""
+    fill_confidence: str = ""
+    orderbook_timestamp: float = 0.0
+    settlement_confidence: str = ""
 
 
 @dataclass
@@ -7654,6 +8156,7 @@ class TradeHistoryEntry:
     order_id: str = ""
     condition_id: str = ""
     entry_price: float = 0.0
+    shadow: bool = False
 
 
 @dataclass
@@ -7687,6 +8190,9 @@ class ShadowOrder:
     entry_price: float
     size: float
     placed_at: datetime
+    target_amount_usdc: float = 0.0
+    actual_spend_usdc: float = 0.0
+    unfilled_amount_usdc: float = 0.0
     blocked_gate: str = ""
     blocked_reason: str = ""
     status: str = "open"
@@ -7695,11 +8201,14 @@ class ShadowOrder:
     actual_winner: str = ""
     settlement_source: str = ""
     settlement_low_confidence: bool = False
+    settlement_confidence: str = ""
     resolved_at: datetime | None = None
     gross_size: float = 0.0
     fee_usdc: float = 0.0
     fee_rate: float = 0.0
     fee_rate_source: str = ""
+    fee_rate_bps: int = 0
+    fee_source: str = ""
     mid_price: float = 0.0
     best_bid: float = 0.0
     best_ask: float = 0.0
@@ -7707,6 +8216,11 @@ class ShadowOrder:
     net_edge: float = 0.0
     payout_per_dollar: float = 0.0
     liquidity_source: str = ""
+    avg_fill_price: float = 0.0
+    fill_source: str = ""
+    fill_status: str = "filled"
+    fill_confidence: str = "orderbook"
+    orderbook_timestamp: float = 0.0
     quote_age_s: float = 0.0
     confidence: float = 0.0
     raw_confidence: float = 0.0
@@ -7787,9 +8301,15 @@ class WindowPredictionRecord:
     execution_spread: float = 0.0
     fee_rate: float = 0.0
     fee_rate_source: str = ""
+    fee_rate_bps: int = 0
+    fee_source: str = ""
     fee_usdc: float = 0.0
     gross_size: float = 0.0
     net_size: float = 0.0
+    target_amount_usdc: float = 0.0
+    actual_spend_usdc: float = 0.0
+    unfilled_amount_usdc: float = 0.0
+    avg_fill_price: float = 0.0
     net_edge: float = 0.0
     expected_ev_usdc: float = 0.0
     realized_pnl_usdc: float = 0.0
@@ -7797,9 +8317,14 @@ class WindowPredictionRecord:
     payout_per_dollar: float = 0.0
     execution_mode: str = ""
     liquidity_source: str = ""
+    fill_source: str = ""
+    fill_status: str = ""
+    fill_confidence: str = ""
+    orderbook_timestamp: float = 0.0
     quote_age_s: float = 0.0
     settlement_source: str = ""
     settlement_low_confidence: bool = False
+    settlement_confidence: str = ""
 
 
 @dataclass
@@ -8410,7 +8935,7 @@ class TradingBot:
             if entry_price > 0:
                 return max(0.0, round(amount / entry_price, 6))
             return 0.0
-        if status_key in ("void", "canceled"):
+        if status_key in ("void", "canceled", "unresolved_official_settlement"):
             return amount
         return 0.0
 
@@ -9359,6 +9884,9 @@ class TradingBot:
         return ExecutionQuote(
             token_id=token_id,
             amount_usdc=max(0.0, amount_usdc),
+            target_amount_usdc=max(0.0, amount_usdc),
+            actual_spend_usdc=max(0.0, amount_usdc),
+            unfilled_amount_usdc=0.0,
             mid_price=price,
             best_ask=price,
             avg_price=price,
@@ -9368,9 +9896,14 @@ class TradingBot:
             fee_shares=est["fee_shares"],
             fee_rate=POLYMARKET_CRYPTO_TAKER_FEE_RATE,
             fee_rate_source="fallback_legacy_market",
+            fee_rate_bps=fee_rate_to_bps(POLYMARKET_CRYPTO_TAKER_FEE_RATE),
+            fee_source="fallback_legacy_market",
             min_order_size=min_order_size,
             enough_liquidity=True,
             liquidity_source="legacy_odds_fallback",
+            fill_source="legacy_odds_fallback",
+            fill_status="filled_estimated",
+            fill_confidence="fallback",
         )
 
     @staticmethod
@@ -9384,13 +9917,23 @@ class TradingBot:
                 "execution_spread": 0.0,
                 "fee_rate": 0.0,
                 "fee_rate_source": "",
+                "fee_rate_bps": 0,
+                "fee_source": "",
                 "fee_usdc": 0.0,
                 "gross_size": 0.0,
                 "net_size": 0.0,
+                "target_amount_usdc": 0.0,
+                "actual_spend_usdc": 0.0,
+                "unfilled_amount_usdc": 0.0,
+                "avg_fill_price": 0.0,
                 "net_edge": net_edge,
                 "expected_ev_usdc": 0.0,
                 "payout_per_dollar": 0.0,
                 "liquidity_source": "",
+                "fill_source": "",
+                "fill_status": "",
+                "fill_confidence": "",
+                "orderbook_timestamp": 0.0,
                 "quote_age_s": 0.0,
             }
         return {
@@ -9401,13 +9944,23 @@ class TradingBot:
             "execution_spread": quote.spread,
             "fee_rate": quote.fee_rate,
             "fee_rate_source": quote.fee_rate_source,
+            "fee_rate_bps": quote.fee_rate_bps,
+            "fee_source": quote.fee_source,
             "fee_usdc": quote.fee_usdc,
             "gross_size": quote.gross_shares,
             "net_size": quote.net_shares,
+            "target_amount_usdc": quote.target_amount_usdc,
+            "actual_spend_usdc": quote.amount_usdc,
+            "unfilled_amount_usdc": quote.unfilled_amount_usdc,
+            "avg_fill_price": quote.avg_price,
             "net_edge": net_edge,
             "expected_ev_usdc": quote.amount_usdc * net_edge,
             "payout_per_dollar": quote.payout_per_dollar,
             "liquidity_source": quote.liquidity_source,
+            "fill_source": quote.fill_source,
+            "fill_status": quote.fill_status,
+            "fill_confidence": quote.fill_confidence,
+            "orderbook_timestamp": quote.orderbook_timestamp,
             "quote_age_s": quote.quote_age_s,
         }
 
@@ -9434,13 +9987,23 @@ class TradingBot:
             record.execution_spread = float(fields["execution_spread"] or 0.0)
             record.fee_rate = float(fields["fee_rate"] or 0.0)
             record.fee_rate_source = str(fields["fee_rate_source"] or "")
+            record.fee_rate_bps = int(fields["fee_rate_bps"] or 0)
+            record.fee_source = str(fields["fee_source"] or "")
             record.fee_usdc = float(fields["fee_usdc"] or 0.0)
             record.gross_size = float(fields["gross_size"] or 0.0)
             record.net_size = float(fields["net_size"] or 0.0)
+            record.target_amount_usdc = float(fields["target_amount_usdc"] or 0.0)
+            record.actual_spend_usdc = float(fields["actual_spend_usdc"] or 0.0)
+            record.unfilled_amount_usdc = float(fields["unfilled_amount_usdc"] or 0.0)
+            record.avg_fill_price = float(fields["avg_fill_price"] or 0.0)
             record.net_edge = float(fields["net_edge"] or 0.0)
             record.expected_ev_usdc = float(fields["expected_ev_usdc"] or 0.0)
             record.payout_per_dollar = float(fields["payout_per_dollar"] or 0.0)
             record.liquidity_source = str(fields["liquidity_source"] or "")
+            record.fill_source = str(fields["fill_source"] or "")
+            record.fill_status = str(fields["fill_status"] or "")
+            record.fill_confidence = str(fields["fill_confidence"] or "")
+            record.orderbook_timestamp = float(fields["orderbook_timestamp"] or 0.0)
             record.quote_age_s = float(fields["quote_age_s"] or 0.0)
             if required_confidence is not None and math.isfinite(required_confidence):
                 record.execution_required_confidence = max(
@@ -9499,13 +10062,23 @@ class TradingBot:
             record.execution_spread = float(result.spread or record.execution_spread or 0.0)
             record.fee_rate = float(result.fee_rate or record.fee_rate or 0.0)
             record.fee_rate_source = str(result.fee_rate_source or record.fee_rate_source or "")
+            record.fee_rate_bps = int(result.fee_rate_bps or record.fee_rate_bps or 0)
+            record.fee_source = str(result.fee_source or record.fee_source or record.fee_rate_source or "")
             record.fee_usdc = float(result.fee_usdc or record.fee_usdc or 0.0)
             record.gross_size = float(result.gross_size or record.gross_size or 0.0)
             record.net_size = float(result.size or record.net_size or 0.0)
+            record.target_amount_usdc = float(result.target_amount_usdc or record.target_amount_usdc or 0.0)
+            record.actual_spend_usdc = float(result.actual_spend_usdc or result.amount_usdc or record.actual_spend_usdc or 0.0)
+            record.unfilled_amount_usdc = float(result.unfilled_amount_usdc or record.unfilled_amount_usdc or 0.0)
+            record.avg_fill_price = float(result.price or record.avg_fill_price or 0.0)
             record.payout_per_dollar = float(result.payout_per_dollar or record.payout_per_dollar or 0.0)
             if record.net_edge and result.amount_usdc:
                 record.expected_ev_usdc = float(record.net_edge) * float(result.amount_usdc)
             record.liquidity_source = str(result.liquidity_source or record.liquidity_source or "")
+            record.fill_source = str(result.fill_source or record.fill_source or "")
+            record.fill_status = str(result.fill_status or record.fill_status or "")
+            record.fill_confidence = str(result.fill_confidence or record.fill_confidence or "")
+            record.orderbook_timestamp = float(result.orderbook_timestamp or record.orderbook_timestamp or 0.0)
             record.execution_mode = "paper" if (result.simulated or not LIVE_TRADING) else "live"
             record.last_updated_at = datetime.now(_UTC)
             self.state.paper_prediction_records[record.condition_id] = record
@@ -9541,14 +10114,24 @@ class TradingBot:
             record.execution_spread = pos.spread or record.execution_spread
             record.fee_rate = pos.fee_rate or record.fee_rate
             record.fee_rate_source = pos.fee_rate_source or record.fee_rate_source
+            record.fee_rate_bps = pos.fee_rate_bps or record.fee_rate_bps
+            record.fee_source = pos.fee_source or record.fee_source or record.fee_rate_source
             record.fee_usdc = pos.fee_usdc or record.fee_usdc
             record.gross_size = pos.gross_size or record.gross_size
             record.net_size = pos.size or record.net_size
+            record.target_amount_usdc = pos.target_amount_usdc or record.target_amount_usdc
+            record.actual_spend_usdc = pos.actual_spend_usdc or pos.amount_usdc or record.actual_spend_usdc
+            record.unfilled_amount_usdc = pos.unfilled_amount_usdc or record.unfilled_amount_usdc
+            record.avg_fill_price = pos.avg_fill_price or pos.entry_price or record.avg_fill_price
             record.net_edge = pos.net_edge or record.net_edge
             record.expected_ev_usdc = float(pos.amount_usdc or 0.0) * float(record.net_edge or 0.0)
             record.payout_per_dollar = pos.payout_per_dollar or record.payout_per_dollar
             record.execution_mode = "paper" if pos.simulated else "live"
             record.liquidity_source = pos.liquidity_source or record.liquidity_source
+            record.fill_source = pos.fill_source or record.fill_source
+            record.fill_status = pos.fill_status or record.fill_status
+            record.fill_confidence = pos.fill_confidence or record.fill_confidence
+            record.orderbook_timestamp = pos.orderbook_timestamp or record.orderbook_timestamp
             execution_state = self.state.window_execution_states.get(pos.condition_id)
             if execution_state is not None:
                 record.placement_attempt_count = max(
@@ -9638,17 +10221,31 @@ class TradingBot:
                 amount_usdc=amount_usdc,
                 current_odds=float(entry_odds),
             )
-        if quote is None or quote.execution_price <= 0.0 or quote.amount_usdc <= 0.0:
+        if quote is None:
             return None
 
-        calculated_net_edge = compute_net_edge(signal.confidence, quote.payout_per_dollar)
+        no_fill = strict_real_quote_no_fill_status(
+            quote,
+            target_amount_usdc=amount_usdc,
+            require_orderbook=STRICT_REAL_PAPER_QUOTES,
+        )
+        no_fill_status = no_fill[0] if no_fill is not None else ""
+        no_fill_reason = no_fill[1] if no_fill is not None else ""
+        filled = no_fill is None
+        if not filled and quote.execution_price <= 0.0:
+            quote.avg_price = quote.avg_price or entry_odds or 0.0
+        if quote.execution_price <= 0.0 and entry_odds <= 0.0:
+            return None
+
+        calculated_net_edge = compute_net_edge(signal.confidence, quote.payout_per_dollar) if filled else -1.0
         net_edge_value = calculated_net_edge if net_edge is None else float(net_edge)
-        if abs(float(quote.amount_usdc or 0.0) - amount_usdc) < 0.01:
+        if filled and abs(float(quote.amount_usdc or 0.0) - amount_usdc) < 0.01:
             net_edge_value = calculated_net_edge
 
         now_utc = datetime.now(_UTC)
         elapsed_bet = int((now_utc - win.start_time).total_seconds())
         seconds_remaining = max(0, int((win.end_time - now_utc).total_seconds()))
+        actual_spend = float(quote.amount_usdc or 0.0) if filled else 0.0
         order = ShadowOrder(
             shadow_order_id=f"SHADOW-{uuid.uuid4().hex[:12]}",
             row_id=row_id,
@@ -9658,23 +10255,34 @@ class TradingBot:
             beat_price=win.beat_price,
             direction=direction,
             token_id=token_id,
-            amount_usdc=float(quote.amount_usdc or amount_usdc),
+            amount_usdc=actual_spend,
             entry_price=quote.execution_price,
-            size=quote.net_shares,
+            size=quote.net_shares if filled else 0.0,
             placed_at=now_utc,
+            target_amount_usdc=amount_usdc,
+            actual_spend_usdc=actual_spend,
+            unfilled_amount_usdc=quote.unfilled_amount_usdc if filled else amount_usdc,
             blocked_gate=gate,
-            blocked_reason=reason,
-            gross_size=quote.gross_shares,
-            fee_usdc=quote.fee_usdc,
+            blocked_reason=no_fill_reason or reason,
+            status="open" if filled else no_fill_status,
+            gross_size=quote.gross_shares if filled else 0.0,
+            fee_usdc=quote.fee_usdc if filled else 0.0,
             fee_rate=quote.fee_rate,
             fee_rate_source=quote.fee_rate_source,
+            fee_rate_bps=quote.fee_rate_bps,
+            fee_source=quote.fee_source,
             mid_price=quote.mid_price,
             best_bid=quote.best_bid,
             best_ask=quote.best_ask,
             spread=quote.spread,
             net_edge=net_edge_value,
-            payout_per_dollar=quote.payout_per_dollar,
+            payout_per_dollar=quote.payout_per_dollar if filled else 0.0,
             liquidity_source=quote.liquidity_source,
+            avg_fill_price=quote.avg_price if filled else 0.0,
+            fill_source=quote.fill_source,
+            fill_status="filled" if filled else no_fill_status,
+            fill_confidence="orderbook" if filled else "none",
+            orderbook_timestamp=quote.orderbook_timestamp,
             quote_age_s=quote.quote_age_s,
             confidence=signal.confidence,
             raw_confidence=signal.raw_confidence or signal.confidence,
@@ -9711,19 +10319,41 @@ class TradingBot:
                 record.decision_reason = reason
                 record.decision_skip_reason_code = gate
                 record.shadow_order_id = order.shadow_order_id
-                record.shadow_order_status = "open"
+                record.shadow_order_status = order.status
                 record.execution_mode = "paper_shadow"
+                record.fill_status = order.fill_status
+                record.fill_confidence = order.fill_confidence
                 record.last_updated_at = now_utc
                 self.state.paper_prediction_records[record.condition_id] = record
                 record_to_log = record
+            if order.status != "open":
+                self.state.trade_history.appendleft(TradeHistoryEntry(
+                    direction=order.direction,
+                    amount_usdc=order.target_amount_usdc,
+                    pnl=0.0,
+                    status=order.status,
+                    placed_at=order.placed_at,
+                    closed_at=order.placed_at,
+                    simulated=True,
+                    order_id=order.shadow_order_id,
+                    condition_id=order.condition_id,
+                    entry_price=order.entry_price,
+                    shadow=True,
+                ))
 
         if record_to_log is not None and log_blocked:
             self.state.logger.log_prediction_blocked(record_to_log)
         self.state.logger.log_shadow_order_opened(order)
-        self.state.log_event(
-            f"[SHADOW_ORDER] OPEN {order.direction} ${order.amount_usdc:.2f} "
-            f"@ {order.entry_price:.3f} gate={gate} id={order.shadow_order_id}"
-        )
+        if order.status == "open":
+            self.state.log_event(
+                f"[SHADOW_ORDER] OPEN {order.direction} target=${order.target_amount_usdc:.2f} "
+                f"spent=${order.amount_usdc:.2f} @ {order.entry_price:.3f} gate={gate} id={order.shadow_order_id}"
+            )
+        else:
+            self.state.log_event(
+                f"[SHADOW_ORDER] {order.status.upper()} {order.direction} target=${order.target_amount_usdc:.2f} "
+                f"gate={gate} reason={order.blocked_reason} id={order.shadow_order_id}"
+            )
         notify = getattr(self.notifier, "notify_shadow_order_opened", None)
         if callable(notify):
             notify(order)
@@ -10105,12 +10735,11 @@ class TradingBot:
     ) -> None:
         if resolved_btc_price is None or beat_price <= 0:
             return
+        if settlement_info is None or not settlement_is_official(settlement_info):
+            return
 
         row_ids = list(self.state.pending_ml_feature_rows.pop(condition_id, set()))
         if not row_ids:
-            return
-
-        if math.isclose(resolved_btc_price, beat_price, rel_tol=0.0, abs_tol=1e-9):
             return
 
         # Prefer Chainlink settlement price for label accuracy.
@@ -10962,7 +11591,10 @@ class TradingBot:
             self.state.log_event(
                 f"[FEE] using {quote.fee_rate_source} fee_rate={quote.fee_rate:.4f} token={token_id[:12]}"
             )
-        quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
+        quote_block_reason = execution_quote_block_reason(
+            quote,
+            require_orderbook=LIVE_TRADING or STRICT_REAL_PAPER_QUOTES,
+        )
         if quote_block_reason:
             await block_for_execution(
                 GATE_EXECUTION_QUOTE,
@@ -11057,7 +11689,10 @@ class TradingBot:
                     required_confidence=required_confidence,
                 )
                 return
-            quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
+            quote_block_reason = execution_quote_block_reason(
+                quote,
+                require_orderbook=LIVE_TRADING or STRICT_REAL_PAPER_QUOTES,
+            )
             if quote_block_reason:
                 await block_for_execution(
                     GATE_EXECUTION_QUOTE,
@@ -11231,6 +11866,11 @@ class TradingBot:
             now_utc     = datetime.now(_UTC)
             actual_price = result.price if result.price and result.price > 0 else quote.execution_price or entry_odds
             actual_amount = result.amount_usdc if result.amount_usdc and result.amount_usdc > 0 else bet_size
+            target_amount = (
+                result.target_amount_usdc
+                if result.target_amount_usdc and result.target_amount_usdc > 0
+                else bet_size
+            )
             if result.size and result.size > 0:
                 actual_size = result.size
             else:
@@ -11255,6 +11895,13 @@ class TradingBot:
                 order_id=result.order_id or "",
                 simulated=result.simulated,
                 amount_usdc=actual_amount,
+                target_amount_usdc=target_amount,
+                actual_spend_usdc=(
+                    result.actual_spend_usdc
+                    if result.actual_spend_usdc and result.actual_spend_usdc > 0
+                    else actual_amount
+                ),
+                unfilled_amount_usdc=result.unfilled_amount_usdc,
                 window_beat=win.beat_price,
                 window_end_at=win.end_time,
                 elapsed_at_bet=elapsed_bet,
@@ -11268,6 +11915,8 @@ class TradingBot:
                 fee_usdc=result.fee_usdc or quote.fee_usdc,
                 fee_rate=result.fee_rate or quote.fee_rate,
                 fee_rate_source=result.fee_rate_source or quote.fee_rate_source,
+                fee_rate_bps=result.fee_rate_bps or quote.fee_rate_bps,
+                fee_source=result.fee_source or quote.fee_source or quote.fee_rate_source,
                 mid_price=result.mid_price or quote.mid_price,
                 best_bid=result.best_bid or quote.best_bid,
                 best_ask=result.best_ask or quote.best_ask,
@@ -11275,6 +11924,11 @@ class TradingBot:
                 net_edge=net_edge,
                 payout_per_dollar=result.payout_per_dollar or quote.payout_per_dollar,
                 liquidity_source=result.liquidity_source or quote.liquidity_source,
+                avg_fill_price=actual_price,
+                fill_source=result.fill_source or quote.fill_source,
+                fill_status=result.fill_status or quote.fill_status or "filled",
+                fill_confidence=result.fill_confidence or quote.fill_confidence,
+                orderbook_timestamp=result.orderbook_timestamp or quote.orderbook_timestamp,
             )
             async with self.state._lock:
                 self.state.positions.append(pos)
@@ -11473,6 +12127,66 @@ class TradingBot:
             return now_utc >= active_win.end_time
         return True
 
+    async def _mark_shadow_order_unresolved(
+        self,
+        order: "ShadowOrder",
+        settlement_info: SettlementInfo | None,
+    ) -> None:
+        resolved_at = datetime.now(_UTC)
+        async with self.state._lock:
+            current = self.state.shadow_orders.get(order.condition_id)
+            if current is None or current.status != "open":
+                return
+            current.status = "unresolved_official_settlement"
+            current.won = None
+            current.pnl = 0.0
+            current.settlement_source = settlement_info.settlement_source if settlement_info is not None else ""
+            current.settlement_low_confidence = True
+            current.settlement_confidence = "unresolved_official"
+            current.resolved_at = resolved_at
+            self.state.trade_history.appendleft(TradeHistoryEntry(
+                direction=current.direction,
+                amount_usdc=current.amount_usdc,
+                pnl=0.0,
+                status=current.status,
+                placed_at=current.placed_at,
+                closed_at=resolved_at,
+                simulated=True,
+                order_id=current.shadow_order_id,
+                condition_id=current.condition_id,
+                entry_price=current.entry_price,
+                shadow=True,
+            ))
+
+            record = self.state.prediction_records.get(current.row_id) if current.row_id else None
+            if record is None:
+                record = self.state.paper_prediction_records.get(current.condition_id)
+            if record is not None:
+                record.shadow_order_id = current.shadow_order_id
+                record.shadow_order_status = current.status
+                record.shadow_order_won = None
+                record.shadow_order_pnl_usdc = 0.0
+                record.settlement_source = current.settlement_source
+                record.settlement_low_confidence = True
+                record.settlement_confidence = current.settlement_confidence
+                record.last_updated_at = resolved_at
+                self.state.paper_prediction_records[record.condition_id] = record
+                record_to_log = record
+            else:
+                record_to_log = None
+            order_to_log = current
+
+        self.state.logger.log_shadow_order_resolved(order_to_log)
+        if record_to_log is not None:
+            self.state.logger.log_prediction_state(record_to_log)
+        self.state.log_event(
+            f"[SHADOW_ORDER] UNRESOLVED {order_to_log.direction} "
+            f"source={order_to_log.settlement_source or 'none'} id={order_to_log.shadow_order_id}"
+        )
+        notify = getattr(self.notifier, "notify_shadow_order_result", None)
+        if callable(notify):
+            notify(order_to_log)
+
     async def _check_shadow_orders(self) -> None:
         async with self.state._lock:
             open_orders = [
@@ -11488,11 +12202,18 @@ class TradingBot:
                 window_end_at=order.window_end_at,
             )
             if settlement_info is None:
+                if (
+                    order.window_end_at is not None
+                    and time.time() - order.window_end_at.timestamp() >= SETTLEMENT_GRACE_PERIOD_S
+                ):
+                    await self._mark_shadow_order_unresolved(order, None)
                 continue
-            if settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY and order.window_end_at is not None:
+            if not settlement_is_official(settlement_info) and order.window_end_at is not None:
                 window_age_s = time.time() - order.window_end_at.timestamp()
                 if window_age_s < SETTLEMENT_GRACE_PERIOD_S:
                     continue
+                await self._mark_shadow_order_unresolved(order, settlement_info)
+                continue
             if settlement_info.settlement_price is None or order.beat_price <= 0.0:
                 continue
 
@@ -11519,18 +12240,34 @@ class TradingBot:
             current.settlement_low_confidence = (
                 settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
             )
+            current.settlement_confidence = "official" if not current.settlement_low_confidence else "low_confidence"
             current.resolved_at = resolved_at
+            actual_spend = float(current.amount_usdc or current.actual_spend_usdc or 0.0)
+            payout_per_share = 1.0
             if won is True:
                 current.status = "won"
-                current.pnl = max(0.0, float(current.size or 0.0)) - float(current.amount_usdc or 0.0)
+                current.pnl = max(0.0, float(current.size or 0.0)) * payout_per_share - actual_spend
             elif won is False:
                 current.status = "lost"
-                current.pnl = -float(current.amount_usdc or 0.0)
+                current.pnl = -actual_spend
             else:
                 current.status = "void"
                 current.pnl = 0.0
             if isinstance(won, bool):
                 self.state.paper_stats.record_shadow_order(won)
+                self.state.trade_history.appendleft(TradeHistoryEntry(
+                    direction=current.direction,
+                    amount_usdc=current.amount_usdc,
+                    pnl=float(current.pnl or 0.0),
+                    status=current.status,
+                    placed_at=current.placed_at,
+                    closed_at=resolved_at,
+                    simulated=True,
+                    order_id=current.shadow_order_id,
+                    condition_id=current.condition_id,
+                    entry_price=current.entry_price,
+                    shadow=True,
+                ))
 
             record = self.state.prediction_records.get(current.row_id) if current.row_id else None
             if record is None:
@@ -11543,6 +12280,7 @@ class TradingBot:
                 record.actual_winner = actual_winner
                 record.settlement_source = current.settlement_source
                 record.settlement_low_confidence = current.settlement_low_confidence
+                record.settlement_confidence = current.settlement_confidence
                 record.last_updated_at = resolved_at
                 self.state.paper_prediction_records[record.condition_id] = record
                 record_to_log = record
@@ -11562,6 +12300,60 @@ class TradingBot:
         notify = getattr(self.notifier, "notify_shadow_order_result", None)
         if callable(notify):
             notify(order_to_log)
+
+    async def _mark_position_unresolved(
+        self,
+        pos: "Position",
+        settlement_info: SettlementInfo | None,
+    ) -> None:
+        resolved_at = datetime.now(_UTC)
+        async with self.state._lock:
+            if pos.status != "open":
+                return
+            pos.status = "unresolved_official_settlement"
+            pos.pnl = 0.0
+            pos.settlement_confidence = "unresolved_official"
+            self._record_daily_budget_close(pos)
+            if pos.prediction_row_id:
+                prediction_record = self.state.prediction_records.get(pos.prediction_row_id)
+            else:
+                prediction_record = None
+            if prediction_record is None:
+                prediction_record = self.state.paper_prediction_records.get(pos.condition_id)
+            if prediction_record is not None:
+                if pos.simulated:
+                    prediction_record.paper_trade_won = None
+                else:
+                    prediction_record.live_trade_won = None
+                prediction_record.realized_pnl_usdc = 0.0
+                prediction_record.realized_roi = 0.0
+                prediction_record.settlement_source = settlement_info.settlement_source if settlement_info is not None else ""
+                prediction_record.settlement_low_confidence = True
+                prediction_record.settlement_confidence = "unresolved_official"
+                prediction_record.last_updated_at = resolved_at
+                self.state.paper_prediction_records[pos.condition_id] = prediction_record
+            self.state.trade_history.appendleft(TradeHistoryEntry(
+                direction=pos.direction,
+                amount_usdc=pos.amount_usdc,
+                pnl=0.0,
+                status=pos.status,
+                placed_at=pos.placed_at,
+                closed_at=resolved_at,
+                simulated=pos.simulated,
+                order_id=pos.order_id,
+                condition_id=pos.condition_id,
+                entry_price=pos.entry_price,
+            ))
+
+        self._sync_daily_budget_halt(log_change=True)
+        self.state.logger.log_trade_close(pos)
+        self.state.logger.log_trade_execution_resolved(pos, None)
+        if prediction_record is not None:
+            self.state.logger.log_prediction_state(prediction_record)
+        self.state.log_event(
+            f"[RESULT] {pos.direction} UNRESOLVED official settlement missing "
+            f"source={(settlement_info.settlement_source if settlement_info else 'none')}"
+        )
 
     async def _check_positions(self) -> None:
         async with self.state._lock:
@@ -11592,6 +12384,17 @@ class TradingBot:
             # Resolve when the window they were placed in has ended.
             if pos.simulated:
                 if not self._position_window_has_ended(pos):
+                    continue
+                if settlement_info is None:
+                    if (
+                        pos.window_end_at is not None
+                        and time.time() - pos.window_end_at.timestamp() >= SETTLEMENT_GRACE_PERIOD_S
+                    ):
+                        await self._mark_position_unresolved(pos, None)
+                    continue
+                if not settlement_is_official(settlement_info):
+                    if pos.window_end_at is not None and time.time() - pos.window_end_at.timestamp() >= SETTLEMENT_GRACE_PERIOD_S:
+                        await self._mark_position_unresolved(pos, settlement_info)
                     continue
                 # Window over (or we're in a new window) — evaluate outcome
                 if settlement_btc is None or beat <= 0:
@@ -11648,6 +12451,12 @@ class TradingBot:
         expected_claim: ClaimRecord | None = None
         async with self.state._lock:
             pos.status = "won" if won is True else "lost" if won is False else "void"
+            if settlement_info is not None:
+                pos.settlement_confidence = (
+                    "official"
+                    if settlement_info.settlement_source_priority >= SETTLEMENT_POLL_MIN_PRIORITY
+                    else "low_confidence"
+                )
             if won is True:
                 redeemable_size = max(0.0, float(pos.size or 0.0))
                 if redeemable_size <= 0.0 and pos.entry_price > 0.0:
@@ -11726,6 +12535,9 @@ class TradingBot:
                         prediction_record.settlement_low_confidence = (
                             settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
                         )
+                        prediction_record.settlement_confidence = (
+                            "official" if not prediction_record.settlement_low_confidence else "low_confidence"
+                        )
                     prediction_record.last_updated_at = datetime.now(_UTC)
                     self.state.paper_prediction_records[pos.condition_id] = prediction_record
             elif prediction_record is not None:
@@ -11740,6 +12552,9 @@ class TradingBot:
                     prediction_record.settlement_source = settlement_info.settlement_source
                     prediction_record.settlement_low_confidence = (
                         settlement_info.settlement_source_priority < SETTLEMENT_POLL_MIN_PRIORITY
+                    )
+                    prediction_record.settlement_confidence = (
+                        "official" if not prediction_record.settlement_low_confidence else "low_confidence"
                     )
                 prediction_record.last_updated_at = datetime.now(_UTC)
                 self.state.paper_prediction_records[pos.condition_id] = prediction_record
@@ -11799,6 +12614,8 @@ class TradingBot:
             settlement_btc = settlement_info.settlement_price if settlement_info is not None else None
             if settlement_btc is None or record.beat_price <= 0:
                 continue
+            if settlement_info is None or not settlement_is_official(settlement_info):
+                continue
 
             resolved_at = datetime.now(_UTC)
             actual_winner = self._classify_window_outcome(record.beat_price, settlement_btc)
@@ -11855,10 +12672,13 @@ class TradingBot:
         if now < win.end_time:
             return  # window still open
 
-        settlement_btc = self._get_settlement_btc_for_window(
+        settlement_info = self._get_window_settlement_info(
             condition_id=win.condition_id,
             window_end_at=win.end_time,
         )
+        if settlement_info is None or not settlement_is_official(settlement_info):
+            return
+        settlement_btc = settlement_info.settlement_price
         actual_winner = self._classify_window_outcome(win.beat_price, settlement_btc)
 
         async with self.state._lock:
@@ -11890,10 +12710,7 @@ class TradingBot:
             beat_price=win.beat_price,
             resolved_btc_price=settlement_btc,
             resolved_at=now,
-            settlement_info=self._get_window_settlement_info(
-                condition_id=win.condition_id,
-                window_end_at=win.end_time,
-            ),
+            settlement_info=settlement_info,
         )
 
     @staticmethod
@@ -12167,9 +12984,15 @@ class TradingBot:
                 execution_spread=float(raw.get("execution_spread", 0.0) or 0.0),
                 fee_rate=float(raw.get("fee_rate", 0.0) or 0.0),
                 fee_rate_source=str(raw.get("fee_rate_source", "")),
+                fee_rate_bps=int(raw.get("fee_rate_bps", 0) or 0),
+                fee_source=str(raw.get("fee_source", raw.get("fee_rate_source", ""))),
                 fee_usdc=float(raw.get("fee_usdc", 0.0) or 0.0),
                 gross_size=float(raw.get("gross_size", 0.0) or 0.0),
                 net_size=float(raw.get("net_size", 0.0) or 0.0),
+                target_amount_usdc=float(raw.get("target_amount_usdc", 0.0) or 0.0),
+                actual_spend_usdc=float(raw.get("actual_spend_usdc", raw.get("amount_usdc", 0.0)) or 0.0),
+                unfilled_amount_usdc=float(raw.get("unfilled_amount_usdc", 0.0) or 0.0),
+                avg_fill_price=float(raw.get("avg_fill_price", raw.get("execution_price", 0.0)) or 0.0),
                 net_edge=float(raw.get("net_edge", 0.0) or 0.0),
                 expected_ev_usdc=float(raw.get("expected_ev_usdc", 0.0) or 0.0),
                 realized_pnl_usdc=float(raw.get("realized_pnl_usdc", 0.0) or 0.0),
@@ -12177,9 +13000,14 @@ class TradingBot:
                 payout_per_dollar=float(raw.get("payout_per_dollar", 0.0) or 0.0),
                 execution_mode=str(raw.get("execution_mode", "")),
                 liquidity_source=str(raw.get("liquidity_source", "")),
+                fill_source=str(raw.get("fill_source", "")),
+                fill_status=str(raw.get("fill_status", "")),
+                fill_confidence=str(raw.get("fill_confidence", "")),
+                orderbook_timestamp=float(raw.get("orderbook_timestamp", 0.0) or 0.0),
                 quote_age_s=float(raw.get("quote_age_s", 0.0) or 0.0),
                 settlement_source=str(raw.get("settlement_source", "")),
                 settlement_low_confidence=bool(raw.get("settlement_low_confidence", False)),
+                settlement_confidence=str(raw.get("settlement_confidence", "")),
             )
             self.state.prediction_records[row_id] = record
             self.state.prediction_rows_by_condition[condition_id].add(row_id)
@@ -13521,7 +14349,7 @@ def render_bet_history(state: BotState) -> Panel:
     table.add_column("Dir", width=5)
     table.add_column("Amount", width=8, justify="right")
     table.add_column("P/L", width=8, justify="right")
-    table.add_column("Status", width=7)
+    table.add_column("Status", width=15)
 
     for entry in entries:
         direction = entry.direction.upper()
@@ -13529,8 +14357,15 @@ def render_bet_history(state: BotState) -> Panel:
         pnl_color = "green" if entry.pnl > 0 else "red" if entry.pnl < 0 else "white"
         pnl_s = f"+${entry.pnl:.2f}" if entry.pnl >= 0 else f"-${abs(entry.pnl):.2f}"
         status = entry.status.lower()
-        status_label = "WIN" if status == "won" else "LOSE" if status == "lost" else status.upper()
-        status_color = "green" if status == "won" else "red" if status == "lost" else "white"
+        status_label = (
+            "WIN" if status == "won"
+            else "LOSE" if status == "lost"
+            else "UNRESOLVED" if status == "unresolved_official_settlement"
+            else status.replace("_", " ").upper()
+        )
+        if entry.shadow:
+            status_label = f"{status_label} (Shadow)"
+        status_color = "green" if status == "won" else "red" if status == "lost" else "yellow" if status in SHADOW_NO_FILL_STATUSES else "white"
         wib_time = entry.closed_at.astimezone(_WIB).strftime("%H:%M")
 
         table.add_row(
@@ -13564,6 +14399,7 @@ def _trade_history_signature(entry: TradeHistoryEntry) -> tuple:
         entry.status,
         entry.closed_at.isoformat(),
         entry.simulated,
+        entry.shadow,
     )
 
 
@@ -13652,6 +14488,33 @@ def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int
         if record.get("realized_roi") is not None
     ]
     liquidity_sources = Counter(str(record.get("liquidity_source") or "unknown") for record in latest)
+    fee_sources = Counter(str(record.get("fee_source") or record.get("fee_rate_source") or "unknown") for record in latest)
+    fill_sources = Counter(str(record.get("fill_source") or record.get("liquidity_source") or "unknown") for record in latest)
+    fill_statuses = Counter(str(record.get("fill_status") or record.get("status") or "unknown") for record in latest)
+    shadow_records = [
+        record for record in latest
+        if str(record.get("execution_mode") or "").lower() == "paper_shadow"
+        or str(record.get("decision_action") or "").lower() == "shadow_order"
+        or str(record.get("shadow_order_id") or "")
+    ]
+    shadow_resolved = [
+        record for record in shadow_records
+        if isinstance(record.get("shadow_order_won"), bool)
+    ]
+    shadow_wins = sum(1 for record in shadow_resolved if record.get("shadow_order_won") is True)
+    shadow_no_fill = sum(
+        1 for record in shadow_records
+        if str(record.get("shadow_order_status") or record.get("status") or "") in SHADOW_NO_FILL_STATUSES
+    )
+    shadow_unresolved = sum(
+        1 for record in shadow_records
+        if str(record.get("shadow_order_status") or record.get("status") or "") == "unresolved_official_settlement"
+    )
+    shadow_pnl = [
+        _safe_float(record.get("shadow_order_pnl_usdc"), 0.0)
+        for record in shadow_resolved
+        if record.get("shadow_order_pnl_usdc") is not None
+    ]
     return {
         "rows": len(latest),
         "events": len(records),
@@ -13663,6 +14526,15 @@ def audit_strategy_decisions(log_dir: str | Path = "logs", *, lookback_days: int
         "actions": dict(actions.most_common()),
         "top_gates": dict(gates.most_common(10)),
         "liquidity_sources": dict(liquidity_sources.most_common(10)),
+        "fee_sources": dict(fee_sources.most_common(10)),
+        "fill_sources": dict(fill_sources.most_common(10)),
+        "fill_statuses": dict(fill_statuses.most_common(10)),
+        "shadow_orders": len(shadow_records),
+        "shadow_resolved": len(shadow_resolved),
+        "shadow_no_fill": shadow_no_fill,
+        "shadow_unresolved": shadow_unresolved,
+        "shadow_win_rate": round(shadow_wins / len(shadow_resolved), 4) if shadow_resolved else 0.0,
+        "shadow_pnl": round(sum(shadow_pnl), 6) if shadow_pnl else 0.0,
         "avg_net_edge": round(sum(net_edges) / len(net_edges), 6) if net_edges else 0.0,
         "avg_spread": round(sum(spreads) / len(spreads), 6) if spreads else 0.0,
         "total_realized_pnl": round(sum(realized_pnl), 6) if realized_pnl else 0.0,
@@ -13840,9 +14712,19 @@ if __name__ == "__main__":
                     f"avg_spread={report['avg_spread']:.3f} "
                     f"pnl={report['total_realized_pnl']:+.2f}"
                 )
+                Console().print(
+                    f"shadow_orders={report['shadow_orders']} "
+                    f"resolved={report['shadow_resolved']} "
+                    f"no_fill={report['shadow_no_fill']} "
+                    f"unresolved={report['shadow_unresolved']} "
+                    f"shadow_wr={report['shadow_win_rate']:.1%} "
+                    f"shadow_pnl={report['shadow_pnl']:+.2f}"
+                )
                 Console().print(f"actions={report['actions']}")
                 Console().print(f"top_gates={report['top_gates']}")
                 Console().print(f"liquidity_sources={report['liquidity_sources']}")
+                Console().print(f"fill_statuses={report['fill_statuses']}")
+                Console().print(f"fee_sources={report['fee_sources']}")
         elif args.command == "promote-ml":
             registry = ModelRegistry(ML_MODELS_DIR)
             manifest = registry.set_active_version(

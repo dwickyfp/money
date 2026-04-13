@@ -116,6 +116,18 @@ def test_backfill_ml_labels_from_feature_rows(tmp_path):
             ]
         ],
     )
+    _write_jsonl(
+        log_dir / "settlements_2026-04-10.jsonl",
+        [
+            {
+                "condition_id": feature.condition_id,
+                "resolved_at": feature.window_end_at,
+                "settlement_price": 100.30,
+                "settlement_source": "chainlink_market_resolved",
+                "settlement_source_priority": ml._label_source_priority("chainlink_market_resolved"),
+            }
+        ],
+    )
 
     appended = ml.backfill_ml_labels(log_dir)
     label_files = list(log_dir.glob("ml_labels_*.jsonl"))
@@ -124,6 +136,32 @@ def test_backfill_ml_labels_from_feature_rows(tmp_path):
     assert len(label_files) == 1
     contents = label_files[0].read_text(encoding="utf-8")
     assert ml.LABEL_BUY_UP in contents
+
+
+def test_backfill_ml_labels_skips_price_only_rows_without_official_settlement(tmp_path):
+    log_dir = tmp_path / "logs"
+    ts = datetime(2026, 4, 10, 0, 0, tzinfo=UTC)
+    feature = _sample_feature(direction="UP", ts=ts, idx=2)
+    _write_jsonl(log_dir / "ml_features_2026-04-10.jsonl", [feature.to_record()])
+    _write_jsonl(
+        log_dir / "prices_2026-04-10.jsonl",
+        [
+            {
+                "ts": feature.window_end_at,
+                "btc": 100.30,
+                "buy_vol": 0.1,
+                "sell_vol": 0.0,
+                "cvd": 0.1,
+                "up_odds": 0.6,
+                "dn_odds": 0.4,
+            }
+        ],
+    )
+
+    appended = ml.backfill_ml_labels(log_dir)
+
+    assert appended == 0
+    assert list(log_dir.glob("ml_labels_*.jsonl")) == []
 
 
 def test_train_outcome_model_and_use_active_model(tmp_path):

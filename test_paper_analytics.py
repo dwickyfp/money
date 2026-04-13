@@ -214,6 +214,25 @@ def test_telegram_notifier_formats_shadow_signal_hold():
     assert "net edge below threshold" in sent[0]
 
 
+def test_telegram_new_window_includes_shadow_record():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    notifier._mode = "PAPER"
+    sent = []
+    notifier._fire = sent.append
+    now = datetime.now(timezone.utc)
+    win = make_window(condition_id="0xnew-window-shadow", beat_price=100.0, end_time=now + timedelta(minutes=1))
+    state = tf.BotState()
+    state.paper_stats.shadow_order_wins_total = 3
+    state.paper_stats.shadow_order_losses_total = 1
+
+    notifier.notify_window(win, state)
+
+    assert len(sent) == 1
+    assert "Shadow: Win 3 / Lose 1" in sent[0]
+    assert "Winrate: 75.0%" in sent[0]
+
+
 def test_execution_block_notification_dedupes_per_window(tmp_path):
     bot = make_bot(tmp_path)
     now = datetime.now(timezone.utc)
@@ -390,6 +409,110 @@ def test_shadow_order_resolves_with_clean_pnl_and_inclusive_up_tie(tmp_path, mon
     asyncio.run(run_case())
 
 
+def test_shadow_order_records_no_fill_when_min_order_exceeds_target(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        monkeypatch.setattr(tf, "STRICT_REAL_PAPER_QUOTES", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xshadow-nofill-min", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="min order shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-nofill-min")
+        bot.state.up_odds = 0.60
+        bot.state.down_odds = 0.40
+        quote = make_execution_quote(
+            token_id=win.up_token_id,
+            amount_usdc=tf.BET_SIZE_USDC,
+            price=0.60,
+            min_order_size=5.0,
+        )
+
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_MIN_ORDER_RISK,
+            reason="market minimum exceeds risk",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+
+        assert order is not None
+        assert order.status == "no_fill_min_order"
+        assert order.fill_status == "no_fill_min_order"
+        assert order.amount_usdc == 0.0
+        assert order.target_amount_usdc == pytest.approx(tf.BET_SIZE_USDC)
+        assert order.unfilled_amount_usdc == pytest.approx(tf.BET_SIZE_USDC)
+        assert order.size == 0.0
+        assert bot.state.paper_stats.shadow_order_total == 0
+        assert len(bot.notifier.shadow_order_open_calls) == 1
+        assert bot.state.trade_history[0].status == "no_fill_min_order"
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_status == "no_fill_min_order"
+        assert updated.shadow_order_won is None
+
+    asyncio.run(run_case())
+
+
+def test_shadow_order_binance_only_after_grace_is_unresolved_not_loss(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        end_time = now - timedelta(seconds=tf.SETTLEMENT_GRACE_PERIOD_S + 5)
+        win = make_window(condition_id="0xshadow-binance-unresolved", beat_price=100.0, end_time=end_time)
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="resolve shadow",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-binance")
+        bot.state.up_odds = 0.50
+        bot.state.down_odds = 0.50
+        quote = make_execution_quote(token_id=win.up_token_id, amount_usdc=tf.BET_SIZE_USDC, price=0.50)
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_EXECUTION_WINDOW,
+            reason="before execution window",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+        assert order is not None
+        bot.state.price_history_ts = deque([(win.end_time.timestamp(), 101.0)], maxlen=10)
+
+        await bot._check_shadow_orders()
+
+        unresolved = bot.state.shadow_orders[win.condition_id]
+        assert unresolved.status == "unresolved_official_settlement"
+        assert unresolved.won is None
+        assert unresolved.pnl == 0.0
+        assert unresolved.settlement_source == "binance_15s"
+        assert unresolved.settlement_low_confidence is True
+        assert bot.state.paper_stats.shadow_order_total == 0
+        assert len(bot.notifier.shadow_order_result_calls) == 1
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_status == "unresolved_official_settlement"
+        assert updated.shadow_order_won is None
+
+    asyncio.run(run_case())
+
+
 def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):
     logger = tf.BotLogger(tmp_path / "logs")
     now = datetime.now(timezone.utc)
@@ -485,7 +608,11 @@ def test_each_buy_prediction_snapshot_is_resolved_independently(tmp_path):
             decision_action="blocked",
         )
 
-        bot.state.price_history_ts = deque([(win.end_time.timestamp(), 95.0)], maxlen=10)
+        bot.state.settlement_registry_cache[win.condition_id] = {
+            "settlement_price": 95.0,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
 
         await bot._resolve_paper_predictions()
         await bot._resolve_paper_predictions()
@@ -770,22 +897,49 @@ def test_load_recent_trade_history_joins_settled_trade_records(tmp_path):
         },
     ]
     path.write_text("\n".join(json.dumps(record) for record in records) + "\n", encoding="utf-8")
+    shadow_path = tmp_path / "logs" / f"prediction_analytics_{day}.jsonl"
+    shadow_path.write_text(
+        json.dumps({
+            "ts": (base - timedelta(seconds=30)).isoformat(),
+            "event": "shadow_order_resolved",
+            "condition_id": "0xhist-shadow",
+            "direction": "UP",
+            "shadow_order_id": "SHADOW-HIST-WIN",
+            "placed_at": (base - timedelta(minutes=1)).isoformat(),
+            "resolved_at": (base - timedelta(seconds=30)).isoformat(),
+            "status": "won",
+            "amount_usdc": 2.0,
+            "entry_price": 0.5,
+            "shadow_order_pnl_usdc": 1.9,
+            "shadow_order_won": True,
+        }) + "\n",
+        encoding="utf-8",
+    )
 
     history = logger.load_recent_trade_history(limit=10)
 
-    assert len(history) == 2
-    assert history[0].condition_id == "0xhist-loss"
-    assert history[0].direction == "DOWN"
-    assert history[0].amount_usdc == pytest.approx(3.0)
-    assert history[0].pnl == pytest.approx(-3.0)
-    assert history[0].status == "lost"
-    assert history[0].simulated is False
-    assert history[1].condition_id == "0xhist-win"
-    assert history[1].direction == "UP"
-    assert history[1].amount_usdc == pytest.approx(2.0)
-    assert history[1].pnl == pytest.approx(0.5)
-    assert history[1].status == "won"
-    assert history[1].simulated is True
+    assert len(history) == 3
+    assert history[0].condition_id == "0xhist-shadow"
+    assert history[0].direction == "UP"
+    assert history[0].amount_usdc == pytest.approx(2.0)
+    assert history[0].pnl == pytest.approx(1.9)
+    assert history[0].status == "won"
+    assert history[0].simulated is True
+    assert history[0].shadow is True
+    assert history[1].condition_id == "0xhist-loss"
+    assert history[1].direction == "DOWN"
+    assert history[1].amount_usdc == pytest.approx(3.0)
+    assert history[1].pnl == pytest.approx(-3.0)
+    assert history[1].status == "lost"
+    assert history[1].simulated is False
+    assert history[1].shadow is False
+    assert history[2].condition_id == "0xhist-win"
+    assert history[2].direction == "UP"
+    assert history[2].amount_usdc == pytest.approx(2.0)
+    assert history[2].pnl == pytest.approx(0.5)
+    assert history[2].status == "won"
+    assert history[2].simulated is True
+    assert history[2].shadow is False
 
 
 def test_render_bet_history_shows_win_loss_amount_and_pnl(tmp_path):
@@ -803,6 +957,7 @@ def test_render_bet_history_shows_win_loss_amount_and_pnl(tmp_path):
             simulated=won,
             order_id=f"SIM-{idx}",
             condition_id=f"0x{idx}",
+            shadow=idx == 30,
         ))
 
     panel = tf.render_bet_history(state)
@@ -820,6 +975,7 @@ def test_render_bet_history_shows_win_loss_amount_and_pnl(tmp_path):
     assert "-$3.00" in text
     assert "WIN" in text
     assert "LOSE" in text
+    assert "WIN (Shadow)" in text
 
 
 def test_update_ui_updates_bet_history_and_price_panels(tmp_path, monkeypatch):
@@ -918,7 +1074,11 @@ def test_blocked_shadow_prediction_logs_gate_and_counterfactual(tmp_path):
         )
         bot.state.prediction_records[record.row_id] = record
         bot.state.paper_prediction_records[record.condition_id] = record
-        bot.state.price_history_ts = deque([(record.window_end_at.timestamp(), 101.0)], maxlen=10)
+        bot.state.settlement_registry_cache[record.condition_id] = {
+            "settlement_price": 101.0,
+            "settlement_source": "chainlink_market_resolved",
+            "settlement_source_priority": tf._label_source_priority("chainlink_market_resolved"),
+        }
 
         await bot._resolve_prediction_analytics()
 
@@ -1560,7 +1720,7 @@ def test_place_trade_skips_when_midpoint_edge_disappears_at_best_ask(tmp_path, m
     asyncio.run(run_case())
 
 
-def test_place_trade_allows_non_orderbook_execution_quote_in_paper_mode(tmp_path, monkeypatch):
+def test_place_trade_blocks_non_orderbook_execution_quote_in_paper_mode(tmp_path, monkeypatch):
     class StubMarket:
         async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
             return make_execution_quote(
@@ -1571,25 +1731,12 @@ def test_place_trade_allows_non_orderbook_execution_quote_in_paper_mode(tmp_path
             )
 
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
-            est = tf.estimate_buy_net_shares(amount_usdc, current_odds, tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE)
-            return tf.TradeResult(
-                success=True,
-                order_id="SIM-FALLBACK",
-                simulated=True,
-                size=est["net_shares"],
-                gross_size=est["gross_shares"],
-                price=current_odds,
-                amount_usdc=amount_usdc,
-                fee_usdc=est["fee_usdc"],
-                fee_rate=tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE,
-                fee_rate_source="fee-rate",
-                payout_per_dollar=est["payout_per_dollar"],
-                liquidity_source="legacy_odds_fallback",
-            )
+            raise AssertionError("strict paper mode must block fallback quotes before dummy order placement")
 
     async def run_case():
         monkeypatch.setattr(tf, "LIVE_TRADING", False)
         monkeypatch.setattr(tf, "ALLOW_FALLBACK_EXECUTION_QUOTES", False)
+        monkeypatch.setattr(tf, "STRICT_REAL_PAPER_QUOTES", True)
         bot = make_bot(tmp_path)
         bot.market = StubMarket()
         now = datetime.now(timezone.utc)
@@ -1632,12 +1779,12 @@ def test_place_trade_allows_non_orderbook_execution_quote_in_paper_mode(tmp_path
         )
 
         updated = bot.state.paper_prediction_records[win.condition_id]
-        assert len(bot.state.positions) == 1
-        assert bot.state.positions[0].simulated is True
-        assert updated.blocked_gate == ""
-        assert updated.simulated_order_id == "SIM-FALLBACK"
-        assert len(bot.notifier.bet_calls) == 1
+        assert len(bot.state.positions) == 0
+        assert updated.blocked_gate == tf.GATE_EXECUTION_QUOTE
+        assert updated.simulated_order_id == ""
+        assert len(bot.notifier.bet_calls) == 0
         assert updated.liquidity_source == "legacy_odds_fallback"
+        assert updated.fill_status == "filled"
 
     asyncio.run(run_case())
 
@@ -1704,6 +1851,79 @@ def test_place_trade_blocks_non_orderbook_execution_quote_in_live_mode(tmp_path,
         assert len(bot.state.positions) == 0
         assert updated.blocked_gate == tf.GATE_EXECUTION_QUOTE
         assert updated.liquidity_source == "legacy_odds_fallback"
+
+    asyncio.run(run_case())
+
+
+def test_fee_rate_parser_treats_base_fee_and_bps_as_basis_points():
+    for payload, expected in (
+        ({"base_fee": 30}, 0.003),
+        ({"baseFee": 30}, 0.003),
+        ({"fee_rate_bps": 720}, 0.072),
+        ({"feeRateBps": 720}, 0.072),
+        ({"fee_rate": 0.072}, 0.072),
+    ):
+        fee_rate, source = tf.MarketClient._extract_fee_rate_payload(payload)
+        assert fee_rate == pytest.approx(expected)
+        assert source == "fee-rate"
+
+
+def test_live_place_bet_reconciles_actual_spend_from_trades(monkeypatch):
+    class FakeClobClient:
+        def create_market_order(self, order_args):
+            return SimpleNamespace(price=0.62)
+
+        def post_order(self, signed, order_type):
+            return {"success": True, "status": "MATCHED", "orderID": "LIVE-ORDER-1"}
+
+        def get_trades(self, params):
+            return [
+                {
+                    "market": "0xlive-market",
+                    "asset_id": "up-token",
+                    "outcome": "Up",
+                    "status": "CONFIRMED",
+                    "price": "0.62",
+                    "size": "2.0",
+                    "taker_order_id": "LIVE-ORDER-1",
+                    "fee_rate_bps": 720,
+                    "match_time": "2026-04-13T00:00:00Z",
+                }
+            ]
+
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+        monkeypatch.setattr(tf, "POLY_ETH_PRIVATE_KEY", "0xabc")
+        market = tf.MarketClient.__new__(tf.MarketClient)
+        market._session_lock = asyncio.Lock()
+        market._client = FakeClobClient()
+        market._http = None
+        market._session_generation = 0
+        market._mark_auth_success = lambda source="": None
+        market._mark_auth_failure = lambda *args, **kwargs: None
+
+        async def get_execution_quote(direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                price=0.62,
+                spread=0.01,
+            )
+
+        market.get_execution_quote = get_execution_quote
+
+        result = await market.place_bet("UP", "up-token", 1.0, 0.60)
+
+        assert result.success is True
+        assert result.order_id == "LIVE-ORDER-1"
+        assert result.target_amount_usdc == pytest.approx(1.0)
+        assert result.amount_usdc == pytest.approx(1.24)
+        assert result.actual_spend_usdc == pytest.approx(1.24)
+        assert result.price == pytest.approx(0.62)
+        assert result.gross_size == pytest.approx(2.0)
+        assert result.fill_source == "clob_trades"
+        assert result.fill_confidence == "confirmed_trades"
+        assert result.fee_rate_bps == 720
 
     asyncio.run(run_case())
 
