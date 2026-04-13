@@ -1,0 +1,22 @@
+{"ts": "2026-04-13T10:30:08.913Z", "msg": "[BOT] Starting up\u2026"}
+{"ts": "2026-04-13T10:30:09.019Z", "msg": "[HISTORY] Warmed 50 settled outcomes for calibration/context"}
+{"ts": "2026-04-13T10:30:09.020Z", "msg": "[HISTORY] Warmed 20 settled bets for UI history"}
+{"ts": "2026-04-13T10:30:09.401Z", "msg": "[PAPER] Warmed 3026 resolved paper analytics entries"}
+{"ts": "2026-04-13T10:30:09.401Z", "msg": "[PAPER] Restored 15877 pending paper prediction(s)"}
+{"ts": "2026-04-13T10:30:09.403Z", "msg": "[CLAIM] Warmed 54 claim record(s)"}
+{"ts": "2026-04-13T10:30:09.409Z", "msg": "[ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1"}
+{"ts": "2026-04-13T10:30:11.110Z", "msg": "[CONTINUITY] mode=paper model=20260411T120821Z-s20 state=active thresholds=rtp_v1"}
+{"ts": "2026-04-13T10:30:11.110Z", "msg": "[CONTINUITY] recent24 buy=100% exec=17% fail=21% reserve=12% | recent100 buy=100% exec=35% fail=17%"}
+{"ts": "2026-04-13T10:30:11.141Z", "msg": "[ML] Starting background bootstrap"}
+{"ts": "2026-04-13T10:30:11.277Z", "msg": "[MKT] Window: Bitcoin Up or Down - April 13, 6:30AM-6:35AM ET | beat=$0.00 | ends 10:35:00 UTC"}
+{"ts": "2026-04-13T10:30:11.369Z", "msg": "[HL] Hyperliquid WebSocket connected"}
+{"ts": "2026-04-13T10:30:11.635Z", "msg": "[BTC] Binance WebSocket connected"}
+{"ts": "2026-04-13T10:30:12.061Z", "msg": "[CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok"}
+{"ts": "2026-04-13T10:30:13.628Z", "msg": "[MKTWS] Market WebSocket connected"}
+{"ts": "2026-04-13T10:30:17.028Z", "msg": "[MKT] Beat price set retroactively: $70,797.35"}
+{"ts": "2026-04-13T10:30:23.049Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-13T10:30:24.683Z", "msg": "[ML] Bootstrap trained 20260413T103023Z-s20 state=shadow ap=0.743 cv_ap=0.754 ev=+0.52"}
+{"ts": "2026-04-13T10:31:23.779Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-13T10:31:26.787Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}
+{"ts": "2026-04-13T10:31:46.835Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%"}
+{"ts": "2026-04-13T10:31:51.847Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%"}

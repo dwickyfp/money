@@ -1,0 +1,22 @@
+2026-04-13T10:30:08.913Z  [BOT] Starting up…
+2026-04-13T10:30:09.019Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-13T10:30:09.020Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-13T10:30:09.401Z  [PAPER] Warmed 3026 resolved paper analytics entries
+2026-04-13T10:30:09.401Z  [PAPER] Restored 15877 pending paper prediction(s)
+2026-04-13T10:30:09.403Z  [CLAIM] Warmed 54 claim record(s)
+2026-04-13T10:30:09.409Z  [ML] Activated model 20260411T120821Z-s20 source=ml state=active thresholds=rtp_v1
+2026-04-13T10:30:11.110Z  [CONTINUITY] mode=paper model=20260411T120821Z-s20 state=active thresholds=rtp_v1
+2026-04-13T10:30:11.110Z  [CONTINUITY] recent24 buy=100% exec=17% fail=21% reserve=12% | recent100 buy=100% exec=35% fail=17%
+2026-04-13T10:30:11.141Z  [ML] Starting background bootstrap
+2026-04-13T10:30:11.277Z  [MKT] Window: Bitcoin Up or Down - April 13, 6:30AM-6:35AM ET | beat=$0.00 | ends 10:35:00 UTC
+2026-04-13T10:30:11.369Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T10:30:11.635Z  [BTC] Binance WebSocket connected
+2026-04-13T10:30:12.061Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T10:30:13.628Z  [MKTWS] Market WebSocket connected
+2026-04-13T10:30:17.028Z  [MKT] Beat price set retroactively: $70,797.35
+2026-04-13T10:30:23.049Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-13T10:30:24.683Z  [ML] Bootstrap trained 20260413T103023Z-s20 state=shadow ap=0.743 cv_ap=0.754 ev=+0.52
+2026-04-13T10:31:23.779Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-13T10:31:26.787Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%
+2026-04-13T10:31:46.835Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=27.9% D=72.1% | ml: BUY_DOWN prob=72% edge=+44.3%
+2026-04-13T10:31:51.847Z  [SIGNAL/OBSERVE] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 70%

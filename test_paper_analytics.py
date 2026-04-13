@@ -1306,7 +1306,7 @@ def test_place_trade_skips_when_midpoint_edge_disappears_at_best_ask(tmp_path, m
     asyncio.run(run_case())
 
 
-def test_place_trade_blocks_non_orderbook_execution_quote(tmp_path, monkeypatch):
+def test_place_trade_allows_non_orderbook_execution_quote_in_paper_mode(tmp_path, monkeypatch):
     class StubMarket:
         async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
             return make_execution_quote(
@@ -1317,7 +1317,21 @@ def test_place_trade_blocks_non_orderbook_execution_quote(tmp_path, monkeypatch)
             )
 
         async def place_bet(self, direction, token_id, amount_usdc, current_odds):
-            raise AssertionError("fallback quotes must be blocked before dummy/live order placement")
+            est = tf.estimate_buy_net_shares(amount_usdc, current_odds, tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE)
+            return tf.TradeResult(
+                success=True,
+                order_id="SIM-FALLBACK",
+                simulated=True,
+                size=est["net_shares"],
+                gross_size=est["gross_shares"],
+                price=current_odds,
+                amount_usdc=amount_usdc,
+                fee_usdc=est["fee_usdc"],
+                fee_rate=tf.POLYMARKET_CRYPTO_TAKER_FEE_RATE,
+                fee_rate_source="fee-rate",
+                payout_per_dollar=est["payout_per_dollar"],
+                liquidity_source="legacy_odds_fallback",
+            )
 
     async def run_case():
         monkeypatch.setattr(tf, "LIVE_TRADING", False)
@@ -1342,6 +1356,75 @@ def test_place_trade_blocks_non_orderbook_execution_quote(tmp_path, monkeypatch)
             window_end_at=win.end_time,
             beat_price=win.beat_price,
             mode="paper",
+            signal="BUY_UP",
+            predicted_direction="UP",
+            confidence=signal.confidence,
+            raw_confidence=signal.raw_confidence,
+            source="ml",
+            last_updated_at=now,
+        )
+        bot.state.prediction_records[record.row_id] = record
+        bot.state.paper_prediction_records[record.condition_id] = record
+        bot.state.up_odds = 0.55
+        bot.state.down_odds = 0.45
+
+        await bot._place_trade(
+            win,
+            signal,
+            snap,
+            prices=[100.0, 100.1],
+            is_gold_zone=True,
+            prediction_row_id=record.row_id,
+        )
+
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert len(bot.state.positions) == 1
+        assert bot.state.positions[0].simulated is True
+        assert updated.blocked_gate == ""
+        assert updated.simulated_order_id == "SIM-FALLBACK"
+        assert len(bot.notifier.bet_calls) == 1
+        assert updated.liquidity_source == "legacy_odds_fallback"
+
+    asyncio.run(run_case())
+
+
+def test_place_trade_blocks_non_orderbook_execution_quote_in_live_mode(tmp_path, monkeypatch):
+    class StubMarket:
+        async def get_execution_quote(self, direction, token_id, amount_usdc, current_odds):
+            return make_execution_quote(
+                token_id=token_id,
+                amount_usdc=amount_usdc,
+                price=current_odds,
+                liquidity_source="legacy_odds_fallback",
+            )
+
+        async def place_bet(self, direction, token_id, amount_usdc, current_odds):
+            raise AssertionError("live fallback quotes must be blocked before order placement")
+
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", True)
+        monkeypatch.setattr(tf, "ALLOW_FALLBACK_EXECUTION_QUOTES", False)
+        bot = make_bot(tmp_path)
+        bot.market = StubMarket()
+        bot.state.balance_usdc = 200.0
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xlive-fallback-quote", beat_price=100.0, end_time=now + timedelta(minutes=1))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.91,
+            raw_confidence=0.91,
+            reason="live quote fallback",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = tf.WindowPredictionRecord(
+            row_id="row-live-fallback-quote",
+            condition_id=win.condition_id,
+            window_label=win.window_label,
+            window_end_at=win.end_time,
+            beat_price=win.beat_price,
+            mode="live",
             signal="BUY_UP",
             predicted_direction="UP",
             confidence=signal.confidence,

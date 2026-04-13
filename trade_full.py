@@ -1804,7 +1804,11 @@ def compute_net_edge(probability: float, payout_per_dollar: float) -> float:
     return probability * payout_per_dollar - 1.0
 
 
-def execution_quote_block_reason(quote: ExecutionQuote | None) -> str | None:
+def execution_quote_block_reason(
+    quote: ExecutionQuote | None,
+    *,
+    require_orderbook: bool = True,
+) -> str | None:
     if quote is None:
         return "execution quote unavailable"
     if quote.execution_price <= 0.0 or quote.amount_usdc <= 0.0:
@@ -1815,7 +1819,8 @@ def execution_quote_block_reason(quote: ExecutionQuote | None) -> str | None:
     if MAX_EXECUTION_QUOTE_AGE_S > 0.0 and quote.quote_age_s > MAX_EXECUTION_QUOTE_AGE_S:
         return f"execution quote age {quote.quote_age_s:.2f}s > max {MAX_EXECUTION_QUOTE_AGE_S:.2f}s"
     if (
-        not ALLOW_FALLBACK_EXECUTION_QUOTES
+        require_orderbook
+        and not ALLOW_FALLBACK_EXECUTION_QUOTES
         and str(quote.liquidity_source or "").lower() != "orderbook"
     ):
         return (
@@ -3603,7 +3608,7 @@ class MarketClient:
             "payout_per_dollar": quote.payout_per_dollar,
             "liquidity_source": quote.liquidity_source,
         }
-        quote_block_reason = execution_quote_block_reason(quote)
+        quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
         if quote_block_reason:
             return TradeResult(
                 success=False,
@@ -10313,7 +10318,7 @@ class TradingBot:
             self.state.log_event(
                 f"[FEE] using {quote.fee_rate_source} fee_rate={quote.fee_rate:.4f} token={token_id[:12]}"
             )
-        quote_block_reason = execution_quote_block_reason(quote)
+        quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
         if quote_block_reason:
             await block_for_execution(
                 GATE_EXECUTION_QUOTE,
@@ -10408,7 +10413,7 @@ class TradingBot:
                     required_confidence=required_confidence,
                 )
                 return
-            quote_block_reason = execution_quote_block_reason(quote)
+            quote_block_reason = execution_quote_block_reason(quote, require_orderbook=LIVE_TRADING)
             if quote_block_reason:
                 await block_for_execution(
                     GATE_EXECUTION_QUOTE,
