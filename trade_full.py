@@ -55,6 +55,10 @@ SIGNAL_COOLDOWN_S    = 1
 MAX_BETS_PER_HOUR    = 10
 HEARTBEAT_INTERVAL_S = 30     # POST /heartbeats to keep session alive
 LIVE_TRADING         = os.getenv("LIVE_TRADING", "false").lower() == "true"
+BET_SESSION_WIB_ENABLED = os.getenv("BET_SESSION_WIB_ENABLED", "true").lower() == "true"
+BET_SESSION_WEEKDAYS_ONLY = os.getenv("BET_SESSION_WEEKDAYS_ONLY", "true").lower() == "true"
+BET_SESSION_START_HOUR_WIB = int(float(os.getenv("BET_SESSION_START_HOUR_WIB", "13")))
+BET_SESSION_END_HOUR_WIB = int(float(os.getenv("BET_SESSION_END_HOUR_WIB", "5")))
 AUTO_CLAIM_THRESHOLD = float(os.getenv("AUTO_CLAIM_THRESHOLD", "0.00"))
 AUTO_CLAIM_ENABLED = os.getenv("AUTO_CLAIM_ENABLED", "false").lower() == "true"
 AUTO_CLAIM_LIVE_ONLY = os.getenv("AUTO_CLAIM_LIVE_ONLY", "true").lower() == "true"
@@ -270,6 +274,56 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 _UTC = timezone.utc
+_WIB = timezone(timedelta(hours=7), "WIB")
+
+
+def _hour_to_seconds(hour: int) -> int:
+    return (int(hour) % 24) * 3600
+
+
+def _wib_datetime_from_timestamp(now: float | datetime | None = None) -> datetime:
+    if now is None:
+        base = datetime.now(_UTC)
+    elif isinstance(now, datetime):
+        base = now if now.tzinfo is not None else now.replace(tzinfo=_UTC)
+    else:
+        base = datetime.fromtimestamp(float(now), _UTC)
+    return base.astimezone(_WIB)
+
+
+def bet_session_wib_allowed(now: float | datetime | None = None) -> tuple[bool, str]:
+    if not BET_SESSION_WIB_ENABLED:
+        return True, ""
+
+    wib_now = _wib_datetime_from_timestamp(now)
+    start_s = _hour_to_seconds(BET_SESSION_START_HOUR_WIB)
+    end_s = _hour_to_seconds(BET_SESSION_END_HOUR_WIB)
+    current_s = wib_now.hour * 3600 + wib_now.minute * 60 + wib_now.second
+
+    if start_s == end_s:
+        in_window = True
+        session_day = wib_now.date()
+    elif start_s < end_s:
+        in_window = start_s <= current_s < end_s
+        session_day = wib_now.date()
+    elif current_s >= start_s:
+        in_window = True
+        session_day = wib_now.date()
+    elif current_s < end_s:
+        in_window = True
+        session_day = (wib_now - timedelta(days=1)).date()
+    else:
+        in_window = False
+        session_day = wib_now.date()
+
+    start_label = f"{BET_SESSION_START_HOUR_WIB % 24:02d}:00"
+    end_label = f"{BET_SESSION_END_HOUR_WIB % 24:02d}:00"
+    now_label = wib_now.strftime("%a %H:%M WIB")
+    if not in_window:
+        return False, f"outside WIB bet session {start_label}-{end_label} (now={now_label})"
+    if BET_SESSION_WEEKDAYS_ONLY and session_day.weekday() >= 5:
+        return False, f"outside weekday bet session {start_label}-{end_label} WIB (now={now_label})"
+    return True, ""
 
 
 class BotLogger:
@@ -2326,6 +2380,7 @@ GATE_WIDE_SPREAD          = "GATE_WIDE_SPREAD"          # best bid/ask spread is
 GATE_MIN_ORDER_RISK       = "GATE_MIN_ORDER_RISK"       # exchange minimum exceeds Kelly/risk-sized order
 GATE_EXECUTION_QUOTE      = "GATE_EXECUTION_QUOTE"      # quote is stale or not backed by live orderbook depth
 GATE_ORACLE_DIVERGENCE    = "GATE_ORACLE_DIVERGENCE"    # Chainlink-proxy/Binance divergence is too high
+GATE_BET_SESSION          = "GATE_BET_SESSION"          # outside configured WIB weekday betting session
 
 
 # ── Data classes ─────────────────────────────────────────────────────────────
@@ -9176,6 +9231,7 @@ class TradingBot:
             "GATE_RATE_LIMIT",
             "GATE_STREAK_PAUSE",
             "GATE_LOW_BALANCE",
+            GATE_BET_SESSION,
         }
 
     def _window_execution_state(self, condition_id: str) -> WindowExecutionState:
@@ -9333,6 +9389,10 @@ class TradingBot:
                         GATE_RETRY_COOLDOWN,
                         f"retry cooldown {cooldown_remaining:.1f}s remaining",
                     )
+
+        session_allowed, session_reason = bet_session_wib_allowed(now)
+        if not session_allowed:
+            return (GATE_BET_SESSION, session_reason)
 
         if DAILY_BUDGET_USDC > 0:
             self._sync_daily_budget_halt(log_change=True)

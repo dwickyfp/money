@@ -138,6 +138,13 @@ def make_execution_quote(
     )
 
 
+_WIB = timezone(timedelta(hours=7), "WIB")
+
+
+def _wib_ts(year: int, month: int, day: int, hour: int, minute: int = 0) -> float:
+    return datetime(year, month, day, hour, minute, tzinfo=_WIB).timestamp()
+
+
 def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):
     logger = tf.BotLogger(tmp_path / "logs")
     now = datetime.now(timezone.utc)
@@ -1590,7 +1597,61 @@ def test_place_trade_skips_when_market_minimum_exceeds_risk_cap(tmp_path, monkey
     asyncio.run(run_case())
 
 
+def test_operational_execution_block_enforces_weekday_wib_bet_session(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "BET_SESSION_WIB_ENABLED", True)
+    monkeypatch.setattr(tf, "BET_SESSION_WEEKDAYS_ONLY", True)
+    monkeypatch.setattr(tf, "BET_SESSION_START_HOUR_WIB", 13)
+    monkeypatch.setattr(tf, "BET_SESSION_END_HOUR_WIB", 5)
+    monkeypatch.setattr(tf, "DAILY_BUDGET_USDC", 0)
+    monkeypatch.setattr(tf, "DAILY_PROFIT_TARGET_USDC", 0)
+
+    bot = make_bot(tmp_path)
+    win = make_window(
+        condition_id="0xwib-session",
+        beat_price=100.0,
+        end_time=datetime(2026, 4, 13, 7, 0, tzinfo=timezone.utc),
+    )
+
+    assert bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 13, 13, 0),
+    ) is None
+    assert bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 14, 4, 59),
+    ) is None
+    assert bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 18, 4, 59),
+    ) is None
+
+    blocked_before = bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 13, 12, 59),
+    )
+    blocked_monday_morning = bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 13, 4, 59),
+    )
+    blocked_weekend = bot._operational_execution_block(
+        win=win,
+        seconds_remaining=45,
+        now=_wib_ts(2026, 4, 18, 5, 0),
+    )
+
+    assert blocked_before[0] == tf.GATE_BET_SESSION
+    assert blocked_monday_morning[0] == tf.GATE_BET_SESSION
+    assert blocked_weekend[0] == tf.GATE_BET_SESSION
+
+
 def test_retryable_live_trade_failure_allows_later_retry_in_same_window(tmp_path, monkeypatch):
+    monkeypatch.setattr(tf, "BET_SESSION_WIB_ENABLED", False)
+
     class StubMarket:
         def __init__(self):
             self.bet_calls = 0

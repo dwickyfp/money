@@ -28,3 +28,6 @@
 2026-04-13T10:33:31.175Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: edge -8.9% below 3%
 2026-04-13T10:34:02.261Z  [SIGNAL/LATE_EXEC] SKIP conf=0.68 src=ml U=31.7% D=68.3% | ml: candidate confidence 68% below 78%
 2026-04-13T10:34:24.571Z  [SIGNAL/LATE_EXEC] SKIP conf=0.65 src=ml U=35.3% D=64.7% | ml: candidate confidence 65% below 78%
+2026-04-13T10:34:57.821Z  [SIGNAL/TOO_LATE] SKIP conf=0.72 src=ml U=27.9% D=72.1% | ml: edge -25.6% below 5%
+2026-04-13T10:35:03.139Z  [MKT] Window: Bitcoin Up or Down - April 13, 6:35AM-6:40AM ET | beat=$70,765.60 | ends 10:40:00 UTC
+2026-04-13T10:35:03.855Z  [SIGNAL/OBSERVE] SKIP conf=0.51 src=ml U=49.4% D=50.6% | ml: probability spread 1.2% too small
