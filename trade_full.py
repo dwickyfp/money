@@ -4642,6 +4642,50 @@ class TelegramNotifier:
         )
         self._fire(text)
 
+    def notify_shadow_signal(
+        self,
+        signal: "AISignal",
+        win: "WindowInfo",
+        snap: "IndicatorSnapshot",
+        *,
+        btc_price: float,
+        up_odds: float,
+        down_odds: float,
+        decision: "TradeDecision | None" = None,
+        execution_block: tuple[str, str] | None = None,
+        blocked_gate: str = "",
+        blocked_reason: str = "",
+    ) -> None:
+        """Send one Telegram notice when a locked BUY is held instead of executed."""
+        if not self._enabled:
+            return
+
+        gate = blocked_gate
+        reason_text = blocked_reason
+        if execution_block is not None:
+            gate = gate or str(execution_block[0] or "")
+            reason_text = reason_text or str(execution_block[1] or "")
+        if decision is not None:
+            gate = gate or decision.gate
+            reason_text = reason_text or decision.reason
+
+        emoji = "⬆️" if signal.signal == "BUY_UP" else "⬇️"
+        signal_label = html.escape(signal.signal)
+        source = html.escape(signal.source or "unknown")
+        reason = html.escape((reason_text or signal.reason)[:160])
+        text = (
+            f"🫥 <b>Signal Held</b> {emoji}  {self._mode}\n"
+            f"Signal: <b>{signal_label}</b>  conf=<code>{signal.confidence:.0%}</code>  "
+            f"src=<code>{source}</code>\n"
+            f"Gate: <code>{html.escape(gate or 'EXECUTION_HOLD')}</code>\n"
+            f"Window: {html.escape(win.window_label)}  Beat: <code>${win.beat_price:,.2f}</code>\n"
+            f"BTC: <code>${btc_price:,.2f}</code>  Odds U/D: <code>{up_odds:.3f}/{down_odds:.3f}</code>\n"
+            f"Align: {snap.signal_alignment}/6  Dip: {html.escape(signal.dip_label)}  "
+            f"CVD: {html.escape(snap.cvd_divergence)}\n"
+            f"Why: {reason}"
+        )
+        self._fire(text)
+
     def notify_result(self, pos: "Position", state: "BotState") -> None:
         """Bet resolved — won or lost."""
         if not self._enabled:
@@ -7646,6 +7690,7 @@ class SessionSignalState:
     reservation_carry_used: bool = False
     carry_from_observe: bool = False
     telegram_sent: bool = False
+    execution_block_notified: bool = False
     locked_at: datetime | None = None
 
     def reset(self, condition_id: str = "") -> None:
@@ -7664,6 +7709,7 @@ class SessionSignalState:
         self.reservation_carry_used = False
         self.carry_from_observe = False
         self.telegram_sent = False
+        self.execution_block_notified = False
         self.locked_at = None
 
 
@@ -8704,6 +8750,43 @@ class TradingBot:
             self.state.paper_prediction_records[record.condition_id] = record
         self.state.logger.log_prediction_state(record)
         return record
+
+    def _notify_execution_block_once(
+        self,
+        *,
+        win: "WindowInfo",
+        signal: AISignal,
+        snap: "IndicatorSnapshot",
+        gate: str,
+        reason: str,
+        decision: TradeDecision | None = None,
+        btc_price: float | None = None,
+        up_odds: float | None = None,
+        down_odds: float | None = None,
+    ) -> bool:
+        session = self.state.session_signal_state
+        if session.condition_id == win.condition_id and session.execution_block_notified:
+            return False
+
+        shadow_notify = getattr(self.notifier, "notify_shadow_signal", None)
+        if not callable(shadow_notify):
+            return False
+
+        shadow_notify(
+            signal,
+            win,
+            snap,
+            btc_price=float(btc_price if btc_price is not None else (self.state.btc_price or 0.0)),
+            up_odds=float(up_odds if up_odds is not None else (self.state.up_odds or 0.0)),
+            down_odds=float(down_odds if down_odds is not None else (self.state.down_odds or 0.0)),
+            decision=decision,
+            execution_block=(gate, reason),
+            blocked_gate=gate,
+            blocked_reason=reason,
+        )
+        if session.condition_id == win.condition_id:
+            session.execution_block_notified = True
+        return True
 
     def _maybe_apply_reserved_signal_carry(
         self,
@@ -10284,7 +10367,26 @@ class TradingBot:
             )
             if operational_block is not None:
                 gate, reason = operational_block
+                blocked = await self._mark_prediction_blocked(
+                    record.row_id,
+                    gate=gate,
+                    reason=reason,
+                )
+                if blocked is not None and self._should_record_shadow_block(gate):
+                    await self._record_shadow_block(blocked)
+                self._notify_execution_block_once(
+                    win=win,
+                    signal=signal,
+                    snap=snap,
+                    gate=gate,
+                    reason=reason,
+                    decision=decision,
+                    btc_price=btc_price_now,
+                    up_odds=up_odds_now,
+                    down_odds=down_odds_now,
+                )
                 self.state.set_engine_status("EXECUTION_HOLD", gate, reason)
+                self.state.log_event(f"[TRADE] Held {gate}: {reason}")
                 continue
 
             self.state.log_event(
@@ -10348,6 +10450,13 @@ class TradingBot:
             )
             if blocked is not None and self._should_record_shadow_block(gate):
                 await self._record_shadow_block(blocked)
+            self._notify_execution_block_once(
+                win=win,
+                signal=signal,
+                snap=snap,
+                gate=gate,
+                reason=reason,
+            )
             self.state.set_engine_status("DECISION_SKIP", gate, reason)
             self.state.log_event(f"[TRADE] Skipped {gate}: {reason}")
 

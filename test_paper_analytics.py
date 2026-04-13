@@ -145,6 +145,82 @@ def _wib_ts(year: int, month: int, day: int, hour: int, minute: int = 0) -> floa
     return datetime(year, month, day, hour, minute, tzinfo=_WIB).timestamp()
 
 
+def test_telegram_notifier_formats_shadow_signal_hold():
+    notifier = tf.TelegramNotifier.__new__(tf.TelegramNotifier)
+    notifier._enabled = True
+    notifier._mode = "PAPER"
+    sent = []
+    notifier._fire = sent.append
+    now = datetime.now(timezone.utc)
+    win = make_window(condition_id="0xshadow-telegram", beat_price=100.0, end_time=now + timedelta(minutes=1))
+    snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+    signal = tf.AISignal(
+        signal="BUY_UP",
+        confidence=0.84,
+        raw_confidence=0.86,
+        reason="held signal",
+        dip_label="SUSTAINED_ABOVE",
+        source="ml",
+    )
+
+    notifier.notify_shadow_signal(
+        signal,
+        win,
+        snap,
+        btc_price=100.4,
+        up_odds=0.58,
+        down_odds=0.42,
+        execution_block=(tf.GATE_NET_EDGE, "net edge below threshold"),
+    )
+
+    assert len(sent) == 1
+    assert "Signal Held" in sent[0]
+    assert tf.GATE_NET_EDGE in sent[0]
+    assert "net edge below threshold" in sent[0]
+
+
+def test_execution_block_notification_dedupes_per_window(tmp_path):
+    bot = make_bot(tmp_path)
+    now = datetime.now(timezone.utc)
+    win = make_window(condition_id="0xblock-dedupe", beat_price=100.0, end_time=now + timedelta(minutes=1))
+    bot.state.session_signal_state.reset(win.condition_id)
+    snap = SimpleNamespace(signal_alignment=4, cvd_divergence="NONE")
+    signal = tf.AISignal(
+        signal="BUY_DOWN",
+        confidence=0.8,
+        raw_confidence=0.82,
+        reason="held",
+        dip_label="SUSTAINED_BELOW",
+        source="ml",
+    )
+
+    first = bot._notify_execution_block_once(
+        win=win,
+        signal=signal,
+        snap=snap,
+        gate=tf.GATE_BET_SESSION,
+        reason="outside session",
+        btc_price=99.8,
+        up_odds=0.47,
+        down_odds=0.53,
+    )
+    second = bot._notify_execution_block_once(
+        win=win,
+        signal=signal,
+        snap=snap,
+        gate=tf.GATE_NET_EDGE,
+        reason="net edge low",
+        btc_price=99.7,
+        up_odds=0.46,
+        down_odds=0.54,
+    )
+
+    assert first is True
+    assert second is False
+    assert len(bot.notifier.shadow_calls) == 1
+    assert bot.notifier.shadow_calls[0][2]["blocked_gate"] == tf.GATE_BET_SESSION
+
+
 def test_load_paper_analytics_rebuilds_clean_stats_and_pending_records(tmp_path):
     logger = tf.BotLogger(tmp_path / "logs")
     now = datetime.now(timezone.utc)
@@ -1309,6 +1385,8 @@ def test_place_trade_skips_when_midpoint_edge_disappears_at_best_ask(tmp_path, m
         assert updated.mid_odds == pytest.approx(0.55)
         assert updated.best_ask == pytest.approx(0.70)
         assert updated.net_edge < tf.MIN_NET_EDGE
+        assert len(bot.notifier.shadow_calls) == 1
+        assert bot.notifier.shadow_calls[0][2]["blocked_gate"] == tf.GATE_NET_EDGE
 
     asyncio.run(run_case())
 
