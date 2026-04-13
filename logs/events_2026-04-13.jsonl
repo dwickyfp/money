@@ -1080,3 +1080,5 @@
 {"ts": "2026-04-13T19:35:06.617Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.72 src=ml U=28.1% D=71.9% | ml: edge +3.4% below 5%"}
 {"ts": "2026-04-13T19:35:20.654Z", "msg": "[SIGNAL/OBSERVE] BUY_DOWN conf=0.85 src=ml U=15.3% D=84.7% | ml: BUY_DOWN prob=85% edge=+69.5%"}
 {"ts": "2026-04-13T19:35:44.246Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%"}
+{"ts": "2026-04-13T19:36:20.993Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge -28.2% below 5%"}
+{"ts": "2026-04-13T19:37:02.432Z", "msg": "[SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%"}

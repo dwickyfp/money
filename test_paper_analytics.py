@@ -602,6 +602,116 @@ def test_shadow_order_resolves_with_clean_pnl_and_inclusive_up_tie(tmp_path, mon
     asyncio.run(run_case())
 
 
+def test_shadow_order_resolves_from_market_outcome_when_price_is_missing(tmp_path, monkeypatch):
+    async def run_case():
+        monkeypatch.setattr(tf, "LIVE_TRADING", False)
+        monkeypatch.setattr(tf, "SHADOW_ORDERS_ENABLED", True)
+        bot = make_bot(tmp_path)
+        now = datetime.now(timezone.utc)
+        win = make_window(condition_id="0xshadow-outcome", beat_price=100.0, end_time=now - timedelta(seconds=5))
+        snap = SimpleNamespace(signal_alignment=5, cvd_divergence="BULLISH")
+        signal = tf.AISignal(
+            signal="BUY_UP",
+            confidence=0.84,
+            raw_confidence=0.86,
+            reason="resolve shadow from outcome",
+            dip_label="SUSTAINED_ABOVE",
+            source="ml",
+        )
+        record = store_locked_buy_record(bot, win, signal, row_id="row-shadow-outcome")
+        bot.state.up_odds = 0.50
+        bot.state.down_odds = 0.50
+        quote = make_execution_quote(token_id=win.up_token_id, amount_usdc=tf.BET_SIZE_USDC, price=0.50)
+        order = await bot._open_shadow_order(
+            win=win,
+            signal=signal,
+            snap=snap,
+            gate=tf.GATE_EXECUTION_WINDOW,
+            reason="before execution window",
+            prediction_row_id=record.row_id,
+            quote=quote,
+        )
+        assert order is not None
+        bot.state.settlement_registry_cache[win.condition_id] = {
+            "settlement_price": 0.0,
+            "settlement_source": "market_outcome_lookup",
+            "settlement_source_priority": tf._label_source_priority("market_outcome_lookup"),
+            "actual_winner": "UP",
+        }
+
+        await bot._check_shadow_orders()
+
+        resolved = bot.state.shadow_orders[win.condition_id]
+        expected_pnl = quote.net_shares - quote.amount_usdc
+        assert resolved.status == "won"
+        assert resolved.won is True
+        assert resolved.actual_winner == "UP"
+        assert resolved.settlement_price == 0.0
+        assert resolved.settlement_source == "market_outcome_lookup"
+        assert resolved.pnl == pytest.approx(expected_pnl)
+        assert len(bot.notifier.shadow_order_result_calls) == 1
+        updated = bot.state.paper_prediction_records[win.condition_id]
+        assert updated.shadow_order_won is True
+        assert updated.shadow_order_status == "won"
+
+    asyncio.run(run_case())
+
+
+def test_extracts_polymarket_resolved_outcome_prices_for_matching_condition():
+    payload = {
+        "markets": [
+            {
+                "conditionId": "0xother",
+                "outcomes": '["Up", "Down"]',
+                "outcomePrices": '["1", "0"]',
+            },
+            {
+                "conditionId": "0xmatch",
+                "outcomes": '["Up", "Down"]',
+                "outcomePrices": '["0", "1"]',
+            },
+        ]
+    }
+
+    assert tf._extract_resolved_binary_outcome(payload, condition_id="0xmatch") == "DOWN"
+
+
+def test_settlement_poll_still_fetches_market_outcome_after_grace(tmp_path):
+    async def run_case():
+        class OutcomeMarket(DummyMarket):
+            def __init__(self):
+                super().__init__()
+                self.calls = []
+
+            async def fetch_market_settlement(self, condition_id, *, window_end_at=None):
+                self.calls.append((condition_id, window_end_at))
+                return tf.SettlementRecord(
+                    condition_id=condition_id,
+                    resolved_at=datetime.now(timezone.utc).isoformat(),
+                    settlement_price=0.0,
+                    settlement_source="market_outcome_lookup",
+                    settlement_source_priority=tf._label_source_priority("market_outcome_lookup"),
+                    actual_winner="DOWN",
+                )
+
+        bot = make_bot(tmp_path)
+        bot.market = OutcomeMarket()
+        end_time = datetime.now(timezone.utc) - timedelta(seconds=tf.SETTLEMENT_GRACE_PERIOD_S + 10)
+
+        ok = await bot._poll_settlement_after_expiry(
+            condition_id="0xafter-grace",
+            window_end_at=end_time,
+        )
+
+        assert ok is True
+        assert bot.market.calls
+        cached = bot.state.settlement_registry_cache["0xafter-grace"]
+        assert cached["settlement_source"] == "market_outcome_lookup"
+        assert cached["actual_winner"] == "DOWN"
+
+    asyncio.run(run_case())
+
+
 def test_shadow_order_estimated_fallback_opens_and_resolves_with_official_pnl(tmp_path, monkeypatch):
     async def run_case():
         monkeypatch.setattr(tf, "LIVE_TRADING", False)

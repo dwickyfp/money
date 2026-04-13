@@ -5549,7 +5549,12 @@ class MarketClient:
             return book
         return getattr(book, "__dict__", None)
 
-    async def fetch_market_settlement(self, condition_id: str) -> SettlementRecord | None:
+    async def fetch_market_settlement(
+        self,
+        condition_id: str,
+        *,
+        window_end_at: datetime | None = None,
+    ) -> SettlementRecord | None:
         """Function : fetch_market_settlement
         Descriptions : Best-effort settlement lookup for a resolved market.
         Param :
@@ -5559,11 +5564,15 @@ class MarketClient:
         if not condition_id:
             return None
 
-        candidates = [
+        candidates = []
+        if window_end_at is not None:
+            start_ts = int(window_end_at.timestamp()) - 300
+            candidates.append((f"{GAMMA_API}/events/slug/btc-updown-5m-{start_ts}", None))
+        candidates.extend([
             (f"{GAMMA_API}/markets", {"condition_ids": condition_id}),
             (f"{GAMMA_API}/markets", {"conditionId": condition_id}),
             (f"{GAMMA_API}/markets/{condition_id}", None),
-        ]
+        ])
         for url, params in candidates:
             try:
                 _, http_client, _ = await self._get_client_snapshot()
@@ -5576,7 +5585,20 @@ class MarketClient:
 
             settlement_price = _extract_settlement_price(payload if isinstance(payload, dict) else {"data": payload})
             if settlement_price is None:
-                continue
+                actual_winner = _extract_resolved_binary_outcome(payload, condition_id=condition_id)
+                if not actual_winner:
+                    continue
+                resolved_at_raw = _extract_resolved_at(payload if isinstance(payload, dict) else {"data": payload})
+                resolved_at = ml_parse_utc_ts(resolved_at_raw) or _utc_now()
+                return SettlementRecord(
+                    condition_id=condition_id,
+                    resolved_at=_iso_z(resolved_at),
+                    settlement_price=0.0,
+                    settlement_source="market_outcome_lookup",
+                    settlement_source_priority=_label_source_priority("market_outcome_lookup"),
+                    actual_winner=actual_winner,
+                    raw_payload=payload if isinstance(payload, dict) else {"data": payload},
+                )
             resolved_at_raw = _extract_resolved_at(payload if isinstance(payload, dict) else {"data": payload})
             resolved_at = ml_parse_utc_ts(resolved_at_raw) or _utc_now()
             return SettlementRecord(
@@ -5586,6 +5608,7 @@ class MarketClient:
                 settlement_source="market_settlement_lookup",
                 settlement_source_priority=_label_source_priority("market_settlement_lookup"),
                 chainlink_settlement_price=settlement_price,
+                actual_winner=_extract_resolved_binary_outcome(payload, condition_id=condition_id),
                 raw_payload=payload if isinstance(payload, dict) else {"data": payload},
             )
         return None
@@ -7631,6 +7654,7 @@ def _append_jsonl(path: Path, record: dict) -> None:
 
 LABEL_SOURCE_PRIORITY = {
     "chainlink_market_resolved": 400,
+    "market_outcome_lookup": 350,
     "market_settlement_lookup": 350,
     "binance_15s": 200,
     "binance_90s": 100,
@@ -7772,6 +7796,64 @@ def _extract_resolved_at(payload: dict[str, Any]) -> str:
     )
 
 
+def _coerce_json_list(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except Exception:
+            return []
+        return parsed if isinstance(parsed, list) else []
+    return []
+
+
+def _normalize_binary_outcome(value: Any) -> str:
+    label = str(value or "").strip().upper()
+    if label == "UP":
+        return "UP"
+    if label == "DOWN":
+        return "DOWN"
+    return ""
+
+
+def _extract_resolved_binary_outcome(payload: Any, *, condition_id: str = "") -> str:
+    """Extract a resolved Up/Down outcome from Polymarket outcomePrices."""
+    if isinstance(payload, dict):
+        payload_condition_id = str(
+            payload.get("conditionId") or payload.get("condition_id") or ""
+        ).strip()
+        condition_matches = not condition_id or not payload_condition_id or payload_condition_id == condition_id
+        if condition_matches:
+            outcomes = _coerce_json_list(payload.get("outcomes"))
+            prices = _coerce_json_list(payload.get("outcomePrices") or payload.get("outcome_prices"))
+            if len(outcomes) >= 2 and len(prices) >= len(outcomes):
+                numeric_prices = [_safe_float(price, -1.0) for price in prices[: len(outcomes)]]
+                max_price = max(numeric_prices, default=-1.0)
+                min_price = min(numeric_prices, default=-1.0)
+                if max_price >= 0.999 and min_price <= 0.001:
+                    winner_idx = numeric_prices.index(max_price)
+                    winner = _normalize_binary_outcome(outcomes[winner_idx])
+                    if winner:
+                        return winner
+
+            for key in ("resolvedOutcome", "resolved_outcome", "winningOutcome", "winning_outcome", "winner"):
+                winner = _normalize_binary_outcome(payload.get(key))
+                if winner:
+                    return winner
+
+        for value in payload.values():
+            winner = _extract_resolved_binary_outcome(value, condition_id=condition_id)
+            if winner:
+                return winner
+    elif isinstance(payload, list):
+        for item in payload:
+            winner = _extract_resolved_binary_outcome(item, condition_id=condition_id)
+            if winner:
+                return winner
+    return ""
+
+
 @dataclass
 class SettlementRecord:
     condition_id: str
@@ -7781,6 +7863,7 @@ class SettlementRecord:
     settlement_source_priority: int = 0
     market_id: str = ""
     chainlink_settlement_price: float | None = None
+    actual_winner: str = ""
     raw_payload: dict[str, Any] = field(default_factory=dict)
     schema_version: str = FEATURE_SCHEMA_VERSION
 
@@ -7801,6 +7884,7 @@ class SettlementInfo:
     settlement_source_priority: int
     chainlink_settlement_price: float | None = None
     binance_resolution_diff_s: float | None = None
+    actual_winner: str = ""
 
 
 @dataclass
@@ -11628,6 +11712,20 @@ class TradingBot:
         # Equal price resolves as UP, not TIE.
         return "UP" if settlement_btc >= beat_price else "DOWN"
 
+    @classmethod
+    def _actual_winner_from_settlement_info(
+        cls,
+        beat_price: float,
+        settlement_info: SettlementInfo | None,
+    ) -> str:
+        """Return the official winner from outcome data, or classify by price."""
+        if settlement_info is None:
+            return "UNKNOWN"
+        actual_winner = _normalize_binary_outcome(settlement_info.actual_winner)
+        if actual_winner:
+            return actual_winner
+        return cls._classify_window_outcome(beat_price, settlement_info.settlement_price)
+
     @staticmethod
     def _did_trade_win(direction: str, actual_winner: str) -> bool | None:
         """Function : _did_trade_win
@@ -13023,13 +13121,15 @@ class TradingBot:
                 self.state.settlement_registry_cache[condition_id] = cached
         if cached is not None:
             settlement_price = _safe_float(cached.get("settlement_price"), 0.0)
-            if settlement_price > 0.0:
+            actual_winner = _normalize_binary_outcome(cached.get("actual_winner"))
+            if settlement_price > 0.0 or actual_winner:
                 return SettlementInfo(
                     settlement_price=settlement_price,
                     settlement_source=str(cached.get("settlement_source", "")) or "chainlink_market_resolved",
                     resolved_at=ml_parse_utc_ts(cached.get("resolved_at")),
                     settlement_source_priority=int(cached.get("settlement_source_priority", 0)),
                     chainlink_settlement_price=_safe_float(cached.get("chainlink_settlement_price"), 0.0) or settlement_price,
+                    actual_winner=actual_winner,
                 )
 
         target = window_end_at
@@ -13097,8 +13197,7 @@ class TradingBot:
 
         Returns True if a high-priority settlement (>= SETTLEMENT_POLL_MIN_PRIORITY)
         was obtained and cached. Non-blocking — returns immediately if already cached
-        at sufficient priority. Does nothing if the market has not yet expired or if
-        more than SETTLEMENT_GRACE_PERIOD_S seconds have elapsed without a result.
+        at sufficient priority. Does nothing if the market has not yet expired.
         """
         if not condition_id:
             return False
@@ -13120,20 +13219,29 @@ class TradingBot:
             return False  # market hasn't expired yet
 
         elapsed_s = now_ts - expiry_ts
-        if elapsed_s > SETTLEMENT_GRACE_PERIOD_S:
-            return False  # too late to bother polling
-
         try:
-            record = await self.market.fetch_market_settlement(condition_id)
+            fetch_settlement = getattr(self.market, "fetch_market_settlement", None)
+            if not callable(fetch_settlement):
+                record = None
+            else:
+                try:
+                    record = await fetch_settlement(condition_id, window_end_at=window_end_at)
+                except TypeError:
+                    record = await fetch_settlement(condition_id)
         except Exception:
             record = None
 
         if record is not None:
             self.state.logger.log_settlement(record.to_record())
             self.state.settlement_registry_cache[condition_id] = record.to_record()
+            settlement_label = (
+                f"${record.settlement_price:,.2f}"
+                if float(record.settlement_price or 0.0) > 0.0
+                else f"winner={record.actual_winner or 'UNKNOWN'}"
+            )
             self.state.log_event(
                 f"[SETTLE_POLL] Chainlink settlement polled for {condition_id[:8]}: "
-                f"${record.settlement_price:,.2f} source={record.settlement_source} "
+                f"{settlement_label} source={record.settlement_source} "
                 f"({elapsed_s:.0f}s post-expiry)"
             )
             # Wake up the claim manager immediately so it can scan for redeemable
@@ -13205,6 +13313,10 @@ class TradingBot:
             return
         if settlement_info is None or not settlement_is_official(settlement_info):
             return
+        _cl_price = (settlement_info.chainlink_settlement_price or 0.0) if settlement_info else 0.0
+        _resolve_price = _cl_price if _cl_price > 0 else float(resolved_btc_price or 0.0)
+        if _resolve_price <= 0.0:
+            return
 
         row_ids = list(self.state.pending_ml_feature_rows.pop(condition_id, set()))
         if not row_ids:
@@ -13213,8 +13325,6 @@ class TradingBot:
         # Prefer Chainlink settlement price for label accuracy.
         # Polymarket resolves via Chainlink BTC/USD (data.chain.link/streams/btc-usd).
         # Rule: P_end >= P_open → UP (inclusive — equal price also resolves as UP).
-        _cl_price = (settlement_info.chainlink_settlement_price or 0.0) if settlement_info else 0.0
-        _resolve_price = _cl_price if _cl_price > 0 else resolved_btc_price
         label = "BUY_UP" if _resolve_price >= beat_price else "BUY_DOWN"
         resolution_ts = (resolved_at or datetime.now(_UTC)).astimezone(_UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
@@ -14776,10 +14886,10 @@ class TradingBot:
                     continue
                 await self._mark_shadow_order_unresolved(order, settlement_info)
                 continue
-            if settlement_info.settlement_price is None or order.beat_price <= 0.0:
+            if order.beat_price <= 0.0:
                 continue
 
-            actual_winner = self._classify_window_outcome(order.beat_price, settlement_info.settlement_price)
+            actual_winner = self._actual_winner_from_settlement_info(order.beat_price, settlement_info)
             if actual_winner == "UNKNOWN":
                 continue
             await self._settle_shadow_order(order, actual_winner, settlement_info)
@@ -14986,9 +15096,9 @@ class TradingBot:
                         await self._mark_position_unresolved(pos, settlement_info)
                     continue
                 # Window over (or we're in a new window) — evaluate outcome
-                if settlement_btc is None or beat <= 0:
+                if beat <= 0:
                     continue
-                actual_winner = self._classify_window_outcome(beat, settlement_btc)
+                actual_winner = self._actual_winner_from_settlement_info(beat, settlement_info)
                 if actual_winner == "UNKNOWN":
                     continue
                 await self._settle_position(pos, actual_winner, amount)
@@ -15022,9 +15132,9 @@ class TradingBot:
                     continue
                 matched = True
 
-            if not matched or settlement_btc is None or beat <= 0:
+            if not matched or beat <= 0:
                 continue
-            actual_winner = self._classify_window_outcome(beat, settlement_btc)
+            actual_winner = self._actual_winner_from_settlement_info(beat, settlement_info)
             if actual_winner == "UNKNOWN":
                 continue
             await self._settle_position(pos, actual_winner, amount)
@@ -15230,13 +15340,13 @@ class TradingBot:
                 window_end_at=record.window_end_at,
             )
             settlement_btc = settlement_info.settlement_price if settlement_info is not None else None
-            if settlement_btc is None or record.beat_price <= 0:
+            if settlement_info is None or record.beat_price <= 0:
                 continue
             if settlement_info is None or not settlement_is_official(settlement_info):
                 continue
 
             resolved_at = datetime.now(_UTC)
-            actual_winner = self._classify_window_outcome(record.beat_price, settlement_btc)
+            actual_winner = self._actual_winner_from_settlement_info(record.beat_price, settlement_info)
             correct = (
                 record.predicted_direction == actual_winner
                 if actual_winner in ("UP", "DOWN")
@@ -15307,7 +15417,7 @@ class TradingBot:
         if settlement_info is None or not settlement_is_official(settlement_info):
             return
         settlement_btc = settlement_info.settlement_price
-        actual_winner = self._classify_window_outcome(win.beat_price, settlement_btc)
+        actual_winner = self._actual_winner_from_settlement_info(win.beat_price, settlement_info)
 
         async with self.state._lock:
             for bw in self.state.blocked_windows:
