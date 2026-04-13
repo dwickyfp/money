@@ -963,3 +963,72 @@
 2026-04-13T19:20:34.222Z  [MKT] Beat price set retroactively: $72,569.80
 2026-04-13T19:20:36.865Z  [ML] Activated model 20260413T192036Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
 2026-04-13T19:20:37.835Z  [ML] Bootstrap trained 20260413T192036Z-s20 state=active ap=0.739 cv_ap=0.753 ev=+0.54
+2026-04-13T19:20:58.613Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T19:21:13.879Z  [SIGNAL/OBSERVE] BUY_UP conf=0.72 src=ml U=72.1% D=27.9% | ml: BUY_UP prob=72% edge=+44.1%
+2026-04-13T19:21:28.732Z  [BOT] Starting up…
+2026-04-13T19:21:28.825Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-13T19:21:28.980Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-13T19:21:29.408Z  [PAPER] Warmed 3153 resolved paper analytics entries
+2026-04-13T19:21:29.408Z  [PAPER] Restored 16484 pending paper prediction(s)
+2026-04-13T19:21:29.410Z  [CLAIM] Warmed 54 claim record(s)
+2026-04-13T19:21:29.517Z  [ML] Activated model 20260413T192036Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:21:31.328Z  [CONTINUITY] mode=paper model=20260413T192036Z-s20 state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:21:31.328Z  [CONTINUITY] recent24 buy=100% exec=4% fail=4% reserve=33% | recent100 buy=100% exec=33% fail=11%
+2026-04-13T19:21:31.519Z  [ML] Starting background bootstrap
+2026-04-13T19:21:31.611Z  [MKT] Window: Bitcoin Up or Down - April 13, 3:20PM-3:25PM ET | beat=$0.00 | ends 19:25:00 UTC
+2026-04-13T19:21:31.754Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T19:21:31.930Z  [BTC] Binance WebSocket connected
+2026-04-13T19:21:32.308Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T19:21:34.801Z  [MKTWS] Market WebSocket connected
+2026-04-13T19:21:37.039Z  [MKT] Beat price set retroactively: $72,674.68
+2026-04-13T19:21:37.530Z  [SIGNAL/OBSERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 70%
+2026-04-13T19:21:40.311Z  [ML] Activated model 20260413T192140Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:21:41.336Z  [ML] Bootstrap trained 20260413T192140Z-s20 state=active ap=0.739 cv_ap=0.753 ev=+0.54
+2026-04-13T19:22:32.099Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.81 src=ml U=18.9% D=81.1% | ml: BUY_DOWN prob=81% edge=+479.3%
+2026-04-13T19:22:38.664Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.72 src=ml U=28.1% D=71.9% | ml: BUY_DOWN prob=72% edge=+43.8%
+2026-04-13T19:23:08.115Z  [SIGNAL/RESERVE] SKIP conf=0.56 src=ml U=43.6% D=56.4% | ml: candidate confidence 56% below 82%
+2026-04-13T19:23:29.990Z  [SIGNAL/RESERVE] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: candidate confidence 71% below 82%
+2026-04-13T19:23:32.346Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.59 src=ml U=59.4% D=40.6% | ml: candidate confidence 59% below 81%
+2026-04-13T19:23:43.308Z  [SIGNAL/EARLY_EXEC] SKIP conf=0.92 src=ml U=92.2% D=7.8% | ml: edge -6.9% below 3%
+2026-04-13T19:24:07.392Z  [SIGNAL/LATE_EXEC] SKIP conf=1.00 src=ml U=99.9% D=0.1% | ml: edge +0.9% below 5%
+2026-04-13T19:24:22.754Z  [SIGNAL/LATE_EXEC] SKIP conf=0.93 src=ml U=93.2% D=6.8% | ml: edge -6.4% below 5%
+2026-04-13T19:24:28.286Z  [SIGNAL/LATE_EXEC] SKIP conf=0.99 src=ml U=98.9% D=1.1% | ml: edge -0.1% below 5%
+2026-04-13T19:24:32.940Z  [SIGNAL/LATE_EXEC] SKIP conf=0.93 src=ml U=93.2% D=6.8% | ml: edge -5.9% below 5%
+2026-04-13T19:24:48.276Z  [SIGNAL/TOO_LATE] SKIP conf=0.99 src=ml U=98.9% D=1.1% | ml: edge -0.6% below 5%
+2026-04-13T19:24:58.230Z  [SIGNAL/TOO_LATE] SKIP conf=0.93 src=ml U=93.2% D=6.8% | ml: edge -6.4% below 5%
+2026-04-13T19:25:01.282Z  [MKT] Window: Bitcoin Up or Down - April 13, 3:25PM-3:30PM ET | beat=$72,803.95 | ends 19:30:00 UTC
+2026-04-13T19:25:01.622Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: candidate confidence 65% below 70%
+2026-04-13T19:25:02.019Z  [MKTWS] Market WebSocket connected
+2026-04-13T19:25:03.821Z  [SIGNAL/OBSERVE] BUY_DOWN conf=0.81 src=ml U=18.9% D=81.1% | ml: BUY_DOWN prob=81% edge=+62.2%
+2026-04-13T19:25:28.912Z  [SIGNAL/OBSERVE] SKIP conf=0.55 src=ml U=45.4% D=54.6% | ml: candidate confidence 55% below 70%
+2026-04-13T19:26:29.426Z  [SIGNAL/OBSERVE] BUY_UP conf=0.72 src=ml U=72.1% D=27.9% | ml: BUY_UP prob=72% edge=+44.3%
+2026-04-13T19:26:33.818Z  [SIGNAL/OBSERVE] SKIP conf=0.71 src=ml U=71.0% D=29.0% | ml: edge -4.8% below 5%
+2026-04-13T19:26:34.953Z  [CLAIM] scan scheduled candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T19:26:41.456Z  [SIGNAL/OBSERVE] SKIP conf=0.60 src=ml U=59.8% D=40.2% | ml: candidate confidence 60% below 70%
+2026-04-13T19:26:57.980Z  [SIGNAL/OBSERVE] BUY_UP conf=0.71 src=ml U=71.0% D=29.0% | ml: BUY_UP prob=71% edge=+41.9%
+2026-04-13T19:26:58.986Z  [SIGNAL/OBSERVE] SKIP conf=0.81 src=ml U=81.5% D=18.5% | ml: edge -6.4% below 5%
+2026-04-13T19:27:16.515Z  [SIGNAL/OBSERVE] BUY_UP conf=0.92 src=ml U=92.2% D=7.8% | ml: BUY_UP prob=92% edge=+84.4%
+2026-04-13T19:27:23.092Z  [SIGNAL/OBSERVE] BUY_UP conf=0.72 src=ml U=72.1% D=27.9% | ml: BUY_UP prob=72% edge=+44.3%
+2026-04-13T19:28:41.829Z  [BOT] Starting up…
+2026-04-13T19:28:41.922Z  [HISTORY] Warmed 50 settled outcomes for calibration/context
+2026-04-13T19:28:42.396Z  [HISTORY] Warmed 20 settled bets for UI history
+2026-04-13T19:28:42.805Z  [PAPER] Warmed 3153 resolved paper analytics entries
+2026-04-13T19:28:42.805Z  [PAPER] Restored 16518 pending paper prediction(s)
+2026-04-13T19:28:42.808Z  [CLAIM] Warmed 54 claim record(s)
+2026-04-13T19:28:43.136Z  [ML] Activated model 20260413T192140Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:28:44.900Z  [CONTINUITY] mode=paper model=20260413T192140Z-s20 state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:28:44.900Z  [CONTINUITY] recent24 buy=100% exec=4% fail=4% reserve=33% | recent100 buy=100% exec=33% fail=11%
+2026-04-13T19:28:45.403Z  [ML] Starting background bootstrap
+2026-04-13T19:28:45.557Z  [MKT] Window: Bitcoin Up or Down - April 13, 3:25PM-3:30PM ET | beat=$0.00 | ends 19:30:00 UTC
+2026-04-13T19:28:45.728Z  [HL] Hyperliquid WebSocket connected
+2026-04-13T19:28:46.421Z  [CLAIM] scan startup candidates=0 claimable=$42.54 pending=$50.00 mode=enabled status=address:ok,funder:ok
+2026-04-13T19:28:48.163Z  [BTC] Binance WebSocket connected
+2026-04-13T19:28:48.674Z  [MKTWS] Market WebSocket connected
+2026-04-13T19:28:51.453Z  [MKT] Beat price set retroactively: $72,882.89
+2026-04-13T19:28:55.436Z  [ML] Activated model 20260413T192855Z-s20 source=ml state=active thresholds=auto_0.82_0.81_0.81
+2026-04-13T19:28:56.402Z  [ML] Bootstrap trained 20260413T192855Z-s20 state=active ap=0.739 cv_ap=0.753 ev=+0.54
+2026-04-13T19:29:04.013Z  [SIGNAL/LATE_EXEC] SKIP conf=0.52 src=ml U=51.7% D=48.3% | ml: edge +3.4% below 5%
+2026-04-13T19:29:10.511Z  [SIGNAL/LATE_EXEC] SKIP conf=0.61 src=ml U=38.7% D=61.3% | ml: candidate confidence 61% below 83%
+2026-04-13T19:30:02.536Z  [MKT] Window: Bitcoin Up or Down - April 13, 3:30PM-3:35PM ET | beat=$72,897.53 | ends 19:35:00 UTC
+2026-04-13T19:30:03.158Z  [MKTWS] Market WebSocket connected
+2026-04-13T19:30:04.039Z  [SIGNAL/OBSERVE] SKIP conf=0.65 src=ml U=34.6% D=65.4% | ml: edge +3.8% below 5%

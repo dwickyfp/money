@@ -675,6 +675,8 @@ class BotLogger:
             "orderbook_timestamp": getattr(position, "orderbook_timestamp", 0.0),
             "actual_winner": getattr(position, "actual_winner", ""),
             "settlement_price": getattr(position, "settlement_price", 0.0),
+            "entry_btc": getattr(position, "entry_btc", 0.0),
+            "exit_btc": getattr(position, "settlement_price", 0.0),
             "settlement_confidence": getattr(position, "settlement_confidence", ""),
             "resolved_at": (
                 getattr(position, "resolved_at", None).isoformat()
@@ -792,6 +794,8 @@ class BotLogger:
             "pnl": getattr(order, "pnl", 0.0),
             "actual_winner": getattr(order, "actual_winner", ""),
             "settlement_price": getattr(order, "settlement_price", 0.0),
+            "entry_btc": getattr(order, "entry_btc", 0.0),
+            "exit_btc": getattr(order, "settlement_price", 0.0),
             "settlement_source": getattr(order, "settlement_source", ""),
             "settlement_low_confidence": getattr(order, "settlement_low_confidence", False),
             "settlement_confidence": getattr(order, "settlement_confidence", ""),
@@ -1408,6 +1412,68 @@ class BotLogger:
             except Exception:
                 return None
 
+        price_cache: dict[str, list[tuple[datetime, float]]] = {}
+
+        def _normalize_price_lookup_dt(value: object) -> datetime | None:
+            """Function : _normalize_price_lookup_dt
+            Descriptions : Normalize logged timestamps before looking up BTC price snapshots.
+            Param :
+                Param <value> : Timestamp value to normalize.
+            """
+            dt = value if isinstance(value, datetime) else _parse_dt(value)
+            if dt is None:
+                return None
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=_WIB)
+            return dt.astimezone(_UTC)
+
+        def _price_points_for_day(day: str) -> list[tuple[datetime, float]]:
+            """Function : _price_points_for_day
+            Descriptions : Load cached BTC price snapshots for a UTC log day.
+            Param :
+                Param <day> : UTC log day in YYYY-MM-DD format.
+            """
+            if day in price_cache:
+                return price_cache[day]
+            points: list[tuple[datetime, float]] = []
+            path = self._dir / f"prices_{day}.jsonl"
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            record = json.loads(line)
+                        except Exception:
+                            continue
+                        ts = _normalize_price_lookup_dt(record.get("ts"))
+                        btc = _safe_float(record.get("btc"), 0.0)
+                        if ts is not None and btc > 0.0:
+                            points.append((ts, btc))
+            except Exception:
+                pass
+            price_cache[day] = points
+            return points
+
+        def _price_at(value: object, *, max_age_s: float = 900.0) -> float:
+            """Function : _price_at
+            Descriptions : Find the closest logged BTC price for a timestamp.
+            Param :
+                Param <value> : Timestamp to match against price logs.
+                Param <max_age_s> : Maximum allowed distance from the timestamp.
+            """
+            dt = _normalize_price_lookup_dt(value)
+            if dt is None:
+                return 0.0
+            points = _price_points_for_day(dt.strftime("%Y-%m-%d"))
+            if not points:
+                return 0.0
+            nearest_ts, nearest_btc = min(
+                points,
+                key=lambda item: abs((item[0] - dt).total_seconds()),
+            )
+            if abs((nearest_ts - dt).total_seconds()) > max_age_s:
+                return 0.0
+            return nearest_btc
+
         entries: list[TradeHistoryEntry] = []
         for key, close_rec in closes.items():
             open_rec = opens.get(key, {})
@@ -1415,6 +1481,19 @@ class BotLogger:
             closed_at = _parse_dt(close_rec.get("ts")) or datetime.now(_UTC)
             status = str(close_rec.get("status", "")).lower()
             simulated = bool(close_rec.get("simulated", open_rec.get("simulated", False)))
+            window_end_at = _parse_dt(close_rec.get("window_end_at")) or _parse_dt(open_rec.get("window_end_at"))
+            entry_btc = _safe_float(
+                close_rec.get("entry_btc", open_rec.get("entry_btc", open_rec.get("btc_price", 0.0))),
+                0.0,
+            )
+            if entry_btc <= 0.0:
+                entry_btc = _price_at(placed_at)
+            exit_btc = _safe_float(
+                close_rec.get("exit_btc", close_rec.get("settlement_price", close_rec.get("resolved_btc_price", 0.0))),
+                0.0,
+            )
+            if exit_btc <= 0.0:
+                exit_btc = _price_at(window_end_at or closed_at)
             entries.append(TradeHistoryEntry(
                 direction=str(close_rec.get("direction") or open_rec.get("direction") or "NONE"),
                 amount_usdc=float(close_rec.get("amount_usdc", open_rec.get("amount_usdc", 0.0)) or 0.0),
@@ -1426,6 +1505,8 @@ class BotLogger:
                 order_id=str(close_rec.get("order_id", open_rec.get("order_id", "")) or ""),
                 condition_id=str(close_rec.get("condition_id", open_rec.get("condition_id", "")) or ""),
                 entry_price=float(close_rec.get("entry_price", open_rec.get("entry_price", 0.0)) or 0.0),
+                entry_btc=entry_btc,
+                exit_btc=exit_btc,
             ))
 
         seen_shadow: set[str] = set()
@@ -1453,6 +1534,19 @@ class BotLogger:
                         seen_shadow.add(unique_key)
                         placed_at = _parse_dt(record.get("placed_at"))
                         closed_at = _parse_dt(record.get("resolved_at")) or _parse_dt(record.get("ts")) or datetime.now(_UTC)
+                        window_end_at = _parse_dt(record.get("window_end_at"))
+                        entry_btc = _safe_float(
+                            record.get("entry_btc", record.get("btc_price", 0.0)),
+                            0.0,
+                        )
+                        if entry_btc <= 0.0:
+                            entry_btc = _price_at(placed_at)
+                        exit_btc = _safe_float(
+                            record.get("exit_btc", record.get("settlement_price", 0.0)),
+                            0.0,
+                        )
+                        if exit_btc <= 0.0:
+                            exit_btc = _price_at(window_end_at or closed_at)
                         entries.append(TradeHistoryEntry(
                             direction=str(record.get("direction") or "NONE"),
                             amount_usdc=float(record.get("amount_usdc") or record.get("target_amount_usdc", 0.0) or 0.0),
@@ -1465,6 +1559,8 @@ class BotLogger:
                             condition_id=condition_id,
                             entry_price=float(record.get("entry_price", 0.0) or 0.0),
                             shadow=True,
+                            entry_btc=entry_btc,
+                            exit_btc=exit_btc,
                         ))
             except Exception:
                 continue
@@ -9782,6 +9878,7 @@ class Position:
     settlement_price: float = 0.0
     settlement_confidence: str = ""
     resolved_at: datetime | None = None
+    entry_btc: float = 0.0
 
 
 @dataclass
@@ -9797,6 +9894,8 @@ class TradeHistoryEntry:
     condition_id: str = ""
     entry_price: float = 0.0
     shadow: bool = False
+    entry_btc: float = 0.0
+    exit_btc: float = 0.0
 
 
 @dataclass
@@ -9869,6 +9968,7 @@ class ShadowOrder:
     raw_confidence: float = 0.0
     signal_alignment: int = 0
     execution_bucket: str = ""
+    entry_btc: float = 0.0
 
 
 @dataclass
@@ -12578,6 +12678,7 @@ class TradingBot:
             raw_confidence=signal.raw_confidence or signal.confidence,
             signal_alignment=int(getattr(snap, "signal_alignment", 0) or 0),
             execution_bucket=self._phase_bucket(elapsed_bet, seconds_remaining),
+            entry_btc=float(self.state.btc_price or 0.0),
         )
 
         await self._annotate_prediction_execution(
@@ -12631,6 +12732,7 @@ class TradingBot:
                     condition_id=order.condition_id,
                     entry_price=order.entry_price,
                     shadow=True,
+                    entry_btc=order.entry_btc,
                 ))
 
         if record_to_log is not None and log_blocked:
@@ -14359,6 +14461,7 @@ class TradingBot:
                 fill_status=result.fill_status or quote.fill_status or "filled",
                 fill_confidence=result.fill_confidence or quote.fill_confidence,
                 orderbook_timestamp=result.orderbook_timestamp or quote.orderbook_timestamp,
+                entry_btc=float(self.state.btc_price or 0.0),
             )
             async with self.state._lock:
                 self.state.positions.append(pos)
@@ -14608,6 +14711,8 @@ class TradingBot:
                 condition_id=current.condition_id,
                 entry_price=current.entry_price,
                 shadow=True,
+                entry_btc=current.entry_btc,
+                exit_btc=current.settlement_price,
             ))
 
             record = self.state.prediction_records.get(current.row_id) if current.row_id else None
@@ -14732,6 +14837,8 @@ class TradingBot:
                     condition_id=current.condition_id,
                     entry_price=current.entry_price,
                     shadow=True,
+                    entry_btc=current.entry_btc,
+                    exit_btc=current.settlement_price,
                 ))
 
             record = self.state.prediction_records.get(current.row_id) if current.row_id else None
@@ -14818,6 +14925,8 @@ class TradingBot:
                 order_id=pos.order_id,
                 condition_id=pos.condition_id,
                 entry_price=pos.entry_price,
+                entry_btc=pos.entry_btc,
+                exit_btc=pos.settlement_price,
             ))
 
         self._sync_daily_budget_halt(log_change=True)
@@ -15005,6 +15114,9 @@ class TradingBot:
                     simulated=pos.simulated,
                     order_id=pos.order_id,
                     condition_id=pos.condition_id,
+                    entry_price=pos.entry_price,
+                    entry_btc=pos.entry_btc,
+                    exit_btc=pos.settlement_price,
                 ))
                 if won is True and not pos.simulated:
                     expected_claim = self._expected_claim_record_from_position(pos)
@@ -17156,6 +17268,8 @@ def render_bet_history(state: BotState) -> Panel:
     table.add_column("Time", width=6)
     table.add_column("WIB", width=6)
     table.add_column("Dir", width=5)
+    table.add_column("Entry", width=11, justify="right")
+    table.add_column("Exit", width=11, justify="right")
     table.add_column("Amount", width=8, justify="right")
     table.add_column("P/L", width=8, justify="right")
     table.add_column("Status", width=15)
@@ -17176,11 +17290,15 @@ def render_bet_history(state: BotState) -> Panel:
             status_label = f"{status_label} (Shadow)"
         status_color = "green" if status == "won" else "red" if status == "lost" else "yellow" if status in SHADOW_NO_FILL_STATUSES else "white"
         wib_time = entry.closed_at.astimezone(_WIB).strftime("%H:%M")
+        entry_btc_s = f"${entry.entry_btc:,.2f}" if entry.entry_btc > 0.0 else "—"
+        exit_btc_s = f"${entry.exit_btc:,.2f}" if entry.exit_btc > 0.0 else "—"
 
         table.add_row(
             entry.closed_at.strftime("%H:%M"),
             wib_time,
             f"[{dir_color}]{direction}[/{dir_color}]",
+            entry_btc_s,
+            exit_btc_s,
             f"${entry.amount_usdc:.2f}",
             f"[{pnl_color}]{pnl_s}[/{pnl_color}]",
             f"[{status_color}]{status_label}[/{status_color}]",
@@ -17219,6 +17337,8 @@ def _trade_history_signature(entry: TradeHistoryEntry) -> tuple:
         entry.closed_at.isoformat(),
         entry.simulated,
         entry.shadow,
+        round(entry.entry_btc, 8),
+        round(entry.exit_btc, 8),
     )
 
 
